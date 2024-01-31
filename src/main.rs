@@ -7,6 +7,8 @@ use std::path::*;
 mod parsers;
 use crate::parsers::*;
 
+mod parser_model;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
