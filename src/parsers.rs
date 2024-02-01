@@ -54,8 +54,10 @@ lazy_static! {
     static ref UNPARSED_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+)").unwrap();
 
 
+    static ref PLAYER_HEAL_OTHER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
+    static ref PLAYER_HEALED_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) heals you with their (.+) for (.+) health points").unwrap();
+
     // todo next
-    static ref PLAYER_HEAL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
     static ref PLAYER_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
     static ref PSEUDO_PET_HEAL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
     static ref PSEUDO_PET_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
@@ -80,6 +82,8 @@ lazy_static! {
 pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
     // Order matters!
     vec![
+        extract_player_healed,
+        extract_player_heal_other,
         extract_autohit_one,
         extract_autohit_two,
         extract_autohit_pseudo_pet_one,
@@ -268,6 +272,30 @@ pub fn extract_player_damage_dot(line_number: u32, line: &String) -> Option<File
         Some(data) => Some(FileDataPoint::PlayerDamageDoT {
             data_position: DataPosition::new(line_number, &data[1]),
             damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_player_healed(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_HEALED_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerHealed {
+            data_position: DataPosition::new(line_number, &data[1]),
+            heal_action: HealAction::new(&data[2], "player", &data[3], &data[4]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_player_heal_other(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_HEAL_OTHER_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerHealOther {
+            data_position: DataPosition::new(line_number, &data[1]),
+            heal_action: HealAction::new("player", &data[2], &data[3], &data[4]),
         }),
         None => None,
     }

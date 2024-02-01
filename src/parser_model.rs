@@ -142,6 +142,25 @@ impl ControlPower {
 }
 
 #[derive(Debug)]
+pub struct HealAction {
+    source: String,
+    target: String,
+    power_name: String,
+    heal_amount: f32,
+}
+
+impl HealAction {
+    pub fn new(source: &str, target: &str, power_name: &str, heal_amount_str: &str) -> Self {
+        HealAction {
+            source: String::from(source),
+            target: String::from(target),
+            power_name: String::from(power_name),
+            heal_amount: heal_amount_str.parse().unwrap(),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum FileDataPoint {
     EndParse {
         data_position: DataPosition,
@@ -223,8 +242,18 @@ pub enum FileDataPoint {
         data_position: DataPosition,
         damage_dealt: DamageDealt,
     },
-    PlayerHeal,
-    PlayerHealDoT,
+    PlayerHealOther {
+        data_position: DataPosition,
+        heal_action: HealAction,
+    },
+    PlayerHealed {
+        data_position: DataPosition,
+        heal_action: HealAction,
+    },
+    PlayerHealDoT {
+        data_position: DataPosition,
+        heal_action: HealAction,
+    },
     PlayerHit {
         data_position: DataPosition,
         action_result: HitOrMiss,
