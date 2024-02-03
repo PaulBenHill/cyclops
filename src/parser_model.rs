@@ -75,10 +75,10 @@ impl DamageType {
 
 #[derive(Debug)]
 pub struct DamageDealt {
-    target: String,
-    power_name: String,
-    damage: f32,
-    damage_type: DamageType,
+    pub target: String,
+    pub power_name: String,
+    pub damage: f32,
+    pub damage_type: DamageType,
 }
 
 impl DamageDealt {
@@ -142,20 +142,27 @@ impl ControlPower {
 }
 
 #[derive(Debug)]
-pub struct HealAction {
+pub struct HealEnduranceAction {
     source: String,
     target: String,
     power_name: String,
-    heal_amount: f32,
+    amount: f32,
 }
 
-impl HealAction {
-    pub fn new(source: &str, target: &str, power_name: &str, heal_amount_str: &str) -> Self {
-        HealAction {
+impl HealEnduranceAction {
+    pub fn new(source: &str, target: &str, power_name: &str, amount: &str) -> Self {
+        let value: f32 = match amount.parse() {
+            Ok(number) => number,
+            Err(error) => {
+                println!("Unparsable heal or endurance number {}:{:?}", amount, error);
+                12345 as f32
+            }
+        };
+        HealEnduranceAction {
             source: String::from(source),
             target: String::from(target),
             power_name: String::from(power_name),
-            heal_amount: heal_amount_str.parse().unwrap(),
+            amount: value,
         }
     }
 }
@@ -233,28 +240,49 @@ pub enum FileDataPoint {
         data_position: DataPosition,
         control_type: ControlPower,
     },
+    PlayerBlindDebuff {
+        data_position: DataPosition,
+        target: String,
+        power_name: String,
+    },
     PlayerDamage {
         data_position: DataPosition,
         damage_dealt: DamageDealt,
     },
-    PlayerDamageCritical,
+    PlayerCriticalDamage {
+        data_position: DataPosition,
+        damage_dealt: DamageDealt,
+        critical_type: String,
+    },
     PlayerDamageDoT {
         data_position: DataPosition,
         damage_dealt: DamageDealt,
     },
     PlayerHealOther {
         data_position: DataPosition,
-        heal_action: HealAction,
+        heal_action: HealEnduranceAction,
     },
     PlayerHealed {
         data_position: DataPosition,
-        heal_action: HealAction,
+        heal_action: HealEnduranceAction,
+    },
+    PlayerEnduranceOther {
+        data_position: DataPosition,
+        heal_action: HealEnduranceAction,
+    },
+    PlayerEndurance {
+        data_position: DataPosition,
+        heal_action: HealEnduranceAction,
     },
     PlayerHealDoT {
         data_position: DataPosition,
-        heal_action: HealAction,
+        heal_action: HealEnduranceAction,
     },
     PlayerHit {
+        data_position: DataPosition,
+        action_result: HitOrMiss,
+    },
+    PlayerMiss {
         data_position: DataPosition,
         action_result: HitOrMiss,
     },
@@ -263,7 +291,15 @@ pub enum FileDataPoint {
         target: String,
         power_name: String,
     },
-    PlayerMiss,
+    PlayerTerrifyProc {
+        data_position: DataPosition,
+        target: String,
+        power_name: String,
+    },
+    PlayerReadyingPower {
+        data_position: DataPosition,
+        power_name: String,
+    },
     PlayerPowerActivation {
         data_position: DataPosition,
         power_name: String,
@@ -288,13 +324,30 @@ pub enum FileDataPoint {
         pet_name: String,
         damage_dealt: DamageDealt,
     },
-    PsuedoPetDamageCritical,
+    PsuedoPetCriticalDamage {
+        data_position: DataPosition,
+        pet_name: String,
+        damage_dealt: DamageDealt,
+        critical_type: String,
+    },
     PsuedoPetDamageDoT {
         data_position: DataPosition,
         pet_name: String,
         damage_dealt: DamageDealt,
     },
     PsuedoPetKnockdown {
+        data_position: DataPosition,
+        pet_name: String,
+        target: String,
+        power_name: String,
+    },
+    PseudoPetResistDebuff {
+        data_position: DataPosition,
+        pet_name: String,
+        target: String,
+        power_name: String,
+    },
+    PseudoPetSleepDebuff {
         data_position: DataPosition,
         pet_name: String,
         target: String,

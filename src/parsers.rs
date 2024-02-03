@@ -21,19 +21,27 @@ lazy_static! {
     static ref MOB_PSEUDO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of (.+) damage over time[.]").unwrap();
 
     //static ref DAM_PROC_MATCHER: Regex = Regex::new(r"(.+: Chance for .+)|(.+/Chance for .+)").unwrap();
-    static ref PLAYER_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of (.+) damage(.*)[.]").unwrap();
+    static ref PLAYER_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of (.+) damage[.]").unwrap();
+    static ref PLAYER_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\)[.]").unwrap();
     static ref PLAYER_DOT_MATCHER:Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for (.+) points of (.+) damage over time.").unwrap();
     static ref PLAYER_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
+    static ref PLAYER_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
     static ref PLAYER_KNOCKBACK_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You knock (.+) off their feet with your (.+)!").unwrap();
+    static ref PLAYER_BLIND_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You blind (.+) with your (.+), reducing their perception and chance to hit!$").unwrap();
+    static ref PLAYER_TERRIFY_PROC_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You terrify (.+) with your (.+) causing them to have reduced damage.$").unwrap();
+    static ref PLAYER_READYING_POWER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) Readying (.+)\.").unwrap();
 
     static ref ACTIVATION_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You activated the (.+) power.$").unwrap();
     static ref START_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) \[Local\] (.+): STARTPARSE (.+)").unwrap();
 
     static ref PSEDUO_PET_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage.$").unwrap();
+    static ref PSEDUO_PET_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\).$").unwrap();
     static ref PSEDUO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage over time.").unwrap();
     static ref PSEDUO_PET_KNOCKBACK_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.*):  You knock (.+) off their feet with your (.+)!").unwrap();
     static ref PSEUDO_PET_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
     static ref PSEUDO_PET_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
+    static ref PSEDUO_PET_RESIST_DEBUFF: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  Your (.+) reduces the resistances of (.+).$").unwrap();
+    static ref PSEDUO_PET_SLEEP_DEBUFF: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You put (.+) to sleep with your (.+).$").unwrap();
 
     static ref PLAYER_VICTORY_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You have defeated (.+)").unwrap();
     static ref OTHER_VICTORY_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) has defeated (.+)").unwrap();
@@ -57,10 +65,13 @@ lazy_static! {
     static ref PLAYER_HEAL_OTHER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
     static ref PLAYER_HEALED_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) heals you with their (.+) for (.+) health points").unwrap();
 
+    static ref PLAYER_ENDURANCE_OTHER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with (.+) granting them (.*) points of endurance[.]$").unwrap();
+    static ref PLAYER_ENDURANCE_BUFF: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) granting you (.+) points of endurance").unwrap();
+
     // todo next
-    static ref PLAYER_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
-    static ref PSEUDO_PET_HEAL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
-    static ref PSEUDO_PET_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
+    //static ref PLAYER_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
+    //static ref PSEUDO_PET_HEAL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
+    //static ref PSEUDO_PET_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
     /*
     public static final String PATTERN_WELCOME_VILLIAN	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) Now entering the Rogue Isles, (.+)!";
     public static final String PATTERN_MISS 	 	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).";
@@ -82,6 +93,8 @@ lazy_static! {
 pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
     // Order matters!
     vec![
+        extract_player_endurance,
+        extract_player_endurance_other,
         extract_player_healed,
         extract_player_heal_other,
         extract_autohit_one,
@@ -89,16 +102,24 @@ pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_autohit_pseudo_pet_one,
         extract_autohit_pseudo_pet_two,
         extract_pseudo_pet_knockback,
+        extract_pseudo_pet_resist_debuff,
+        extract_pseudo_pet_sleep_debuff,
+        extract_player_terrify_proc,
         extract_player_knockback,
+        extract_player_readying_power,
         extract_mob_pseudopet_hit,
         extract_mob_pseudopet_miss,
         extract_activation,
+        extract_player_blind,
         extract_player_hit,
+        extract_player_miss,
         extract_player_damage_dot,
         extract_player_damage,
+        extract_player_critical_damage,
         extract_pseudo_pet_damage_dot,
         extract_pseudo_pet_damage,
         extract_pseudo_pet_hit,
+        extract_pseudo_pet_critical_damage,
         extract_pseudo_pet_miss,
         extract_end_parse,
         extract_exp_inf_gain,
@@ -253,6 +274,69 @@ pub fn extract_player_hit(line_number: u32, line: &String) -> Option<FileDataPoi
     }
 }
 
+pub fn extract_player_critical_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_CRITICAL_DAMAGE_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerCriticalDamage {
+            data_position: DataPosition::new(line_number, &data[1]),
+            damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
+            critical_type: String::from(&data[6]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_player_miss(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_MISS_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerMiss {
+            data_position: DataPosition::new(line_number, &data[1]),
+            action_result: HitOrMiss::new(&data[2], &data[3], &data[4]),
+        }),
+        None => None,
+    }
+}
+
+fn extract_player_blind(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_BLIND_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerBlindDebuff {
+            data_position: DataPosition::new(line_number, &data[1]),
+            target: String::from(&data[2]),
+            power_name: String::from(&data[3]),
+        }),
+        None => None,
+    }
+}
+
+fn extract_player_terrify_proc(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_TERRIFY_PROC_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerTerrifyProc {
+            data_position: DataPosition::new(line_number, &data[1]),
+            target: String::from(&data[2]),
+            power_name: String::from(&data[3]),
+        }),
+        None => None,
+    }
+}
+
+fn extract_player_readying_power(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_READYING_POWER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerReadyingPower {
+            data_position: DataPosition::new(line_number, &data[1]),
+            power_name: String::from(&data[2]),
+        }),
+        None => None,
+    }
+}
+
 pub fn extract_player_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
     let caps = PLAYER_DAMAGE_MATCHER.captures(line);
 
@@ -283,7 +367,7 @@ pub fn extract_player_healed(line_number: u32, line: &String) -> Option<FileData
     match caps {
         Some(data) => Some(FileDataPoint::PlayerHealed {
             data_position: DataPosition::new(line_number, &data[1]),
-            heal_action: HealAction::new(&data[2], "player", &data[3], &data[4]),
+            heal_action: HealEnduranceAction::new(&data[2], "player", &data[3], &data[4]),
         }),
         None => None,
     }
@@ -295,7 +379,31 @@ pub fn extract_player_heal_other(line_number: u32, line: &String) -> Option<File
     match caps {
         Some(data) => Some(FileDataPoint::PlayerHealOther {
             data_position: DataPosition::new(line_number, &data[1]),
-            heal_action: HealAction::new("player", &data[2], &data[3], &data[4]),
+            heal_action: HealEnduranceAction::new("player", &data[2], &data[3], &data[4]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_player_endurance(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_ENDURANCE_BUFF.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerEndurance {
+            data_position: DataPosition::new(line_number, &data[1]),
+            heal_action: HealEnduranceAction::new(&data[2], "player", &data[3], &data[4]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_player_endurance_other(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_ENDURANCE_OTHER_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerEnduranceOther {
+            data_position: DataPosition::new(line_number, &data[1]),
+            heal_action: HealEnduranceAction::new("player", &data[2], &data[3], &data[4]),
         }),
         None => None,
     }
@@ -309,6 +417,23 @@ pub fn extract_pseudo_pet_damage(line_number: u32, line: &String) -> Option<File
             data_position: DataPosition::new(line_number, &data[1]),
             pet_name: String::from(&data[2]),
             damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_pseudo_pet_critical_damage(
+    line_number: u32,
+    line: &String,
+) -> Option<FileDataPoint> {
+    let caps = PSEDUO_PET_CRITICAL_DAMAGE_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PsuedoPetCriticalDamage {
+            data_position: DataPosition::new(line_number, &data[1]),
+            pet_name: String::from(&data[2]),
+            damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
+            critical_type: String::from(&data[7]),
         }),
         None => None,
     }
@@ -375,6 +500,34 @@ pub fn extract_pseudo_pet_knockback(line_number: u32, line: &String) -> Option<F
             pet_name: String::from(&data[2]),
             target: String::from(&data[3]),
             power_name: String::from(&data[4]),
+        }),
+        None => None,
+    }
+}
+
+fn extract_pseudo_pet_resist_debuff(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PSEDUO_PET_RESIST_DEBUFF.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PseudoPetResistDebuff {
+            data_position: DataPosition::new(line_number, &data[1]),
+            pet_name: String::from(&data[2]),
+            target: String::from(&data[4]),
+            power_name: String::from(&data[3]),
+        }),
+        None => None,
+    }
+}
+
+fn extract_pseudo_pet_sleep_debuff(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PSEDUO_PET_SLEEP_DEBUFF.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PseudoPetSleepDebuff {
+            data_position: DataPosition::new(line_number, &data[1]),
+            pet_name: String::from(&data[2]),
+            target: String::from(&data[4]),
+            power_name: String::from(&data[3]),
         }),
         None => None,
     }
