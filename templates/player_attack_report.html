@@ -1,0 +1,87 @@
+{% set total_critical_percentage = (report.total_critical_hits/report.total_hits) * 100 %}
+{% set total_critical_damage_percentage = (report.total_critical_damage/report.total_damage) * 100 %}
+<html>
+
+<head>
+    <style>
+        table {
+            font-family: arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        td,
+        th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #dddddd;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Attack Summary</h3>
+    <table title="Attack Summary">
+        <th onclick="sortTable(0)">Total Attacks</th>
+        <th onclick="sortTable(0)">Total Hits</th>
+        <th onclick="sortTable(0)">Total Misses</th>
+        <th onclick="sortTable(0)">Total Damage</th>
+        <th onclick="sortTable(1)">Direct Damage</th>
+        <th onclick="sortTable(2)">DoT Damage</th>
+        <th onclick="sortTable(3)">Critical Hits</th>
+        <th onclick="sortTable(4)">Critical Hit Percentage</th>
+        <th onclick="sortTable(5)">Critical Damage</th>
+        <th onclick="sortTable(6)">Critical Damage Percentage</th>
+        <tr>
+            <td>{{ report.total_activations }}</td>
+            <td>{{ report.total_hits }}</td>
+            <td>{{ report.total_misses }}</td>
+            <td>{{ report.total_damage }}</td>
+            <td>{{ report.total_direct_damage }}</td>
+            <td>{{ report.total_dot_damage }}</td>
+            <td>{{ report.total_critical_hits }}</td>
+            <td>{{ total_critical_percentage }}</td>
+            <td>{{ report.total_critical_damage }}</td>
+            <td>{{ total_critical_damage_percentage }}</td>
+        </tr>
+    </table>
+    <h2>Attack Summary By Power</h2>
+    <table title="Attack Summary By Power">
+        <th onclick="sortTable(0)">Attack</th>
+        <th onclick="sortTable(0)">Activations</th>
+        <th onclick="sortTable(0)">Hits</th>
+        <th onclick="sortTable(0)">Misses</th>
+        <th onclick="sortTable(0)">Percentage Hit</th>
+        <th onclick="sortTable(0)">Total Damage</th>
+        <th onclick="sortTable(0)">Direct Damage</th>
+        <th onclick="sortTable(0)">DoT Damage</th>
+        <th onclick="sortTable(0)">Critical Hits</th>
+        <th onclick="sortTable(0)">Critical Hits Percentage</th>
+        <th onclick="sortTable(0)">Critical Damage</th>
+        <th onclick="sortTable(0)">Critical Damage Percentage</th>
+        {% for power in powers %}
+        {% set critical_percentage = (power.critical_hits/power.hits) * 100 %}
+        {% set critical_damage_percentage = (power.critical_damage/power.total_damage) * 100 %}
+        <tr>
+            <td>{{ power.name }}</td>
+            <td>{{ power.activations }}</td>
+            <td>{{ power.hits }}</td>
+            <td>{{ power.misses }}</td>
+            <td>{{ power.percentage_hit }}</td>
+            <td>{{ power.total_damage }}</td>
+            <td>{{ power.direct_damage }}</td>
+            <td>{{ power.dot_damage }}</td>
+            <td>{{ power.critical_hits }}</td>
+            <td>{{ critical_percentage }}</td>
+            <td>{{ power.critical_damage }}</td>
+            <td>{{ critical_damage_percentage }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+
+</html>

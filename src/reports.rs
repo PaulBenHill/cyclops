@@ -1,17 +1,18 @@
 use crate::parser_model::{DamageDealt, FileDataPoint, HitOrMiss};
 use core::fmt;
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, hash::Hash, sync::Arc};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SummaryReport {
     pub total_activations: u32,
     pub total_hits: u32,
     pub total_misses: u32,
-    pub total_damage: f32,
-    pub total_normal_damage: f32,
-    pub total_dot_damage: f32,
+    pub total_damage: u32,
+    pub total_direct_damage: u32,
+    pub total_dot_damage: u32,
     pub total_critical_hits: u32,
-    pub total_critical_damage: f32,
+    pub total_critical_damage: u32,
     pub damage_powers: HashMap<String, AttackPower>,
 }
 
@@ -21,45 +22,46 @@ impl SummaryReport {
             total_activations: 0.to_owned(),
             total_hits: 0.to_owned(),
             total_misses: 0.to_owned(),
-            total_damage: 0.0.to_owned(),
-            total_normal_damage: 0.0.to_owned(),
-            total_dot_damage: 0.0.to_owned(),
+            total_damage: 0.to_owned(),
+            total_direct_damage: 0.to_owned(),
+            total_dot_damage: 0.to_owned(),
             total_critical_hits: 0.to_owned(),
-            total_critical_damage: 0.0.to_owned(),
+            total_critical_damage: 0.to_owned(),
             damage_powers: HashMap::new(),
         }
     }
 
     fn update_direct_damage(&mut self, effect: &DamageDealt) {
-        self.total_normal_damage += effect.damage;
-        self.total_damage += effect.damage;
+        self.total_direct_damage += effect.damage.round() as u32;
+        self.total_damage += effect.damage.round() as u32;
 
         let entry = self.get_or_create_damage_power(&effect.power_name);
 
-        entry.direct_damage += effect.damage;
-        entry.total_damage += effect.damage;
+        entry.direct_damage += effect.damage.round() as u32;
+        entry.total_damage += effect.damage.round() as u32;
     }
 
     fn update_dot_damage(&mut self, effect: &DamageDealt) {
-        self.total_dot_damage += effect.damage;
-        self.total_damage += effect.damage;
+        self.total_dot_damage += effect.damage.round() as u32;
+        self.total_damage += effect.damage.round() as u32;
 
         let entry = self.get_or_create_damage_power(&effect.power_name);
 
-        entry.dot_damage += effect.damage;
-        entry.total_damage += effect.damage;
+        entry.dot_damage += effect.damage.round() as u32;
+        entry.total_damage += effect.damage.round() as u32;
     }
 
     fn update_critical_damage(&mut self, effect: &DamageDealt) {
-        self.total_critical_damage += effect.damage;
+        self.total_critical_damage += effect.damage.round() as u32;
+
         self.total_critical_hits += 1;
-        self.total_damage += effect.damage;
+        self.total_damage += effect.damage.round() as u32;
 
         let entry = self.get_or_create_damage_power(&effect.power_name);
 
         entry.critical_hits += 1;
-        entry.critical_damage += effect.damage;
-        entry.total_damage += effect.damage;
+        entry.critical_damage += effect.damage.round() as u32;
+        entry.total_damage += effect.damage.round() as u32;
     }
 
     fn update_player_hits(&mut self, hit_result: &HitOrMiss) {
@@ -97,31 +99,18 @@ impl SummaryReport {
         powers
     }
 }
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct AttackPower {
-    name: String,
-    activations: u32,
-    hits: u32,
-    misses: u32,
-    precentage_hit: f32,
-    total_damage: f32,
-    direct_damage: f32,
-    dot_damage: f32,
-    critical_hits: u32,
-    critical_damage: f32,
-}
-
-impl fmt::Display for AttackPower {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    let mut crit_hit_precent = 0.0;
-    if self.critical_hits > 0 && self.activations > 0 {
-        crit_hit_precent = (self.critical_hits as f32/self.activations as f32) * 100.0;
-    }
-        write!(f, 
-            "{}, Activations: {}, Hits {}, Miss {}, Total damage: {:.0}, Direct Damage: {:.0}, DoT Damage: {:.0}, Critical Hits: {}, Critical Hit %: {:.0}, Critical Damage: {:.0}, Critical Damage Precentage: {:.2}%",
-    self.name, self.activations, self.hits, self.misses, self.total_damage, self.direct_damage, self.dot_damage, self.critical_hits, crit_hit_precent, self.critical_damage,
-(self.critical_damage/self.total_damage)*100.0)
-    }
+    pub name: String,
+    pub activations: u32,
+    pub hits: u32,
+    pub misses: u32,
+    pub percentage_hit: u32,
+    pub total_damage: u32,
+    pub direct_damage: u32,
+    pub dot_damage: u32,
+    pub critical_hits: u32,
+    pub critical_damage: u32,
 }
 
 pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> SummaryReport {
@@ -170,6 +159,6 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> SummaryReport {
         };
     }
 
-    report.total_damage = report.total_normal_damage + report.total_critical_damage;
+    report.total_damage = report.total_direct_damage + report.total_critical_damage;
     report
 }

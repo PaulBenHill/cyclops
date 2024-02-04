@@ -6,6 +6,8 @@ use std::time::Instant;
 use std::{env, fs};
 
 mod parsers;
+use tera::{Context, Tera};
+
 use crate::parser_model::FileDataPoint;
 use crate::parsers::*;
 
@@ -15,6 +17,8 @@ mod reports;
 use crate::reports::*;
 
 const OUTPUT_DIR: &str = "output";
+const TEMPLATES: &str = "templates";
+const PLAYER_ATTACK_REPORT_TEMPLATE: &str = "player_attack_report.html";
 
 fn main() {
     let start = Instant::now();
@@ -101,30 +105,37 @@ fn write_reports(
         }
     }
 
-    let mut summary_file = match File::create(report_dir.join("summary.txt")) {
+    let mut summary_file = match File::create(report_dir.join("summary.html")) {
         Ok(f) => f,
         Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
     };
 
-    match write!( summary_file, "Total damage: {:.0}, Normal damage {}, DoT damage {}, Critical Hits {}, Critical damage {}, Critical damage percentage: {:.1}%\n",
-        summary_report.total_damage,
-        summary_report.total_normal_damage,
-        summary_report.total_dot_damage,
-        summary_report.total_critical_hits,
-        summary_report.total_critical_damage,
-        (summary_report.total_critical_damage / summary_report.total_damage) * 100.0
-    ) {
-            Ok(_) => (),
-            Err(e) => panic!("Cannot write to summary.txt file: {:?}", e),
-        }
+    let tera = match Tera::new(&format!("{}{}*.html", TEMPLATES, std::path::MAIN_SEPARATOR)) {
+        Ok(t) => t,
+        Err(e) => panic!("Unable to load templates: {:?}", e),
+    };
 
-    for power in summary_report.sort_powers_by_total_damage() {
-        match write!(summary_file, "{}\n", power) {
-            Ok(_) => (),
-            Err(e) => panic!("Cannot write to summary.txt file: {:?}", e),
+    let mut report_context = Context::new();
+    report_context.insert("report", &summary_report);
+    report_context.insert("powers", &summary_report.sort_powers_by_total_damage());
+
+    let result = tera.render(PLAYER_ATTACK_REPORT_TEMPLATE, &report_context);
+    match result {
+        Ok(data) => {
+            summary_file
+                .write_all(data.as_bytes())
+                .expect("Unable to write file.");
         }
+        Err(e) => panic!("Could not render {}:{:?}", PLAYER_ATTACK_REPORT_TEMPLATE, e),
     }
-
+    /*
+        for power in summary_report.sort_powers_by_total_damage() {
+            match write!(summary_file, "{}\n", power) {
+                Ok(_) => (),
+                Err(e) => panic!("Cannot write to summary.txt file: {:?}", e),
+            }
+        }
+    */
     true
 }
 
@@ -201,9 +212,9 @@ fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, SummaryR
     println!(
         "Total damage: {}, Normal damage {}, Critical damage {}, Critical damage percentage: {:.1}%",
         damage_report.total_damage,
-        damage_report.total_normal_damage,
+        damage_report.total_direct_damage,
         damage_report.total_critical_damage,
-        (damage_report.total_critical_damage / damage_report.total_damage) * 100.0
+        (damage_report.total_critical_damage / damage_report.total_damage) * 100
     );
     (data_points, damage_report)
 }
