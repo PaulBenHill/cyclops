@@ -1,7 +1,8 @@
 use std::fs::File;
-use std::io::Lines;
 use std::io::{BufRead, BufReader};
+use std::io::{Lines, Write};
 use std::path::*;
+use std::time::Instant;
 use std::{env, fs};
 
 mod parsers;
@@ -16,6 +17,7 @@ use crate::reports::*;
 const OUTPUT_DIR: &str = "output";
 
 fn main() {
+    let start = Instant::now();
     let working_dir = env::current_dir().unwrap().clone();
     println!("The current directory is {}", working_dir.display());
 
@@ -37,8 +39,10 @@ fn main() {
 
         let report_dir = create_report_dir(&working_dir, file_name, result.1);
 
-        write_reports(&report_dir, reports.0, reports.1);
+        write_reports(&report_dir, result.0, file_name, reports.0, reports.1);
     }
+
+    println!("Run time took: {} second.", start.elapsed().as_secs());
 }
 
 fn create_report_dir(working_dir: &PathBuf, filename: &str, file_size: u64) -> PathBuf {
@@ -71,9 +75,56 @@ fn create_report_dir(working_dir: &PathBuf, filename: &str, file_size: u64) -> P
 
 fn write_reports(
     report_dir: &PathBuf,
+    data_file: &Path,
+    file_name: &str,
     parsed_lines: Vec<FileDataPoint>,
-    damage_report: DamageReport,
+    summary_report: SummaryReport,
 ) -> bool {
+    // four files to write
+    // original data file
+    // summary (damage (criticals), damage by power (criticals), damage by type)
+    // parsed log
+    // error log
+    if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
+        println!("Copying data file return zero bytes: {}", e);
+    }
+
+    let mut parsed_file = match File::create(report_dir.join("parsed.txt")) {
+        Ok(f) => f,
+        Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
+    };
+
+    for data_point in parsed_lines {
+        match write!(parsed_file, "{:?}\n", data_point) {
+            Ok(_) => (),
+            Err(e) => panic!("Cannot write to parsed.txt file: {:?}", e),
+        }
+    }
+
+    let mut summary_file = match File::create(report_dir.join("summary.txt")) {
+        Ok(f) => f,
+        Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
+    };
+
+    match write!( summary_file, "Total damage: {:.0}, Normal damage {}, DoT damage {}, Critical Hits {}, Critical damage {}, Critical damage percentage: {:.1}%\n",
+        summary_report.total_damage,
+        summary_report.total_normal_damage,
+        summary_report.total_dot_damage,
+        summary_report.total_critical_hits,
+        summary_report.total_critical_damage,
+        (summary_report.total_critical_damage / summary_report.total_damage) * 100.0
+    ) {
+            Ok(_) => (),
+            Err(e) => panic!("Cannot write to summary.txt file: {:?}", e),
+        }
+
+    for power in summary_report.sort_powers_by_total_damage() {
+        match write!(summary_file, "{}\n", power) {
+            Ok(_) => (),
+            Err(e) => panic!("Cannot write to summary.txt file: {:?}", e),
+        }
+    }
+
     true
 }
 
@@ -125,7 +176,7 @@ fn open_log_file(path: &Path) -> BufReader<File> {
     BufReader::new(file)
 }
 
-fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, DamageReport) {
+fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, SummaryReport) {
     let mut line_count: u32 = 0;
     let parsers = initialize_matcher();
     let mut data_points: Vec<FileDataPoint> = Vec::new();
@@ -146,13 +197,13 @@ fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, DamageRe
         data_points.len()
     );
 
-    let damage_report: DamageReport = total_player_damage(&data_points);
+    let damage_report: SummaryReport = total_player_attacks(&data_points);
     println!(
         "Total damage: {}, Normal damage {}, Critical damage {}, Critical damage percentage: {:.1}%",
         damage_report.total_damage,
-        damage_report.normal_damage,
-        damage_report.critical_damage,
-        (damage_report.critical_damage / damage_report.total_damage) * 100.0
+        damage_report.total_normal_damage,
+        damage_report.total_critical_damage,
+        (damage_report.total_critical_damage / damage_report.total_damage) * 100.0
     );
     (data_points, damage_report)
 }

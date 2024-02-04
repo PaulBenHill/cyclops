@@ -2,9 +2,9 @@ use chrono::{self, DateTime, Local, NaiveDateTime};
 
 #[derive(Debug)]
 pub struct HitOrMiss {
-    target: String,
-    power_name: String,
-    chance_to_hit: f32,
+    pub target: String,
+    pub power_name: String,
+    pub chance_to_hit: f32,
 }
 
 impl HitOrMiss {
