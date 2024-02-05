@@ -19,8 +19,8 @@ impl HitOrMiss {
 
 #[derive(Debug)]
 pub struct DataPosition {
-    line_number: u32,
-    date: DateTime<Local>,
+    pub line_number: u32,
+    pub date: DateTime<Local>,
 }
 
 impl DataPosition {
@@ -169,10 +169,6 @@ impl HealEnduranceAction {
 
 #[derive(Debug)]
 pub enum FileDataPoint {
-    EndParse {
-        data_position: DataPosition,
-        player_name: String,
-    },
     ExpAndInfGain {
         data_position: DataPosition,
         exp: u32,
@@ -353,9 +349,13 @@ pub enum FileDataPoint {
         target: String,
         power_name: String,
     },
-    StartParse,
-    WelcomeMessageHero,
-    WelcomeMessageVillian,
+    EndParse {
+        data_position: DataPosition,
+    },
+    SessionMarker {
+        data_position: DataPosition,
+        player_name: String,
+    },
     PlayerVictory {
         data_position: DataPosition,
         target: String,

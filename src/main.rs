@@ -1,6 +1,5 @@
 use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::io::{Lines, Write};
+use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
 use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
@@ -39,24 +38,21 @@ fn main() {
 
         let lines = reader.lines();
 
-        let reports = process_lines(lines);
+        let reports: (Vec<FileDataPoint>, Vec<SummaryReport>) = process_lines(lines);
 
         let report_dir = create_report_dir(&working_dir, file_name, result.1);
 
-        write_reports(&report_dir, result.0, file_name, reports.0, reports.1);
+        for (index, report) in reports.1.iter().enumerate() {
+            write_reports(&report_dir, result.0, file_name, &reports.0, index, report);
+        }
     }
 
-    println!("Run time took: {} second.", start.elapsed().as_secs());
+    println!("Total run time took: {} second.", start.elapsed().as_secs());
 }
 
 fn create_report_dir(working_dir: &PathBuf, filename: &str, file_size: u64) -> PathBuf {
-    let mut report_dir_name = String::new();
-    report_dir_name.push_str(filename);
-    report_dir_name.push_str(&file_size.to_string());
-    report_dir_name = report_dir_name
-        .chars()
-        .filter(|c| !c.is_whitespace())
-        .collect();
+    let mut report_dir_name = format!("{}_{}", filename.replace("-", "_"), file_size.to_string());
+    report_dir_name = report_dir_name.replace(" ", "_");
 
     let report_dir: PathBuf = [
         working_dir,
@@ -81,31 +77,36 @@ fn write_reports(
     report_dir: &PathBuf,
     data_file: &Path,
     file_name: &str,
-    parsed_lines: Vec<FileDataPoint>,
-    summary_report: SummaryReport,
+    parsed_lines: &Vec<FileDataPoint>,
+    index: usize,
+    summary: &SummaryReport,
 ) -> bool {
-    // four files to write
+    // files to write
     // original data file
-    // summary (damage (criticals), damage by power (criticals), damage by type)
     // parsed log
-    // error log
+    // error log todo
+    // summary files for each session
     if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
         println!("Copying data file return zero bytes: {}", e);
     }
 
-    let mut parsed_file = match File::create(report_dir.join("parsed.txt")) {
+    let parsed_file = match File::create(report_dir.join("parsed.txt")) {
         Ok(f) => f,
         Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
     };
-
+    let mut buf_writer = BufWriter::new(parsed_file);
     for data_point in parsed_lines {
-        match write!(parsed_file, "{:?}\n", data_point) {
-            Ok(_) => (),
-            Err(e) => panic!("Cannot write to parsed.txt file: {:?}", e),
-        }
+        buf_writer
+            .write_all(format!("{:?}\n,", data_point).as_bytes())
+            .expect("Unable to write parsed.txt")
     }
 
-    let mut summary_file = match File::create(report_dir.join("summary.html")) {
+    let summary_file_name = format!(
+        "{}_{}_summary.html",
+        summary.player_name.replace(" ", "_").to_lowercase(),
+        (index + 1).to_string()
+    );
+    let mut summary_file = match File::create(report_dir.join(summary_file_name)) {
         Ok(f) => f,
         Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
     };
@@ -116,8 +117,9 @@ fn write_reports(
     };
 
     let mut report_context = Context::new();
-    report_context.insert("report", &summary_report);
-    report_context.insert("powers", &summary_report.sort_powers_by_total_damage());
+    report_context.insert("data_file_name", file_name);
+    report_context.insert("report", &summary);
+    report_context.insert("powers", &summary.sort_powers_by_total_damage());
 
     let result = tera.render(PLAYER_ATTACK_REPORT_TEMPLATE, &report_context);
     match result {
@@ -128,14 +130,6 @@ fn write_reports(
         }
         Err(e) => panic!("Could not render {}:{:?}", PLAYER_ATTACK_REPORT_TEMPLATE, e),
     }
-    /*
-        for power in summary_report.sort_powers_by_total_damage() {
-            match write!(summary_file, "{}\n", power) {
-                Ok(_) => (),
-                Err(e) => panic!("Cannot write to summary.txt file: {:?}", e),
-            }
-        }
-    */
     true
 }
 
@@ -145,7 +139,7 @@ fn create_output_dir() -> bool {
             println!("Output dir: {:?}", path);
             true
         }
-        Err(e) => match fs::create_dir(OUTPUT_DIR) {
+        Err(_) => match fs::create_dir(OUTPUT_DIR) {
             Ok(output_dir) => {
                 println!(
                     "Output directory did not exist. Creating dir: {:?}",
@@ -187,34 +181,38 @@ fn open_log_file(path: &Path) -> BufReader<File> {
     BufReader::new(file)
 }
 
-fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, SummaryReport) {
+fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<SummaryReport>) {
     let mut line_count: u32 = 0;
     let parsers = initialize_matcher();
     let mut data_points: Vec<FileDataPoint> = Vec::new();
 
+    let start = Instant::now();
     for line in lines.flatten() {
         line_count += 1;
         for p in &parsers {
             if let Some(data) = p(line_count, &line) {
-                //println!("{:?}", data);
                 data_points.push(data);
                 break;
             }
         }
     }
+
     println!(
         "Line count: {}, Data point count: {}",
         line_count,
         data_points.len()
     );
-
-    let damage_report: SummaryReport = total_player_attacks(&data_points);
     println!(
-        "Total damage: {}, Normal damage {}, Critical damage {}, Critical damage percentage: {:.1}%",
-        damage_report.total_damage,
-        damage_report.total_direct_damage,
-        damage_report.total_critical_damage,
-        (damage_report.total_critical_damage / damage_report.total_damage) * 100
+        "Matching and conversion: {} second.",
+        start.elapsed().as_secs()
     );
-    (data_points, damage_report)
+
+    let start = Instant::now();
+    let summaries: Vec<SummaryReport> = total_player_attacks(&data_points);
+    println!(
+        "Generating summaries took: {} second.",
+        start.elapsed().as_secs()
+    );
+
+    (data_points, summaries)
 }

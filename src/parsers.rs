@@ -6,7 +6,8 @@ use regex::Regex;
 use crate::parser_model::*;
 
 lazy_static! {
-    static ref END_PARSE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) \[Local\] (.+): ENDPARSE (.+)").unwrap();
+    static ref SESSION_MARKER_MATCHER_1: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) \[Local\] (.+): (?:(STARTPARSE|ENDPARSE).*).*").unwrap();
+    static ref SESSION_MARKER_MATCHER_2: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (?:Now entering the Rogue Isles|Welcome to City of Heroes), (.+)!").unwrap();
 
     static ref EXP_INF_GAIN_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You gain ([0-9,]+) experience and ([0-9,]+) inf.+").unwrap();
     static ref LOOT_DROP_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You received (.+)[.]").unwrap();
@@ -20,7 +21,6 @@ lazy_static! {
     static ref MOB_PSEUDO_PET_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of (.+) damage.*[.]").unwrap();
     static ref MOB_PSEUDO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of (.+) damage over time[.]").unwrap();
 
-    //static ref DAM_PROC_MATCHER: Regex = Regex::new(r"(.+: Chance for .+)|(.+/Chance for .+)").unwrap();
     static ref PLAYER_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of (.+) damage[.]").unwrap();
     static ref PLAYER_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\)[.]").unwrap();
     static ref PLAYER_DOT_MATCHER:Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for (.+) points of (.+) damage over time.").unwrap();
@@ -32,7 +32,6 @@ lazy_static! {
     static ref PLAYER_READYING_POWER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) Readying (.+)\.").unwrap();
 
     static ref ACTIVATION_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You activated the (.+) power.$").unwrap();
-    static ref START_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) \[Local\] (.+): STARTPARSE (.+)").unwrap();
 
     static ref PSEDUO_PET_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage.$").unwrap();
     static ref PSEDUO_PET_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\).$").unwrap();
@@ -66,14 +65,13 @@ lazy_static! {
     static ref PLAYER_HEALED_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) heals you with their (.+) for (.+) health points").unwrap();
 
     static ref PLAYER_ENDURANCE_OTHER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with (.+) granting them (.*) points of endurance[.]$").unwrap();
-    static ref PLAYER_ENDURANCE_BUFF: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) granting you (.+) points of endurance").unwrap();
+    static ref PLAYER_ENDURANCE_BUFF_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) granting you (.+) points of endurance").unwrap();
 
     // todo next
     //static ref PLAYER_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
     //static ref PSEUDO_PET_HEAL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
     //static ref PSEUDO_PET_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
     /*
-    public static final String PATTERN_WELCOME_VILLIAN	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) Now entering the Rogue Isles, (.+)!";
     public static final String PATTERN_MISS 	 	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).";
     public static final String PATTERN_DAM_CRIT		= ".+\\[CRITICAL\\].+";
     public static final String PATTERN_PSEUDOHEAL	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  You heal (.+) with (.+) for (.+) health points.";
@@ -93,6 +91,8 @@ lazy_static! {
 pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
     // Order matters!
     vec![
+        extract_session_marker_1,
+        extract_session_marker_2,
         extract_player_endurance,
         extract_player_endurance_other,
         extract_player_healed,
@@ -121,7 +121,6 @@ pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_pseudo_pet_hit,
         extract_pseudo_pet_critical_damage,
         extract_pseudo_pet_miss,
-        extract_end_parse,
         extract_exp_inf_gain,
         extract_loot_drop,
         extract_mob_hit,
@@ -145,11 +144,23 @@ pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
     ]
 }
 
-pub fn extract_end_parse(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = END_PARSE_MATCHER.captures(line);
+pub fn extract_session_marker_1(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = SESSION_MARKER_MATCHER_1.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::EndParse {
+        Some(data) => Some(FileDataPoint::SessionMarker {
+            data_position: DataPosition::new(line_number, &data[1]),
+            player_name: String::from(&data[2]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_session_marker_2(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = SESSION_MARKER_MATCHER_2.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::SessionMarker {
             data_position: DataPosition::new(line_number, &data[1]),
             player_name: String::from(&data[2]),
         }),
@@ -386,7 +397,7 @@ pub fn extract_player_heal_other(line_number: u32, line: &String) -> Option<File
 }
 
 pub fn extract_player_endurance(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = PLAYER_ENDURANCE_BUFF.captures(line);
+    let caps = PLAYER_ENDURANCE_BUFF_MATCHER.captures(line);
 
     match caps {
         Some(data) => Some(FileDataPoint::PlayerEndurance {

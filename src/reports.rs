@@ -1,10 +1,13 @@
 use crate::parser_model::{DamageDealt, FileDataPoint, HitOrMiss};
-use core::fmt;
+use chrono::{self, DateTime, Local};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, hash::Hash, sync::Arc};
+use std::{collections::HashMap, fs::File, hash::Hash, sync::Arc};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SummaryReport {
+    pub player_name: String,
+    pub start_date: String,
+    pub line_number: u32,
     pub total_activations: u32,
     pub total_hits: u32,
     pub total_misses: u32,
@@ -19,6 +22,9 @@ pub struct SummaryReport {
 impl SummaryReport {
     fn new() -> SummaryReport {
         SummaryReport {
+            player_name: "INITIAL".to_string(),
+            start_date: "".to_string(),
+            line_number: 1.to_owned(),
             total_activations: 0.to_owned(),
             total_hits: 0.to_owned(),
             total_misses: 0.to_owned(),
@@ -29,6 +35,14 @@ impl SummaryReport {
             total_critical_damage: 0.to_owned(),
             damage_powers: HashMap::new(),
         }
+    }
+
+    fn has_data(&self) -> bool {
+        if self.total_hits > 0 || self.total_misses > 0 {
+            return true;
+        }
+
+        false
     }
 
     fn update_direct_damage(&mut self, effect: &DamageDealt) {
@@ -86,7 +100,7 @@ impl SummaryReport {
         entry
     }
 
-    pub fn sort_powers_by_total_damage(self) -> Vec<AttackPower> {
+    pub fn sort_powers_by_total_damage(&self) -> Vec<AttackPower> {
         let values = self.damage_powers.values();
         let mut powers: Vec<AttackPower> = Vec::new();
 
@@ -105,7 +119,6 @@ pub struct AttackPower {
     pub activations: u32,
     pub hits: u32,
     pub misses: u32,
-    pub percentage_hit: u32,
     pub total_damage: u32,
     pub direct_damage: u32,
     pub dot_damage: u32,
@@ -113,7 +126,8 @@ pub struct AttackPower {
     pub critical_damage: u32,
 }
 
-pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> SummaryReport {
+pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryReport> {
+    let mut summaries: Vec<SummaryReport> = Vec::new();
     let mut report = SummaryReport::new();
 
     for point in data_points {
@@ -155,10 +169,35 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> SummaryReport {
                 data_position: _,
                 action_result,
             } => report.update_player_misses(action_result),
+            FileDataPoint::SessionMarker {
+                data_position,
+                player_name,
+            } => {
+                if report.has_data() {
+                    //println!("New session marker found, previous report {:?}", report);
+                    //println!("New session marker {:?}", point);
+                    summaries.push(report);
+                } else {
+                    //println!("Tossed session due to no data: {:?}", report);
+                }
+                report = SummaryReport::new();
+                report.player_name = player_name.to_owned();
+                report.start_date = data_position.date.to_rfc2822();
+                report.line_number = data_position.line_number;
+            }
             _ => (),
         };
     }
 
-    report.total_damage = report.total_direct_damage + report.total_critical_damage;
-    report
+    // We don't always have clean starts at the beginning of the file
+    // If the report has data add it to the summaries
+    if report.has_data() {
+        summaries.push(report);
+    } else {
+        println!(
+            "End of file reached. Tossed session due to no data: {:?}",
+            report
+        );
+    }
+    summaries
 }
