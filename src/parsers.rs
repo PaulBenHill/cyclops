@@ -1,5 +1,3 @@
-use std::fs::File;
-
 use lazy_static::lazy_static;
 use regex::Regex;
 
