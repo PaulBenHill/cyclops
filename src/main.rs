@@ -184,7 +184,7 @@ fn open_log_file(path: &Path) -> BufReader<File> {
 fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<SummaryReport>) {
     let mut line_count: u32 = 0;
     let parsers = initialize_matcher();
-    let mut data_points: Vec<FileDataPoint> = Vec::new();
+    let mut data_points: Vec<FileDataPoint> = Vec::with_capacity(50000);
 
     let start = Instant::now();
     for line in lines.flatten() {
@@ -213,6 +213,8 @@ fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<Summ
         "Generating summaries took: {} second.",
         start.elapsed().as_secs()
     );
+
+    data_points.shrink_to_fit();
 
     (data_points, summaries)
 }

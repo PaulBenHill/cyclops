@@ -1,4 +1,4 @@
-use crate::parser_model::{DamageDealt, FileDataPoint, HitOrMiss};
+use crate::parser_model::{DamageDealt, DataPosition, FileDataPoint, HitOrMiss};
 use chrono::{self, DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -18,6 +18,7 @@ pub struct SummaryReport {
     pub total_critical_damage: u32,
     pub has_pets: bool,
     pub damage_powers: HashMap<String, AttackPower>,
+    pub dpsInterval: Vec<DPSinterval>,
 }
 
 impl SummaryReport {
@@ -36,6 +37,7 @@ impl SummaryReport {
             total_critical_damage: 0.to_owned(),
             has_pets: false,
             damage_powers: HashMap::new(),
+            dpsInterval: Vec::new(),
         }
     }
 
@@ -67,26 +69,22 @@ impl SummaryReport {
         self.total_damage += effect.damage.round() as u32;
     }
 
-    fn update_master_activation_hits(&mut self) {
-        self.total_activations += 1;
+    fn update_master_hits(&mut self) {
         self.total_hits += 1;
     }
 
-    fn update_master_activation_misses(&mut self) {
-        self.total_activations += 1;
+    fn update_master_misses(&mut self) {
         self.total_misses += 1;
     }
 
     fn update_hits_entry(&mut self, source_name: String) {
         let power_entry = self.get_or_create_damage_power(&source_name);
 
-        power_entry.activations += 1;
         power_entry.hits += 1;
     }
     fn update_misses_entry(&mut self, source_name: String) {
         let power_entry = self.get_or_create_damage_power(&source_name);
 
-        power_entry.activations += 1;
         power_entry.misses += 1;
     }
 
@@ -172,8 +170,34 @@ impl SummaryReport {
         self.update_critical_damage_power_entry(source_name.clone(), effect);
     }
 
+    fn update_player_activation(&mut self, source_name: String, power_name: &String) {
+        self.total_activations += 1;
+
+        self.update_activations_entry(power_name.clone());
+        self.update_activations_entry(Self::format_meta_name(
+            source_name.clone(),
+            power_name.clone(),
+        ));
+        self.update_activations_entry(source_name.clone());
+    }
+
+    fn update_pseudo_pet_activations(&mut self, source_name: String, power_name: String) {
+        self.total_activations += 1;
+
+        self.update_activations_entry(power_name.clone());
+        self.update_activations_entry(Self::format_meta_name(
+            source_name.clone(),
+            power_name.clone(),
+        ));
+    }
+
+    fn update_activations_entry(&mut self, power_key: String) {
+        let power_entry = self.get_or_create_damage_power(&power_key);
+        power_entry.activations += 1;
+    }
+
     fn update_player_hits(&mut self, source_name: String, hit_result: &HitOrMiss) {
-        self.update_master_activation_hits();
+        self.update_master_hits();
         self.update_hits_entry(hit_result.power_name.clone());
         self.update_hits_entry(Self::format_meta_name(
             source_name.clone(),
@@ -183,24 +207,27 @@ impl SummaryReport {
     }
 
     fn update_player_misses(&mut self, source_name: String, miss_result: &HitOrMiss) {
-        self.update_master_activation_misses();
-        self.update_hits_entry(miss_result.power_name.clone());
-        self.update_hits_entry(Self::format_meta_name(
+        self.update_master_misses();
+        self.update_misses_entry(miss_result.power_name.clone());
+        self.update_misses_entry(Self::format_meta_name(
             source_name.clone(),
             miss_result.power_name.clone(),
         ));
-        self.update_hits_entry(source_name.clone());
+        self.update_misses_entry(source_name.clone());
     }
 
     fn update_pseudo_pet_hits(&mut self, source_name: String, hit_result: &HitOrMiss) {
-        self.update_master_activation_hits();
-        self.update_hits_entry(format!("{}: {}", source_name, hit_result.power_name));
-        self.update_hits_entry(source_name);
+        self.update_master_hits();
+        self.update_hits_entry(Self::format_meta_name(
+            source_name.clone(),
+            hit_result.power_name.clone(),
+        ));
+        self.update_hits_entry(source_name.clone());
         self.has_pets = true;
     }
 
     fn update_pseudo_pet_misses(&mut self, source_name: String, miss_result: &HitOrMiss) {
-        self.update_master_activation_misses();
+        self.update_master_misses();
         self.update_misses_entry(format!("{}: {}", source_name, miss_result.power_name));
         self.update_misses_entry(source_name);
     }
@@ -241,7 +268,28 @@ pub struct AttackPower {
     pub critical_damage: u32,
 }
 
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct DPSinterval {
+    pub index: u32,
+    pub start_date: i64,
+    pub end_date: i64,
+    pub start_line: u32,
+    pub end_line: u32,
+    pub interval_length: u32,
+    pub damage_dealt: u32,
+    pub mobs_defeated: u32,
+    pub hits: u32,
+    pub missess: u32,
+}
+
+// imp DPSinterval createOrUpdateDPS {
+//     fn createOrUpdateDPS() {
+
+//     }
+// }
+
 pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryReport> {
+    let mut interval = 20;
     let mut summaries: Vec<SummaryReport> = Vec::new();
     let mut report = SummaryReport::new();
 
@@ -263,10 +311,17 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 report.start_date = data_position.date.to_rfc2822();
                 report.line_number = data_position.line_number;
             }
+            FileDataPoint::PlayerPowerActivation {
+                data_position: _,
+                power_name,
+            } => report.update_player_activation(report.player_name.clone(), power_name),
             FileDataPoint::PlayerDamage {
                 data_position: _,
                 damage_dealt,
-            } => report.update_direct_damage(report.player_name.clone(), damage_dealt),
+            } => {
+                report.update_direct_damage(report.player_name.clone(), damage_dealt);
+                // report.createOrUpdateDPS(data_position, damage_dealt.damage);
+            }
             FileDataPoint::PlayerDamageDoT {
                 data_position: _,
                 damage_dealt,

@@ -77,6 +77,7 @@
         <th onclick="sortTable(0)">Misses</th>
         <th onclick="sortTable(0)">Percentage Hit</th>
         <th onclick="sortTable(0)">Total Damage</th>
+        <th onclick="sortTable(0)">Total Damage Percentage</th>
         <th onclick="sortTable(0)">Direct Damage</th>
         <th onclick="sortTable(0)">DoT Damage</th>
         <th onclick="sortTable(0)">Critical Hits</th>
@@ -92,11 +93,17 @@
             <td>{{ power.hits }}</td>
             <td>{{ power.misses }}</td>
             <td>
+                {% set hit_miss_total = power.hits + power.misses %}
                 <script>
-                    document.write(percent_as_string({{ power.hits }}, {{ power.activations }}));
+                    document.write(percent_as_string({{ power.hits }}, {{ hit_miss_total }}));
                 </script>
             </td>
             <td>{{ power.total_damage }}</td>
+            <td>
+                <script>
+                    document.write(percent_as_string({{ power.total_damage }}, {{ report.total_damage }}));
+                </script>
+            </td>
             <td>{{ power.direct_damage }}</td>
             <td>{{ power.dot_damage }}</td>
             <td>{{ power.critical_hits }}</td>
