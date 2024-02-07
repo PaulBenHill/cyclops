@@ -10,6 +10,7 @@ pub struct SummaryReport {
     pub start_date: String,
     pub line_number: u32,
     pub total_activations: u32,
+    pub total_streakbreaker_hits: u32,
     pub total_hits: u32,
     pub total_misses: u32,
     pub total_damage: u32,
@@ -31,6 +32,7 @@ impl SummaryReport {
             line_number: 1.to_owned(),
             total_activations: 0.to_owned(),
             total_hits: 0.to_owned(),
+            total_streakbreaker_hits: 0.to_owned(),
             total_misses: 0.to_owned(),
             total_damage: 0.to_owned(),
             total_direct_damage: 0.to_owned(),
@@ -84,6 +86,12 @@ impl SummaryReport {
 
         power_entry.hits += 1;
     }
+    fn update_streakbreaker_hits_entry(&mut self, source_name: String) {
+        let power_entry = self.get_or_create_damage_power(&source_name);
+
+        power_entry.hits += 1;
+        power_entry.streakbreaker_hits += 1;
+    }
     fn update_misses_entry(&mut self, source_name: String) {
         let power_entry = self.get_or_create_damage_power(&source_name);
 
@@ -95,7 +103,10 @@ impl SummaryReport {
 
         power_entry.direct_damage += effect.damage.round() as u32;
         power_entry.total_damage += effect.damage.round() as u32;
-        if power_key.contains(": Chance for") || power_key.contains("Superior Spider's Bite") {
+        if power_key.contains(": Chance for")
+            || power_key.contains("Superior Spider's Bite")
+            || power_key.contains("Doublehit")
+        {
             power_entry.hits += 1;
         }
     }
@@ -105,6 +116,9 @@ impl SummaryReport {
 
         power_entry.dot_damage += effect.damage.round() as u32;
         power_entry.total_damage += effect.damage.round() as u32;
+        if power_key.contains("Interface") {
+            power_entry.hits += 1;
+        }
     }
 
     fn update_critical_damage_power_entry(&mut self, power_key: String, effect: &DamageDealt) {
@@ -201,6 +215,17 @@ impl SummaryReport {
         self.update_hits_entry(source_name.clone());
     }
 
+    fn update_player_streakbreaker_hits(&mut self, source_name: String, hit_result: &HitOrMiss) {
+        self.update_master_hits();
+        self.total_streakbreaker_hits += 1;
+        self.update_streakbreaker_hits_entry(hit_result.power_name.clone());
+        self.update_streakbreaker_hits_entry(Self::format_meta_name(
+            source_name.clone(),
+            hit_result.power_name.clone(),
+        ));
+        self.update_streakbreaker_hits_entry(source_name.clone());
+    }
+
     fn update_player_misses(&mut self, source_name: String, miss_result: &HitOrMiss) {
         self.update_master_misses();
         self.update_misses_entry(miss_result.power_name.clone());
@@ -218,6 +243,21 @@ impl SummaryReport {
             hit_result.power_name.clone(),
         ));
         self.update_hits_entry(source_name.clone());
+        self.has_pets = true;
+    }
+
+    fn update_pseudo_pet_streakbreaker_hits(
+        &mut self,
+        source_name: String,
+        hit_result: &HitOrMiss,
+    ) {
+        self.update_master_hits();
+        self.total_streakbreaker_hits += 1;
+        self.update_streakbreaker_hits_entry(Self::format_meta_name(
+            source_name.clone(),
+            hit_result.power_name.clone(),
+        ));
+        self.update_streakbreaker_hits_entry(source_name.clone());
         self.has_pets = true;
     }
 
@@ -255,18 +295,20 @@ impl SummaryReport {
         powers
     }
 
-    pub fn get_damage_points_by_interval(&self, interval: i64) -> Vec<Vec<DamagePoint>> {
+    pub fn get_damage_points_by_interval(&self, dps_interval: usize) -> Vec<Vec<DamagePoint>> {
+        let interval = dps_interval as i64;
         let mut result: Vec<Vec<DamagePoint>> = Vec::new();
         let mut last_timestamp: i64 = self.damage_points.get(0).unwrap().date.timestamp();
 
         let mut current_interval: Vec<DamagePoint> = Vec::new();
 
-        for dp in self.damage_points.clone() {
+        for dp in &mut self.damage_points.clone() {
+            dp.delta_from_last_point = (dp.date.timestamp() - last_timestamp) as u32;
             if (dp.date.timestamp() - last_timestamp) >= interval {
                 result.push(current_interval);
                 current_interval = Vec::new();
             }
-            current_interval.push(dp);
+            current_interval.push(*dp);
             last_timestamp = dp.date.timestamp();
         }
         result.push(current_interval);
@@ -279,6 +321,7 @@ pub struct AttackPower {
     pub name: String,
     pub activations: u32,
     pub hits: u32,
+    pub streakbreaker_hits: u32,
     pub misses: u32,
     pub total_damage: u32,
     pub direct_damage: u32,
@@ -292,6 +335,7 @@ pub struct DamagePoint {
     pub line_number: u32,
     #[serde(serialize_with = "date_to_string")]
     date: DateTime<Local>,
+    delta_from_last_point: u32,
     pub damage_dealt: u32,
 }
 
@@ -300,6 +344,7 @@ impl DamagePoint {
         DamagePoint {
             line_number: pos.line_number,
             date: pos.date,
+            delta_from_last_point: 0,
             damage_dealt: damage.round() as u32,
         }
     }
@@ -358,14 +403,20 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 report.create_damage_point(data_position, damage_dealt.damage);
             }
             FileDataPoint::PlayerDamageDoT {
-                data_position: _,
+                data_position,
                 damage_dealt,
-            } => report.update_dot_damage(report.player_name.clone(), damage_dealt),
+            } => {
+                report.update_dot_damage(report.player_name.clone(), damage_dealt);
+                report.create_damage_point(data_position, damage_dealt.damage);
+            }
             FileDataPoint::PlayerCriticalDamage {
-                data_position: _,
+                data_position,
                 damage_dealt,
                 critical_type: _,
-            } => report.update_critical_damage(report.player_name.clone(), damage_dealt),
+            } => {
+                report.update_critical_damage(report.player_name.clone(), damage_dealt);
+                report.create_damage_point(data_position, damage_dealt.damage);
+            }
             FileDataPoint::PsuedoPetDirectDamage {
                 data_position,
                 pet_name,
@@ -375,20 +426,30 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 report.create_damage_point(data_position, damage_dealt.damage);
             }
             FileDataPoint::PsuedoPetDamageDoT {
-                data_position: _,
+                data_position,
                 pet_name,
                 damage_dealt,
-            } => report.update_pseudo_pet_dot_damage(pet_name.clone(), damage_dealt),
+            } => {
+                report.update_pseudo_pet_dot_damage(pet_name.clone(), damage_dealt);
+                report.create_damage_point(data_position, damage_dealt.damage);
+            }
             FileDataPoint::PsuedoPetCriticalDamage {
-                data_position: _,
+                data_position,
                 pet_name,
                 damage_dealt,
                 critical_type: _,
-            } => report.update_pseudo_pet_critical_damage(pet_name.clone(), damage_dealt),
+            } => {
+                report.update_pseudo_pet_critical_damage(pet_name.clone(), damage_dealt);
+                report.create_damage_point(data_position, damage_dealt.damage);
+            }
             FileDataPoint::PlayerHit {
                 data_position: _,
                 action_result,
             } => report.update_player_hits(report.player_name.clone(), action_result),
+            FileDataPoint::PlayerStreakbreakerHit {
+                data_position: _,
+                action_result,
+            } => report.update_player_streakbreaker_hits(report.player_name.clone(), action_result),
             FileDataPoint::PlayerMiss {
                 data_position: _,
                 action_result,
@@ -398,6 +459,11 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 name,
                 action_result,
             } => report.update_pseudo_pet_hits(name.clone(), action_result),
+            FileDataPoint::PseudoPetStreakbreakerHit {
+                data_position: _,
+                name,
+                action_result,
+            } => report.update_pseudo_pet_streakbreaker_hits(name.clone(), action_result),
             FileDataPoint::PsuedoPetMiss {
                 data_position: _,
                 name,

@@ -39,7 +39,7 @@
     <h3>Attack Summary</h3>
     <table title="Attack Summary">
         <th onclick="sortTable(0)">Total Attacks</th>
-        <th onclick="sortTable(0)">Total Hits</th>
+        <th onclick="sortTable(0)">Total Hits (Streakbreaker)</th>
         <th onclick="sortTable(0)">Total Misses</th>
         <th onclick="sortTable(0)">Total Damage</th>
         <th onclick="sortTable(1)">Direct Damage</th>
@@ -50,7 +50,7 @@
         <th onclick="sortTable(6)">Critical Damage Percentage</th>
         <tr>
             <td>{{ report.total_activations }}</td>
-            <td>{{ report.total_hits }}</td>
+            <td>{{ report.total_hits }} ({{report.total_streakbreaker_hits}})</td>
             <td>{{ report.total_misses }}</td>
             <td>{{ report.total_damage }}</td>
             <td>{{ report.total_direct_damage }}</td>
@@ -73,7 +73,7 @@
     <table title="Attack Summary By Power">
         <th onclick="sortTable(0)">Attack</th>
         <th onclick="sortTable(0)">Activations</th>
-        <th onclick="sortTable(0)">Hits</th>
+        <th onclick="sortTable(0)">Hits (Streakbreaker)</th>
         <th onclick="sortTable(0)">Misses</th>
         <th onclick="sortTable(0)">Percentage Hit</th>
         <th onclick="sortTable(0)">Total Damage</th>
@@ -90,7 +90,7 @@
         <tr>
             <td>{{ power.name }}</td>
             <td>{{ power.activations }}</td>
-            <td>{{ power.hits }}</td>
+            <td>{{ power.hits }} ({{power.streakbreaker_hits}})</td>
             <td>{{ power.misses }}</td>
             <td>
                 {% set hit_miss_total = power.hits + power.misses %}

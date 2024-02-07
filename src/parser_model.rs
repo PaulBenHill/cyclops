@@ -1,6 +1,7 @@
 use chrono::{self, DateTime, Local, NaiveDateTime};
+use serde::{Serialize, Serializer};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct HitOrMiss {
     pub target: String,
     pub power_name: String,
@@ -17,9 +18,10 @@ impl HitOrMiss {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct DataPosition {
     pub line_number: u32,
+    #[serde(serialize_with = "date_to_string")]
     pub date: DateTime<Local>,
 }
 
@@ -39,7 +41,7 @@ impl DataPosition {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum DamageType {
     Smashing,
     Lethal,
@@ -73,7 +75,7 @@ impl DamageType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct DamageDealt {
     pub target: String,
     pub power_name: String,
@@ -92,7 +94,7 @@ impl DamageDealt {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum ControlType {
     Stun,
     Hold,
@@ -125,7 +127,7 @@ impl ControlType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ControlPower {
     control_type: ControlType,
     target: String,
@@ -141,7 +143,7 @@ impl ControlPower {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct HealEnduranceAction {
     source: String,
     target: String,
@@ -167,7 +169,7 @@ impl HealEnduranceAction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum FileDataPoint {
     ExpAndInfGain {
         data_position: DataPosition,
@@ -278,6 +280,10 @@ pub enum FileDataPoint {
         data_position: DataPosition,
         action_result: HitOrMiss,
     },
+    PlayerStreakbreakerHit {
+        data_position: DataPosition,
+        action_result: HitOrMiss,
+    },
     PlayerMiss {
         data_position: DataPosition,
         action_result: HitOrMiss,
@@ -306,6 +312,11 @@ pub enum FileDataPoint {
         control_type: ControlPower,
     },
     PsuedoPetHit {
+        data_position: DataPosition,
+        name: String,
+        action_result: HitOrMiss,
+    },
+    PseudoPetStreakbreakerHit {
         data_position: DataPosition,
         name: String,
         action_result: HitOrMiss,
@@ -378,7 +389,15 @@ pub enum FileDataPoint {
         message: String,
     },
     Unparsed {
+        #[serde(flatten)]
         data_position: DataPosition,
         content: String,
     },
+}
+
+fn date_to_string<S>(date: &DateTime<Local>, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(&format!("{}", date.format("%Y-%M-%d %H:%M:%S")))
 }

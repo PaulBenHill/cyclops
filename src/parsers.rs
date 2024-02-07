@@ -37,6 +37,7 @@ lazy_static! {
     static ref PSEDUO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage over time.").unwrap();
     static ref PSEDUO_PET_KNOCKBACK_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.*):  You knock (.+) off their feet with your (.+)!").unwrap();
     static ref PSEUDO_PET_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
+    static ref PSEUDO_PET_STREAKBREAKER_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power was forced to hit by streakbreaker.").unwrap();
     static ref PSEUDO_PET_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
     static ref PSEDUO_PET_RESIST_DEBUFF: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  Your (.+) reduces the resistances of (.+).$").unwrap();
     static ref PSEDUO_PET_SLEEP_DEBUFF: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You put (.+) to sleep with your (.+).$").unwrap();
@@ -119,6 +120,7 @@ pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_pseudo_pet_damage_dot,
         extract_pseudo_pet_damage,
         extract_pseudo_pet_hit,
+        extract_pseudo_pet_streakbreaker_hit,
         extract_pseudo_pet_critical_damage,
         extract_pseudo_pet_miss,
         extract_exp_inf_gain,
@@ -289,7 +291,7 @@ pub fn extract_player_streakbreaker_hit(line_number: u32, line: &String) -> Opti
     let caps = PLAYER_HIT_STREAKBREAKER_MATCHER.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::PlayerHit {
+        Some(data) => Some(FileDataPoint::PlayerStreakbreakerHit {
             data_position: DataPosition::new(line_number, &data[1]),
             action_result: HitOrMiss::new(&data[2], &data[3], &"100"),
         }),
@@ -483,6 +485,22 @@ pub fn extract_pseudo_pet_hit(line_number: u32, line: &String) -> Option<FileDat
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
             action_result: HitOrMiss::new(&data[3], &data[4], &data[5]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_pseudo_pet_streakbreaker_hit(
+    line_number: u32,
+    line: &String,
+) -> Option<FileDataPoint> {
+    let caps = PSEUDO_PET_STREAKBREAKER_HIT_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PseudoPetStreakbreakerHit {
+            data_position: DataPosition::new(line_number, &data[1]),
+            name: String::from(&data[2]),
+            action_result: HitOrMiss::new(&data[3], &data[4], &"100"),
         }),
         None => None,
     }
