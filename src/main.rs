@@ -80,7 +80,7 @@ fn write_reports(
     parsed_lines: &Vec<FileDataPoint>,
     index: usize,
     summary: &SummaryReport,
-) -> bool {
+) {
     // files to write
     // original data file
     // parsed log
@@ -116,10 +116,42 @@ fn write_reports(
         Err(e) => panic!("Unable to load templates: {:?}", e),
     };
 
+    let dps_file = match File::create(report_dir.join("dps.csv")) {
+        Ok(f) => f,
+        Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
+    };
+
+    let mut wtr = csv::Writer::from_writer(dps_file);
+    let mut dps_reports: Vec<Vec<String>> = Vec::new();
+    for interval in &summary.get_damage_points_by_interval(20) {
+        let line_count = interval.len();
+        let elapsed_second = DamagePoint::get_delta_in_seconds(interval);
+        let total_damage = DamagePoint::get_total_damage(interval);
+
+        let mut dps: u64 = 0;
+        if total_damage > 0 && elapsed_second > 0 {
+            dps = total_damage / elapsed_second;
+        }
+        dps_reports.push(vec![
+            line_count.to_string(),
+            elapsed_second.to_string(),
+            total_damage.to_string(),
+            dps.to_string(),
+        ]);
+
+        for dp in interval {
+            if let Err(e) = wtr.serialize(dp) {
+                panic!("Unable to write dps data. {:?}:{}", dp, e);
+            }
+        }
+    }
+
     let mut report_context = Context::new();
     report_context.insert("data_file_name", file_name);
     report_context.insert("report", &summary);
     report_context.insert("powers", &summary.sort_powers_by_total_damage());
+    report_context.insert("dps_interval", "20");
+    report_context.insert("dps_reports", &dps_reports);
 
     let result = tera.render(PLAYER_ATTACK_REPORT_TEMPLATE, &report_context);
     match result {
@@ -130,7 +162,6 @@ fn write_reports(
         }
         Err(e) => panic!("Could not render {}:{:?}", PLAYER_ATTACK_REPORT_TEMPLATE, e),
     }
-    true
 }
 
 fn create_output_dir() -> bool {

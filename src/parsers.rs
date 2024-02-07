@@ -23,6 +23,7 @@ lazy_static! {
     static ref PLAYER_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\)[.]").unwrap();
     static ref PLAYER_DOT_MATCHER:Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for (.+) points of (.+) damage over time.").unwrap();
     static ref PLAYER_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
+    static ref PLAYER_HIT_STREAKBREAKER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power was forced to hit by streakbreaker.").unwrap();
     static ref PLAYER_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
     static ref PLAYER_KNOCKBACK_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You knock (.+) off their feet with your (.+)!").unwrap();
     static ref PLAYER_BLIND_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You blind (.+) with your (.+), reducing their perception and chance to hit!$").unwrap();
@@ -31,7 +32,7 @@ lazy_static! {
 
     static ref ACTIVATION_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You activated the (.+) power.$").unwrap();
 
-    static ref PSEDUO_PET_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage.$").unwrap();
+    static ref PSEDUO_PET_DIRECT_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage.$").unwrap();
     static ref PSEDUO_PET_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\).$").unwrap();
     static ref PSEDUO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage over time.").unwrap();
     static ref PSEDUO_PET_KNOCKBACK_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.*):  You knock (.+) off their feet with your (.+)!").unwrap();
@@ -107,12 +108,13 @@ pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_player_readying_power,
         extract_mob_pseudopet_hit,
         extract_mob_pseudopet_miss,
-        extract_activation,
+        extract_player_activation,
         extract_player_blind,
         extract_player_hit,
+        extract_player_streakbreaker_hit,
         extract_player_miss,
         extract_player_damage_dot,
-        extract_player_damage,
+        extract_player_direct_damage,
         extract_player_critical_damage,
         extract_pseudo_pet_damage_dot,
         extract_pseudo_pet_damage,
@@ -260,7 +262,7 @@ pub fn extract_mob_pseudopet_miss(line_number: u32, line: &String) -> Option<Fil
     }
 }
 
-pub fn extract_activation(line_number: u32, line: &String) -> Option<FileDataPoint> {
+pub fn extract_player_activation(line_number: u32, line: &String) -> Option<FileDataPoint> {
     let caps = ACTIVATION_MATCHER.captures(line);
     match caps {
         Some(data) => Some(FileDataPoint::PlayerPowerActivation {
@@ -278,6 +280,18 @@ pub fn extract_player_hit(line_number: u32, line: &String) -> Option<FileDataPoi
         Some(data) => Some(FileDataPoint::PlayerHit {
             data_position: DataPosition::new(line_number, &data[1]),
             action_result: HitOrMiss::new(&data[2], &data[3], &data[4]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_player_streakbreaker_hit(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_HIT_STREAKBREAKER_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerHit {
+            data_position: DataPosition::new(line_number, &data[1]),
+            action_result: HitOrMiss::new(&data[2], &data[3], &"100"),
         }),
         None => None,
     }
@@ -346,11 +360,11 @@ fn extract_player_readying_power(line_number: u32, line: &String) -> Option<File
     }
 }
 
-pub fn extract_player_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
+pub fn extract_player_direct_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
     let caps = PLAYER_DAMAGE_MATCHER.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::PlayerDamage {
+        Some(data) => Some(FileDataPoint::PlayerDirectDamage {
             data_position: DataPosition::new(line_number, &data[1]),
             damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
         }),
@@ -419,10 +433,10 @@ pub fn extract_player_endurance_other(line_number: u32, line: &String) -> Option
 }
 
 pub fn extract_pseudo_pet_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = PSEDUO_PET_DAMAGE_MATCHER.captures(line);
+    let caps = PSEDUO_PET_DIRECT_DAMAGE_MATCHER.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::PsuedoPetDamage {
+        Some(data) => Some(FileDataPoint::PsuedoPetDirectDamage {
             data_position: DataPosition::new(line_number, &data[1]),
             pet_name: String::from(&data[2]),
             damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),

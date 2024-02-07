@@ -241,7 +241,7 @@ pub enum FileDataPoint {
         target: String,
         power_name: String,
     },
-    PlayerDamage {
+    PlayerDirectDamage {
         data_position: DataPosition,
         damage_dealt: DamageDealt,
     },
@@ -315,7 +315,7 @@ pub enum FileDataPoint {
         name: String,
         action_result: HitOrMiss,
     },
-    PsuedoPetDamage {
+    PsuedoPetDirectDamage {
         data_position: DataPosition,
         pet_name: String,
         damage_dealt: DamageDealt,
@@ -348,9 +348,6 @@ pub enum FileDataPoint {
         pet_name: String,
         target: String,
         power_name: String,
-    },
-    EndParse {
-        data_position: DataPosition,
     },
     SessionMarker {
         data_position: DataPosition,

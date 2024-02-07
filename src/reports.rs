@@ -1,6 +1,7 @@
 use crate::parser_model::{DamageDealt, DataPosition, FileDataPoint, HitOrMiss};
 use chrono::{self, DateTime, Local};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
+use serde_json::to_string;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -18,7 +19,8 @@ pub struct SummaryReport {
     pub total_critical_damage: u32,
     pub has_pets: bool,
     pub damage_powers: HashMap<String, AttackPower>,
-    pub dpsInterval: Vec<DPSinterval>,
+    #[serde(skip)]
+    pub damage_points: Vec<DamagePoint>,
 }
 
 impl SummaryReport {
@@ -37,7 +39,7 @@ impl SummaryReport {
             total_critical_damage: 0.to_owned(),
             has_pets: false,
             damage_powers: HashMap::new(),
-            dpsInterval: Vec::new(),
+            damage_points: Vec::new(),
         }
     }
 
@@ -93,6 +95,9 @@ impl SummaryReport {
 
         power_entry.direct_damage += effect.damage.round() as u32;
         power_entry.total_damage += effect.damage.round() as u32;
+        if power_key.contains(": Chance for") || power_key.contains("Superior Spider's Bite") {
+            power_entry.hits += 1;
+        }
     }
 
     fn update_dot_damage_power_entry(&mut self, power_key: String, effect: &DamageDealt) {
@@ -181,16 +186,6 @@ impl SummaryReport {
         self.update_activations_entry(source_name.clone());
     }
 
-    fn update_pseudo_pet_activations(&mut self, source_name: String, power_name: String) {
-        self.total_activations += 1;
-
-        self.update_activations_entry(power_name.clone());
-        self.update_activations_entry(Self::format_meta_name(
-            source_name.clone(),
-            power_name.clone(),
-        ));
-    }
-
     fn update_activations_entry(&mut self, power_key: String) {
         let power_entry = self.get_or_create_damage_power(&power_key);
         power_entry.activations += 1;
@@ -238,10 +233,15 @@ impl SummaryReport {
         entry
     }
 
+    fn create_damage_point(&mut self, pos: &DataPosition, damage: f32) {
+        self.damage_points.push(DamagePoint::new(pos, damage))
+    }
+
     pub fn sort_powers_by_total_damage(&self) -> Vec<AttackPower> {
         let values = self.damage_powers.values();
         let mut powers: Vec<AttackPower> = Vec::new();
 
+        // For summaries without pets, remove the player prefixed powers to make it cleaner
         for v in values {
             if self.has_pets {
                 powers.push(v.clone());
@@ -253,6 +253,25 @@ impl SummaryReport {
         powers.sort_by(|a, b| b.total_damage.partial_cmp(&a.total_damage).unwrap());
 
         powers
+    }
+
+    pub fn get_damage_points_by_interval(&self, interval: i64) -> Vec<Vec<DamagePoint>> {
+        let mut result: Vec<Vec<DamagePoint>> = Vec::new();
+        let mut last_timestamp: i64 = self.damage_points.get(0).unwrap().date.timestamp();
+
+        let mut current_interval: Vec<DamagePoint> = Vec::new();
+
+        for dp in self.damage_points.clone() {
+            if (dp.date.timestamp() - last_timestamp) >= interval {
+                result.push(current_interval);
+                current_interval = Vec::new();
+            }
+            current_interval.push(dp);
+            last_timestamp = dp.date.timestamp();
+        }
+        result.push(current_interval);
+
+        result
     }
 }
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -268,28 +287,44 @@ pub struct AttackPower {
     pub critical_damage: u32,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct DPSinterval {
-    pub index: u32,
-    pub start_date: i64,
-    pub end_date: i64,
-    pub start_line: u32,
-    pub end_line: u32,
-    pub interval_length: u32,
+#[derive(Debug, Default, Clone, Copy, Serialize)]
+pub struct DamagePoint {
+    pub line_number: u32,
+    #[serde(serialize_with = "date_to_string")]
+    date: DateTime<Local>,
     pub damage_dealt: u32,
-    pub mobs_defeated: u32,
-    pub hits: u32,
-    pub missess: u32,
 }
 
-// imp DPSinterval createOrUpdateDPS {
-//     fn createOrUpdateDPS() {
+impl DamagePoint {
+    fn new(pos: &DataPosition, damage: f32) -> DamagePoint {
+        DamagePoint {
+            line_number: pos.line_number,
+            date: pos.date,
+            damage_dealt: damage.round() as u32,
+        }
+    }
 
-//     }
-// }
+    pub fn get_delta_in_seconds(points: &Vec<DamagePoint>) -> u64 {
+        let last_point = points.last().unwrap();
+        let first_point = points.first().unwrap();
+
+        (last_point.date.timestamp() - first_point.date.timestamp()) as u64
+    }
+
+    pub fn get_total_damage(points: &Vec<DamagePoint>) -> u64 {
+        let total: u32 = points.iter().map(|p| p.damage_dealt).sum();
+        total as u64
+    }
+}
+
+fn date_to_string<S>(date: &DateTime<Local>, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(&format!("{}", date.format("%H:%M:%S")))
+}
 
 pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryReport> {
-    let mut interval = 20;
     let mut summaries: Vec<SummaryReport> = Vec::new();
     let mut report = SummaryReport::new();
 
@@ -315,12 +350,12 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 data_position: _,
                 power_name,
             } => report.update_player_activation(report.player_name.clone(), power_name),
-            FileDataPoint::PlayerDamage {
-                data_position: _,
+            FileDataPoint::PlayerDirectDamage {
+                data_position,
                 damage_dealt,
             } => {
                 report.update_direct_damage(report.player_name.clone(), damage_dealt);
-                // report.createOrUpdateDPS(data_position, damage_dealt.damage);
+                report.create_damage_point(data_position, damage_dealt.damage);
             }
             FileDataPoint::PlayerDamageDoT {
                 data_position: _,
@@ -331,11 +366,14 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 damage_dealt,
                 critical_type: _,
             } => report.update_critical_damage(report.player_name.clone(), damage_dealt),
-            FileDataPoint::PsuedoPetDamage {
-                data_position: _,
+            FileDataPoint::PsuedoPetDirectDamage {
+                data_position,
                 pet_name,
                 damage_dealt,
-            } => report.update_pseudo_pet_direct_damage(pet_name.clone(), damage_dealt),
+            } => {
+                report.update_pseudo_pet_direct_damage(pet_name.clone(), damage_dealt);
+                report.create_damage_point(data_position, damage_dealt.damage);
+            }
             FileDataPoint::PsuedoPetDamageDoT {
                 data_position: _,
                 pet_name,

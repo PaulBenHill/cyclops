@@ -121,6 +121,20 @@
         </tr>
         {% endfor %}
     </table>
+    <h2>DPS using an interval of {{ dps_interval}} </h2>
+    <table title="DPS Report" style="width: 50%;">
+        <th onclick="sortTable(0)">Total lines with damage</th>
+        <th onclick="sortTable(0)">Elapsed Seconds</th>
+        <th onclick="sortTable(0)">Total Damage</th>
+        <th onclick="sortTable(0)">DPS</th>
+        {% for row in dps_reports %}
+        <tr>
+            {% for data in row %}
+            <td>{{ data }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
 </body>
 
 </html>
