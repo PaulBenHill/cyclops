@@ -2,7 +2,10 @@ use crate::parser_model::{DamageDealt, DataPosition, FileDataPoint, HitOrMiss};
 use chrono::{self, DateTime, Local};
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::to_string;
-use std::collections::HashMap;
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    fs::File,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SummaryReport {
@@ -22,6 +25,8 @@ pub struct SummaryReport {
     pub damage_powers: HashMap<String, AttackPower>,
     #[serde(skip)]
     pub damage_points: Vec<DamagePoint>,
+    #[serde(skip)]
+    pub targets_effected: Vec<FileDataPoint>,
 }
 
 impl SummaryReport {
@@ -42,6 +47,7 @@ impl SummaryReport {
             has_pets: false,
             damage_powers: HashMap::new(),
             damage_points: Vec::new(),
+            targets_effected: Vec::new(),
         }
     }
 
@@ -273,6 +279,9 @@ impl SummaryReport {
         entry
     }
 
+    fn capture_targets_effected(&mut self, point: &FileDataPoint) {
+        self.targets_effected.push(point.clone());
+    }
     fn create_damage_point(&mut self, pos: &DataPosition, damage: f32) {
         self.damage_points.push(DamagePoint::new(pos, damage))
     }
@@ -283,9 +292,13 @@ impl SummaryReport {
 
         // For summaries without pets, remove the player prefixed powers to make it cleaner
         for v in values {
-            if self.has_pets {
-                powers.push(v.clone());
-            } else if !v.name.starts_with(&self.player_name) {
+            // WIP. Might defer to UI version
+            // if self.has_pets {
+            //     powers.push(v.clone());
+            // } else if !v.name.starts_with(&self.player_name) {
+            //     powers.push(v.clone());
+            // }
+            if !v.name.starts_with(&self.player_name) {
                 powers.push(v.clone());
             }
         }
@@ -314,6 +327,53 @@ impl SummaryReport {
         result.push(current_interval);
 
         result
+    }
+
+    pub fn get_targets_effected_by_power(&self) -> Vec<TargetsEffected> {
+        let mut results: Vec<TargetsEffected> = Vec::new();
+
+        for point in self.targets_effected.clone() {
+            match point {
+                FileDataPoint::PlayerPowerActivation {
+                    data_position,
+                    power_name,
+                } => {
+                    results.push(TargetsEffected::created_activated(
+                        data_position,
+                        power_name.clone(),
+                    ));
+                }
+                FileDataPoint::PlayerHit {
+                    data_position,
+                    action_result,
+                } => {
+                    results.push(TargetsEffected::create_effected(
+                        data_position,
+                        action_result.power_name.clone(),
+                    ));
+                }
+                FileDataPoint::PlayerStreakbreakerHit {
+                    data_position,
+                    action_result,
+                } => {
+                    results.push(TargetsEffected::create_effected(
+                        data_position,
+                        action_result.power_name,
+                    ));
+                }
+                FileDataPoint::PlayerMiss {
+                    data_position,
+                    action_result,
+                } => {
+                    results.push(TargetsEffected::create_effected(
+                        data_position,
+                        action_result.power_name.clone(),
+                    ));
+                }
+                _ => (),
+            }
+        }
+        results
     }
 }
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -362,6 +422,35 @@ impl DamagePoint {
     }
 }
 
+#[derive(Debug, Default, Clone, Serialize)]
+pub struct TargetsEffected {
+    pub line_number: u32,
+    #[serde(serialize_with = "date_to_string")]
+    pub date: DateTime<Local>,
+    pub power_name: String,
+    pub activation: bool,
+}
+
+impl TargetsEffected {
+    fn create_effected(pos: DataPosition, power_name: String) -> TargetsEffected {
+        TargetsEffected {
+            line_number: pos.line_number,
+            date: pos.date,
+            power_name: power_name.clone(),
+            activation: false,
+        }
+    }
+
+    fn created_activated(pos: DataPosition, power_name: String) -> TargetsEffected {
+        TargetsEffected {
+            line_number: pos.line_number,
+            date: pos.date,
+            power_name: power_name.clone(),
+            activation: true,
+        }
+    }
+}
+
 fn date_to_string<S>(date: &DateTime<Local>, s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -372,6 +461,7 @@ where
 pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryReport> {
     let mut summaries: Vec<SummaryReport> = Vec::new();
     let mut report = SummaryReport::new();
+    let mut targets_effected: Vec<&mut TargetsEffected> = Vec::new();
 
     for point in data_points {
         match point {
@@ -380,11 +470,7 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 player_name,
             } => {
                 if report.has_data() {
-                    //println!("New session marker found, previous report {:?}", report);
-                    //println!("New session marker {:?}", point);
                     summaries.push(report);
-                } else {
-                    //println!("Tossed session due to no data: {:?}", report);
                 }
                 report = SummaryReport::new();
                 report.player_name = player_name.to_owned();
@@ -394,7 +480,10 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
             FileDataPoint::PlayerPowerActivation {
                 data_position: _,
                 power_name,
-            } => report.update_player_activation(report.player_name.clone(), power_name),
+            } => {
+                report.update_player_activation(report.player_name.clone(), power_name);
+                report.capture_targets_effected(point);
+            }
             FileDataPoint::PlayerDirectDamage {
                 data_position,
                 damage_dealt,
@@ -445,15 +534,24 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
             FileDataPoint::PlayerHit {
                 data_position: _,
                 action_result,
-            } => report.update_player_hits(report.player_name.clone(), action_result),
+            } => {
+                report.update_player_hits(report.player_name.clone(), action_result);
+                report.capture_targets_effected(point);
+            }
             FileDataPoint::PlayerStreakbreakerHit {
                 data_position: _,
                 action_result,
-            } => report.update_player_streakbreaker_hits(report.player_name.clone(), action_result),
+            } => {
+                report.update_player_streakbreaker_hits(report.player_name.clone(), action_result);
+                report.capture_targets_effected(point);
+            }
             FileDataPoint::PlayerMiss {
                 data_position: _,
                 action_result,
-            } => report.update_player_misses(report.player_name.clone(), action_result),
+            } => {
+                report.update_player_misses(report.player_name.clone(), action_result);
+                report.capture_targets_effected(point);
+            }
             FileDataPoint::PsuedoPetHit {
                 data_position: _,
                 name,

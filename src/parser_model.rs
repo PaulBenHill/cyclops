@@ -1,7 +1,7 @@
 use chrono::{self, DateTime, Local, NaiveDateTime};
 use serde::{Serialize, Serializer};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct HitOrMiss {
     pub target: String,
     pub power_name: String,
@@ -18,7 +18,7 @@ impl HitOrMiss {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct DataPosition {
     pub line_number: u32,
     #[serde(serialize_with = "date_to_string")]
@@ -41,7 +41,7 @@ impl DataPosition {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub enum DamageType {
     Smashing,
     Lethal,
@@ -75,7 +75,7 @@ impl DamageType {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct DamageDealt {
     pub target: String,
     pub power_name: String,
@@ -94,7 +94,7 @@ impl DamageDealt {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub enum ControlType {
     Stun,
     Hold,
@@ -127,7 +127,7 @@ impl ControlType {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct ControlPower {
     control_type: ControlType,
     target: String,
@@ -143,7 +143,7 @@ impl ControlPower {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct HealEnduranceAction {
     source: String,
     target: String,
@@ -169,7 +169,7 @@ impl HealEnduranceAction {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub enum FileDataPoint {
     ExpAndInfGain {
         data_position: DataPosition,

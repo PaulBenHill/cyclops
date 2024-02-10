@@ -135,6 +135,33 @@
         </tr>
         {% endfor %}
     </table>
+
+    <h2>Number of targets effected by power (experimental)</h2>
+    <table title="Targets Effected" style="width: 50%;">
+        <th onclick="sortTable(0)">Power</th>
+        <th onclick="sortTable(0)">Activations</th>
+        <th onclick="sortTable(0)">Max targets hit</th>
+        <th onclick="sortTable(0)">Min targets hit</th>
+        <th onclick="sortTable(0)">Average</th>
+        <th onclick="sortTable(0)">Median</th>
+        <th onclick="sortTable(0)">Mode</th>
+        {% for eff in targets_effected %}
+        <tr>
+            <td>{{ eff.power_name }}</td>
+            <td>{{ eff.activations }}</td>
+            <td>{{ eff.max_hits }}</td>
+            <td>{{ eff.min_hits }}</td>
+            <td>
+                <script>
+                    var average = {{ eff.average_hits }};
+                    document.write(average.toFixed(2));
+                </script>
+            </td>
+            <td>{{ eff.median }}</td>
+            <td>{{ eff.mode }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 </body>
 
 </html>

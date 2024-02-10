@@ -1,8 +1,9 @@
 use clap::Parser;
-use std::fs::{read_dir, DirEntry, File};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
 use std::path::*;
-use std::str::FromStr;
 use std::time::Instant;
 use std::{env, fs};
 
@@ -35,6 +36,40 @@ struct Args {
     outputdir: Option<PathBuf>,
     #[arg(short, long, value_name = "FILES")]
     pub files: Option<Vec<PathBuf>>,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct EffectedReport {
+    pub power_name: String,
+    pub max_hits: u32,
+    pub min_hits: u32,
+    pub activations: u32,
+    pub total_hits: u32,
+    pub average_hits: f32,
+    pub median: u32,
+    pub mode: u32,
+    #[serde(skip_serializing)]
+    counts: Vec<u32>,
+}
+
+fn median(numbers: &mut Vec<u32>) -> u32 {
+    numbers.sort();
+    let mid = numbers.len() / 2;
+    numbers[mid]
+}
+
+fn mode(numbers: &[u32]) -> u32 {
+    let mut occurrences = HashMap::new();
+
+    for &value in numbers {
+        *occurrences.entry(value).or_insert(0) += 1;
+    }
+
+    occurrences
+        .into_iter()
+        .max_by_key(|&(_, count)| count)
+        .map(|(val, _)| val)
+        .expect("Cannot compute the mode of zero numbers")
 }
 
 fn main() {
@@ -230,12 +265,114 @@ fn write_reports(
         }
     }
 
+    let inital_points = summary.get_targets_effected_by_power();
+
+    // for p in &inital_points {
+    //     println!("{:?}", p);
+    // }
+    let mut activations: Vec<TargetsEffected> = Vec::new();
+    let mut points_counted: Vec<(u32, String, u32)> = Vec::new();
+    for point in inital_points.clone() {
+        if point.activation {
+            activations.push(point.clone());
+        }
+    }
+
+    // for a in &activations {
+    //     println!("{:?}", a);
+    // }
+    let mut next_activation_line_number: u32 = u32::MAX;
+    for action in activations {
+        let mut initial_activation_line_number = action.line_number;
+        let power_name = action.power_name;
+        // println!(
+        // "Inital: {}:{}:{}",
+        // power_name, initial_activation_line_number, next_activation_line_number
+        // );
+        for np in inital_points.clone() {
+            if np.activation
+                && np.line_number > initial_activation_line_number
+                && np.power_name == power_name
+            {
+                next_activation_line_number = np.line_number;
+                //println!("NP: {}:{}", next_activation_line_number, power_name);
+                break;
+            }
+        }
+        let mut effected_count: u32 = 0;
+        for point in inital_points.clone() {
+            if !point.activation
+                && point.line_number > initial_activation_line_number
+                && point.line_number < next_activation_line_number
+                && point.power_name == power_name
+            {
+                // println!(
+                //     "Final: {}:{}:{}:{}:{}:{}",
+                //     point.activation,
+                //     point.line_number,
+                //     initial_activation_line_number,
+                //     next_activation_line_number,
+                //     power_name,
+                //     point.power_name
+                // );
+                effected_count += 1;
+            }
+        }
+        if effected_count > 0 {
+            points_counted.push((initial_activation_line_number, power_name, effected_count));
+        }
+
+        if next_activation_line_number == u32::MAX {
+            break;
+        }
+
+        initial_activation_line_number = next_activation_line_number;
+    }
+
+    let mut effected_reports: HashMap<String, EffectedReport> = HashMap::new();
+    for p in &points_counted {
+        match effected_reports.get_mut(&p.1) {
+            Some(r) => {
+                if p.2 > r.max_hits {
+                    r.max_hits = p.2;
+                }
+                if p.2 < r.min_hits {
+                    r.min_hits = p.2;
+                }
+                r.activations += 1;
+                r.total_hits += p.2;
+                r.counts.push(p.2)
+            }
+            None => {
+                let mut report = EffectedReport::default();
+                report.power_name = p.1.clone();
+                report.activations = 1;
+                report.max_hits = p.2;
+                report.min_hits = p.2;
+                report.total_hits += p.2;
+                report.counts = Vec::new();
+                report.counts.push(p.2);
+
+                effected_reports.insert(p.1.clone(), report);
+            }
+        }
+    }
+
+    for r in effected_reports.values_mut() {
+        r.average_hits = (r.total_hits as f32 / r.activations as f32);
+        r.median = median(&mut r.counts.clone());
+        r.mode = mode(&mut r.counts.clone());
+        println!("Final: {}", serde_json::to_string(r).unwrap());
+    }
+    let effected: Vec<&EffectedReport> = effected_reports.values().collect();
+
     let mut report_context = Context::new();
     report_context.insert("data_file_name", file_name);
     report_context.insert("report", &summary);
     report_context.insert("powers", &summary.sort_powers_by_total_damage());
     report_context.insert("dps_interval", &dps_interval);
     report_context.insert("dps_reports", &dps_reports);
+    report_context.insert("targets_effected", &effected);
 
     let result = tera.render(PLAYER_ATTACK_REPORT_TEMPLATE, &report_context);
     match result {
@@ -292,7 +429,12 @@ fn open_log_file(path: &Path) -> BufReader<File> {
         Ok(file) => file,
         Err(e) => panic!("Unable to open file {:?}", e),
     };
-    println!("File opened for processing: {:?}", file);
+    println!(
+        "File opened for processing: {}",
+        path.as_os_str()
+            .to_str()
+            .expect("Could not create a file name from os string.")
+    );
     BufReader::new(file)
 }
 
