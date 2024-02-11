@@ -1,22 +1,132 @@
+<!DOCTYPE html>
 <html>
 
 <head>
     <style>
-        table {
-            font-family: arial, sans-serif;
-            border-collapse: collapse;
-            width: 100%;
+        body {
+            color: #e67e22;
+            background-color: #1b283b;
         }
 
-        td,
-        th {
-            border: 1px solid #dddddd;
+        table {
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid #ddd;
+        }
+
+        th,
+        td {
             text-align: left;
-            padding: 8px;
+            padding: 16px;
+            border: 1px solid #ddd;
+            background-color: #1b283b;
         }
 
         tr:nth-child(even) {
-            background-color: #dddddd;
+            background-color: #f2f2f2
+        }
+
+        .sr-only {
+            position: absolute;
+            top: -30em;
+        }
+
+        table.sortable td,
+        table.sortable th {
+            padding: 0.125em 0.25em;
+            width: 8em;
+        }
+
+        table.sortable th {
+            font-weight: bold;
+            border-bottom: thin solid #888;
+            position: relative;
+        }
+
+        table.sortable th.no-sort {
+            padding-top: 0.35em;
+        }
+
+        table.sortable th:nth-child(5) {
+            width: 10em;
+        }
+
+        table.sortable th button {
+            position: relative;
+            padding: 4px;
+            margin: 1px;
+            font-size: 100%;
+            font-weight: bold;
+            background: transparent;
+            border: none;
+            display: inline;
+            right: 0;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            text-align: left;
+            outline: none;
+            cursor: pointer;
+            color: #e67e22;
+        }
+
+        table.sortable th button span {
+            position: absolute;
+            right: 4px;
+        }
+
+        table.sortable th[aria-sort="descending"] span::after {
+            content: "▼";
+            color: currentcolor;
+            font-size: 100%;
+            top: 0;
+        }
+
+        table.sortable th[aria-sort="ascending"] span::after {
+            content: "▲";
+            color: currentcolor;
+            font-size: 100%;
+            top: 0;
+        }
+
+        table.show-unsorted-icon th:not([aria-sort]) button span::after {
+            content: "♢";
+            color: currentcolor;
+            font-size: 100%;
+            position: relative;
+            top: -3px;
+            left: -4px;
+        }
+
+        table.sortable td.num {
+            text-align: right;
+        }
+
+        table.sortable tbody tr:nth-child(odd) td {
+            background-color: rgb(1, 15, 26);
+        }
+
+        /* Focus and hover styling */
+
+        table.sortable th button:focus,
+        table.sortable th button:hover {
+            padding: 2px;
+            border: 2px solid currentcolor;
+            background-color: #e5f4ff;
+        }
+
+        table.sortable th button:focus span,
+        table.sortable th button:hover span {
+            right: 2px;
+        }
+
+        table.sortable th:not([aria-sort]) button:focus span::after,
+        table.sortable th:not([aria-sort]) button:hover span::after {
+            content: "▼";
+            color: currentcolor;
+            font-size: 100%;
+            top: 0;
         }
     </style>
     <script>
@@ -28,6 +138,175 @@
                 return percent + '%';
             }
         }
+        /*
+ *   This content is licensed according to the W3C Software License at
+ *   https://www.w3.org/Consortium/Legal/2015/copyright-software-and-document
+ *
+ *   File:   sortable-table.js
+ *
+ *   Desc:   Adds sorting to a HTML data table that implements ARIA Authoring Practices
+ */
+
+        'use strict';
+
+        class SortableTable {
+            constructor(tableNode) {
+                this.tableNode = tableNode;
+
+                this.columnHeaders = tableNode.querySelectorAll('thead th');
+
+                this.sortColumns = [];
+
+                for (var i = 0; i < this.columnHeaders.length; i++) {
+                    var ch = this.columnHeaders[i];
+                    var buttonNode = ch.querySelector('button');
+                    if (buttonNode) {
+                        this.sortColumns.push(i);
+                        buttonNode.setAttribute('data-column-index', i);
+                        buttonNode.addEventListener('click', this.handleClick.bind(this));
+                    }
+                }
+
+                this.optionCheckbox = document.querySelector(
+                    'input[type="checkbox"][value="show-unsorted-icon"]'
+                );
+
+                if (this.optionCheckbox) {
+                    this.optionCheckbox.addEventListener(
+                        'change',
+                        this.handleOptionChange.bind(this)
+                    );
+                    if (this.optionCheckbox.checked) {
+                        this.tableNode.classList.add('show-unsorted-icon');
+                    }
+                }
+            }
+
+            setColumnHeaderSort(columnIndex) {
+                if (typeof columnIndex === 'string') {
+                    columnIndex = parseInt(columnIndex);
+                }
+
+                for (var i = 0; i < this.columnHeaders.length; i++) {
+                    var ch = this.columnHeaders[i];
+                    var buttonNode = ch.querySelector('button');
+                    if (i === columnIndex) {
+                        var value = ch.getAttribute('aria-sort');
+                        if (value === 'descending') {
+                            ch.setAttribute('aria-sort', 'ascending');
+                            this.sortColumn(
+                                columnIndex,
+                                'ascending',
+                                ch.classList.contains('num')
+                            );
+                        } else {
+                            ch.setAttribute('aria-sort', 'descending');
+                            this.sortColumn(
+                                columnIndex,
+                                'descending',
+                                ch.classList.contains('num')
+                            );
+                        }
+                    } else {
+                        if (ch.hasAttribute('aria-sort') && buttonNode) {
+                            ch.removeAttribute('aria-sort');
+                        }
+                    }
+                }
+            }
+
+            sortColumn(columnIndex, sortValue, isNumber) {
+                function compareValues(a, b) {
+                    if (sortValue === 'ascending') {
+                        if (a.value === b.value) {
+                            return 0;
+                        } else {
+                            if (isNumber) {
+                                return a.value - b.value;
+                            } else {
+                                return a.value < b.value ? -1 : 1;
+                            }
+                        }
+                    } else {
+                        if (a.value === b.value) {
+                            return 0;
+                        } else {
+                            if (isNumber) {
+                                return b.value - a.value;
+                            } else {
+                                return a.value > b.value ? -1 : 1;
+                            }
+                        }
+                    }
+                }
+
+                if (typeof isNumber !== 'boolean') {
+                    isNumber = false;
+                }
+
+                var tbodyNode = this.tableNode.querySelector('tbody');
+                var rowNodes = [];
+                var dataCells = [];
+
+                var rowNode = tbodyNode.firstElementChild;
+
+                var index = 0;
+                while (rowNode) {
+                    rowNodes.push(rowNode);
+                    var rowCells = rowNode.querySelectorAll('th, td');
+                    var dataCell = rowCells[columnIndex];
+
+                    var data = {};
+                    data.index = index;
+                    data.value = dataCell.textContent.toLowerCase().trim();
+                    if (isNumber) {
+                        data.value = parseFloat(data.value);
+                    }
+                    dataCells.push(data);
+                    rowNode = rowNode.nextElementSibling;
+                    index += 1;
+                }
+
+                dataCells.sort(compareValues);
+
+                // remove rows
+                while (tbodyNode.firstChild) {
+                    tbodyNode.removeChild(tbodyNode.lastChild);
+                }
+
+                // add sorted rows
+                for (var i = 0; i < dataCells.length; i += 1) {
+                    tbodyNode.appendChild(rowNodes[dataCells[i].index]);
+                }
+            }
+
+            /* EVENT HANDLERS */
+
+            handleClick(event) {
+                var tgt = event.currentTarget;
+                this.setColumnHeaderSort(tgt.getAttribute('data-column-index'));
+            }
+
+            handleOptionChange(event) {
+                var tgt = event.currentTarget;
+
+                if (tgt.checked) {
+                    this.tableNode.classList.add('show-unsorted-icon');
+                } else {
+                    this.tableNode.classList.remove('show-unsorted-icon');
+                }
+            }
+        }
+
+        // Initialize sortable table buttons
+        window.addEventListener('load', function () {
+            var sortableTables = document.querySelectorAll('table.sortable');
+            for (var i = 0; i < sortableTables.length; i++) {
+                new SortableTable(sortableTables[i]);
+            }
+        });
+
+
     </script>
 </head>
 
@@ -38,16 +317,16 @@
     <h3>Starting Line Number: {{report.line_number}}</h3>
     <h3>Attack Summary</h3>
     <table title="Attack Summary">
-        <th onclick="sortTable(0)">Total Attacks</th>
-        <th onclick="sortTable(0)">Total Hits (Streakbreaker)</th>
-        <th onclick="sortTable(0)">Total Misses</th>
-        <th onclick="sortTable(0)">Total Damage</th>
-        <th onclick="sortTable(1)">Direct Damage</th>
-        <th onclick="sortTable(2)">DoT Damage</th>
-        <th onclick="sortTable(3)">Critical Hits</th>
-        <th onclick="sortTable(4)">Critical Hit Percentage</th>
-        <th onclick="sortTable(5)">Critical Damage</th>
-        <th onclick="sortTable(6)">Critical Damage Percentage</th>
+        <th>Total Attacks</th>
+        <th>Total Hits (Streakbreaker)</th>
+        <th>Total Misses</th>
+        <th>Total Damage</th>
+        <th>Direct Damage</th>
+        <th>DoT Damage</th>
+        <th>Critical Hits</th>
+        <th>Critical Hit Percentage</th>
+        <th>Critical Damage</th>
+        <th>Critical Damage Percentage</th>
         <tr>
             <td>{{ report.total_activations }}</td>
             <td>{{ report.total_hits }} ({{report.total_streakbreaker_hits}})</td>
@@ -69,99 +348,240 @@
             </td>
         </tr>
     </table>
+    </div>
     <h2>Attack Summary By Power</h2>
-    <table title="Attack Summary By Power">
-        <th onclick="sortTable(0)">Attack</th>
-        <th onclick="sortTable(0)">Activations</th>
-        <th onclick="sortTable(0)">Hits (Streakbreaker)</th>
-        <th onclick="sortTable(0)">Misses</th>
-        <th onclick="sortTable(0)">Percentage Hit</th>
-        <th onclick="sortTable(0)">Total Damage</th>
-        <th onclick="sortTable(0)">Total Damage Percentage</th>
-        <th onclick="sortTable(0)">Direct Damage</th>
-        <th onclick="sortTable(0)">DoT Damage</th>
-        <th onclick="sortTable(0)">Critical Hits</th>
-        <th onclick="sortTable(0)">Percent hits critcal</th>
-        <th onclick="sortTable(0)">Critical Damage</th>
-        <th onclick="sortTable(0)">Percent damage critical</th>
-        {% for power in powers %}
-        {% set critical_percentage = (power.critical_hits/power.hits) * 100 %}
-        {% set critical_damage_percentage = (power.critical_damage/power.total_damage) * 100 %}
-        <tr>
-            <td>{{ power.name }}</td>
-            <td>{{ power.activations }}</td>
-            <td>{{ power.hits }} ({{power.streakbreaker_hits}})</td>
-            <td>{{ power.misses }}</td>
-            <td>
-                {% set hit_miss_total = power.hits + power.misses %}
-                <script>
-                    document.write(percent_as_string({{ power.hits }}, {{ hit_miss_total }}));
-                </script>
-            </td>
-            <td>{{ power.total_damage }}</td>
-            <td>
-                <script>
-                    document.write(percent_as_string({{ power.total_damage }}, {{ report.total_damage }}));
-                </script>
-            </td>
-            <td>{{ power.direct_damage }}</td>
-            <td>{{ power.dot_damage }}</td>
-            <td>{{ power.critical_hits }}</td>
-            <td>
-                <script>
-                    document.write(percent_as_string({{ power.critical_hits }}, {{ power.hits }}));
-                </script>
-            </td>
-            <td>{{ power.critical_damage }}</td>
-            <td>
-                <script>
-                    document.write(percent_as_string({{ power.critical_damage }}, {{ power.total_damage }}));
-                </script>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="table-wrap">
+        <table title="Attack Summary By Power" class="sortable">
+            <thead>
+                <tr>
+                    <th>
+                        <button>
+                            Attack
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            Activations
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            Hits (Streakbreaker)
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            Misses
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button class="num">
+                            Hit %
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            Total Damage
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button>
+                            Total Damage %
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            Direct Damage
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            DoT Damage
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            Critical Hits
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button>
+                            % hit critical
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            Critical Damage
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button>
+                            % damage critical
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for power in powers %}
+                {% set critical_percentage = (power.critical_hits/power.hits) * 100 %}
+                {% set critical_damage_percentage = (power.critical_damage/power.total_damage) * 100 %}
+                <tr>
+                    <td>{{ power.name }}</td>
+                    <td>{{ power.activations }}</td>
+                    <td>{{ power.hits }} ({{power.streakbreaker_hits}})</td>
+                    <td>{{ power.misses }}</td>
+                    <td>
+                        {% set hit_miss_total = power.hits + power.misses %}
+                        <script>
+                            document.write(percent_as_string({{ power.hits }}, {{ hit_miss_total }}));
+                        </script>
+                    </td>
+                    <td>{{ power.total_damage }}</td>
+                    <td>
+                        <script>
+                            document.write(percent_as_string({{ power.total_damage }}, {{ report.total_damage }}));
+                        </script>
+                    </td>
+                    <td>{{ power.direct_damage }}</td>
+                    <td>{{ power.dot_damage }}</td>
+                    <td>{{ power.critical_hits }}</td>
+                    <td>
+                        <script>
+                            document.write(percent_as_string({{ power.critical_hits }}, {{ power.hits }}));
+                        </script>
+                    </td>
+                    <td>{{ power.critical_damage }}</td>
+                    <td>
+                        <script>
+                            document.write(percent_as_string({{ power.critical_damage }}, {{ power.total_damage }}));
+                        </script>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     <h2>DPS using an interval of {{ dps_interval}} </h2>
-    <table title="DPS Report" style="width: 50%;">
-        <th onclick="sortTable(0)">Total lines with damage</th>
-        <th onclick="sortTable(0)">Elapsed Seconds</th>
-        <th onclick="sortTable(0)">Total Damage</th>
-        <th onclick="sortTable(0)">DPS</th>
-        {% for row in dps_reports %}
-        <tr>
-            {% for data in row %}
-            <td>{{ data }}</td>
-            {% endfor %}
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="table-wrap">
+        <table title="DPS Report" style="width: 50%;" class="sortable">
+            <thead>
+                <th class="num">
+                    <button>
+                        Total lines with damage
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        Elapsed Seconds
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        Total Damage
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        DPS
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+            </thead>
+            <tbody>
+                {% for row in dps_reports %}
+                <tr>
+                    {% for data in row %}
+                    <td>{{ data }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
     <h2>Number of targets effected by power (experimental)</h2>
-    <table title="Targets Effected" style="width: 50%;">
-        <th onclick="sortTable(0)">Power</th>
-        <th onclick="sortTable(0)">Activations</th>
-        <th onclick="sortTable(0)">Max targets hit</th>
-        <th onclick="sortTable(0)">Min targets hit</th>
-        <th onclick="sortTable(0)">Average</th>
-        <th onclick="sortTable(0)">Median</th>
-        <th onclick="sortTable(0)">Mode</th>
-        {% for eff in targets_effected %}
-        <tr>
-            <td>{{ eff.power_name }}</td>
-            <td>{{ eff.activations }}</td>
-            <td>{{ eff.max_hits }}</td>
-            <td>{{ eff.min_hits }}</td>
-            <td>
-                <script>
-                    var average = {{ eff.average_hits }};
-                    document.write(average.toFixed(2));
-                </script>
-            </td>
-            <td>{{ eff.median }}</td>
-            <td>{{ eff.mode }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <div class="table-wrap">
+        <table title="Targets Effected" style="width: 50%;" class="sortable">
+            <thead>
+                <th>
+                    <button>
+                        Power
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        Activations
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        Max targets hit
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        Min targets hit
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th>
+                    <button>
+                        Average
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        Median
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        Mode
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+            </thead>
+            <tbody>
+                {% for eff in targets_effected %}
+                <tr>
+                    <td>{{ eff.power_name }}</td>
+                    <td>{{ eff.activations }}</td>
+                    <td>{{ eff.max_hits }}</td>
+                    <td>{{ eff.min_hits }}</td>
+                    <td>
+                        <script>
+                            var average = {{ eff.average_hits }};
+                            document.write(average.toFixed(2));
+                        </script>
+                    </td>
+                    <td>{{ eff.median }}</td>
+                    <td>{{ eff.mode }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </body>
 
 </html>
