@@ -81,9 +81,9 @@
         <th onclick="sortTable(0)">Direct Damage</th>
         <th onclick="sortTable(0)">DoT Damage</th>
         <th onclick="sortTable(0)">Critical Hits</th>
-        <th onclick="sortTable(0)">Critical Hits Percentage</th>
+        <th onclick="sortTable(0)">Percent hits critcal</th>
         <th onclick="sortTable(0)">Critical Damage</th>
-        <th onclick="sortTable(0)">Critical Damage Percentage</th>
+        <th onclick="sortTable(0)">Percent damage critical</th>
         {% for power in powers %}
         {% set critical_percentage = (power.critical_hits/power.hits) * 100 %}
         {% set critical_damage_percentage = (power.critical_damage/power.total_damage) * 100 %}

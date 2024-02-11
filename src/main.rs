@@ -48,7 +48,6 @@ pub struct EffectedReport {
     pub average_hits: f32,
     pub median: u32,
     pub mode: u32,
-    #[serde(skip_serializing)]
     counts: Vec<u32>,
 }
 
