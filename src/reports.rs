@@ -420,6 +420,12 @@ impl DamagePoint {
         let total: u32 = points.iter().map(|p| p.damage_dealt).sum();
         total as u64
     }
+
+    pub fn get_line_positions(points: &Vec<DamagePoint>) -> (u32, u32) {
+        let first_line = points.first().unwrap().line_number;
+        let last_line = points.last().unwrap().line_number;
+        (first_line, last_line)
+    }
 }
 
 #[derive(Debug, Default, Clone, Serialize)]

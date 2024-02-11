@@ -1,5 +1,5 @@
 use clap::Parser;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
@@ -28,13 +28,29 @@ const PLAYER_ATTACK_REPORT_TEMPLATE: &str = "player_attack_report.html";
 #[command(version = ".01")]
 #[command(about = "Application to parse City Of Heroes log files", long_about = None)]
 struct Args {
-    #[arg(short, long, value_name = "DIR")]
+    #[arg(
+        short,
+        long,
+        value_name = "Directory where you game chat files are stored. All files in the directory will be processed."
+    )]
     logdir: Option<PathBuf>,
-    #[arg(short, long)]
+    #[arg(
+        short,
+        long,
+        value_name = "Time in seconds between combat sessions for DPS reports"
+    )]
     interval: Option<usize>,
-    #[arg(short, long, value_name = "DIR")]
+    #[arg(
+        short,
+        long,
+        value_name = "Directory where you want report written. Defaults to \"output\""
+    )]
     outputdir: Option<PathBuf>,
-    #[arg(short, long, value_name = "FILES")]
+    #[arg(
+        short,
+        long,
+        value_name = "List of game log files comma or space separated."
+    )]
     pub files: Option<Vec<PathBuf>>,
 }
 
@@ -48,7 +64,15 @@ pub struct EffectedReport {
     pub average_hits: f32,
     pub median: u32,
     pub mode: u32,
+    #[serde(serialize_with = "counts_to_string")]
     counts: Vec<u32>,
+}
+
+fn counts_to_string<S>(counts: &Vec<u32>, s: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    s.serialize_str(&format!("{:?}", counts))
 }
 
 fn median(numbers: &mut Vec<u32>) -> u32 {
@@ -182,6 +206,106 @@ fn create_report_dir(
     report_dir.clone()
 }
 
+// fn generate_effected_report(summary: &SummaryReport, results: &mut Vec<&EffectedReport>) {
+//     let inital_points = summary.get_targets_effected_by_power();
+
+//     let mut activations: Vec<TargetsEffected> = Vec::new();
+//     let mut points_counted: Vec<(u32, String, u32)> = Vec::new();
+//     for point in inital_points.clone() {
+//         if point.activation {
+//             activations.push(point.clone());
+//         }
+//     }
+
+//     // for a in &activations {
+//     //     println!("{:?}", a);
+//     // }
+//     let mut next_activation_line_number: u32 = u32::MAX;
+//     for action in activations {
+//         let mut initial_activation_line_number = action.line_number;
+//         let power_name = action.power_name;
+//         // println!(
+//         // "Inital: {}:{}:{}",
+//         // power_name, initial_activation_line_number, next_activation_line_number
+//         // );
+//         for np in inital_points.clone() {
+//             if np.activation
+//                 && np.line_number > initial_activation_line_number
+//                 && np.power_name == power_name
+//             {
+//                 next_activation_line_number = np.line_number;
+//                 //println!("NP: {}:{}", next_activation_line_number, power_name);
+//                 break;
+//             }
+//         }
+//         let mut effected_count: u32 = 0;
+//         for point in inital_points.clone() {
+//             if !point.activation
+//                 && point.line_number > initial_activation_line_number
+//                 && point.line_number < next_activation_line_number
+//                 && point.power_name == power_name
+//             {
+//                 // println!(
+//                 //     "Final: {}:{}:{}:{}:{}:{}",
+//                 //     point.activation,
+//                 //     point.line_number,
+//                 //     initial_activation_line_number,
+//                 //     next_activation_line_number,
+//                 //     power_name,
+//                 //     point.power_name
+//                 // );
+//                 effected_count += 1;
+//             }
+//         }
+//         if effected_count > 0 {
+//             points_counted.push((initial_activation_line_number, power_name, effected_count));
+//         }
+
+//         if next_activation_line_number == u32::MAX {
+//             break;
+//         }
+
+//         initial_activation_line_number = next_activation_line_number;
+//     }
+
+//     let mut effected_reports: HashMap<String, EffectedReport> = HashMap::new();
+//     for p in &points_counted {
+//         match effected_reports.get_mut(&p.1) {
+//             Some(r) => {
+//                 if p.2 > r.max_hits {
+//                     r.max_hits = p.2;
+//                 }
+//                 if p.2 < r.min_hits {
+//                     r.min_hits = p.2;
+//                 }
+//                 r.activations += 1;
+//                 r.total_hits += p.2;
+//                 r.counts.push(p.2)
+//             }
+//             None => {
+//                 let mut report = EffectedReport::default();
+//                 report.power_name = p.1.clone();
+//                 report.activations = 1;
+//                 report.max_hits = p.2;
+//                 report.min_hits = p.2;
+//                 report.total_hits += p.2;
+//                 report.counts = Vec::new();
+//                 report.counts.push(p.2);
+
+//                 effected_reports.insert(p.1.clone(), report);
+//             }
+//         }
+//     }
+
+//     for r in effected_reports.values_mut() {
+//         r.average_hits = (r.total_hits as f32 / r.activations as f32);
+//         r.median = median(&mut r.counts.clone());
+//         r.mode = mode(&mut r.counts.clone());
+//         println!("Final: {}", serde_json::to_string(r).unwrap());
+//         results.push(r);
+//     }
+// }
+
 fn write_reports(
     report_dir: &PathBuf,
     data_file: &Path,
@@ -250,7 +374,11 @@ fn write_reports(
             dps = total_damage / elapsed_second;
         }
 
+        let line_positions = DamagePoint::get_line_positions(interval);
+
         dps_reports.push(vec![
+            line_positions.0.to_string(),
+            line_positions.1.to_string(),
             line_count.to_string(),
             elapsed_second.to_string(),
             total_damage.to_string(),
@@ -266,9 +394,6 @@ fn write_reports(
 
     let inital_points = summary.get_targets_effected_by_power();
 
-    // for p in &inital_points {
-    //     println!("{:?}", p);
-    // }
     let mut activations: Vec<TargetsEffected> = Vec::new();
     let mut points_counted: Vec<(u32, String, u32)> = Vec::new();
     for point in inital_points.clone() {
@@ -282,7 +407,7 @@ fn write_reports(
     // }
     let mut next_activation_line_number: u32 = u32::MAX;
     for action in activations {
-        let mut initial_activation_line_number = action.line_number;
+        let initial_activation_line_number = action.line_number;
         let power_name = action.power_name;
         // println!(
         // "Inital: {}:{}:{}",
@@ -325,7 +450,7 @@ fn write_reports(
             break;
         }
 
-        initial_activation_line_number = next_activation_line_number;
+        //        initial_activation_line_number = next_activation_line_number;
     }
 
     let mut effected_reports: HashMap<String, EffectedReport> = HashMap::new();
@@ -358,12 +483,13 @@ fn write_reports(
     }
 
     for r in effected_reports.values_mut() {
-        r.average_hits = (r.total_hits as f32 / r.activations as f32);
+        r.average_hits = r.total_hits as f32 / r.activations as f32;
         r.median = median(&mut r.counts.clone());
         r.mode = mode(&mut r.counts.clone());
-        println!("Final: {}", serde_json::to_string(r).unwrap());
     }
     let effected: Vec<&EffectedReport> = effected_reports.values().collect();
+
+    write_effected_report(report_dir, &effected);
 
     let mut report_context = Context::new();
     report_context.insert("data_file_name", file_name);
@@ -381,6 +507,20 @@ fn write_reports(
                 .expect("Unable to write file.");
         }
         Err(e) => panic!("Could not render {}:{:?}", PLAYER_ATTACK_REPORT_TEMPLATE, e),
+    }
+}
+
+fn write_effected_report(report_dir: &PathBuf, effected_reports: &Vec<&EffectedReport>) {
+    let effected_file = match File::create(report_dir.join("effected_report.csv")) {
+        Ok(f) => f,
+        Err(e) => panic!("Cannot create effected.csv file: {:?}", e),
+    };
+
+    let mut wtr = csv::Writer::from_writer(effected_file);
+    for r in effected_reports {
+        if let Err(e) = wtr.serialize(r) {
+            panic!("Unable to write effected data. {:?}:{:?}", e, r);
+        }
     }
 }
 

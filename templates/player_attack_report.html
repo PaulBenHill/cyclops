@@ -6,6 +6,8 @@
         body {
             color: #e67e22;
             background-color: #1b283b;
+            font-size: 100%;
+            font-weight: bold;
         }
 
         table {
@@ -20,6 +22,8 @@
             padding: 16px;
             border: 1px solid #ddd;
             background-color: #1b283b;
+            font-size: 100%;
+            font-weight: bold;
         }
 
         tr:nth-child(even) {
@@ -478,6 +482,18 @@
     <div class="table-wrap">
         <table title="DPS Report" style="width: 50%;" class="sortable">
             <thead>
+                <th class="num">
+                    <button>
+                        Starting Line
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
+                <th class="num">
+                    <button>
+                        Ending Line
+                        <span aria-hidden="true"></span>
+                    </button>
+                </th>
                 <th class="num">
                     <button>
                         Total lines with damage
