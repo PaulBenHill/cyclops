@@ -53,7 +53,9 @@ pub enum DamageType {
     Toxic,
     Electrolytic,
     Prismatic,
+    Unique,
     Unique2,
+    Special,
 }
 
 impl DamageType {
@@ -69,7 +71,9 @@ impl DamageType {
             "Toxic" => Self::Toxic,
             "Electrolytic" => Self::Electrolytic,
             "Prismatic" => Self::Prismatic,
+            "Unique" => Self::Unique,
             "Unique2" => Self::Unique2,
+            "Special" => Self::Special,
             _ => panic!("Unable to parse damage type {}", damage_type),
         }
     }

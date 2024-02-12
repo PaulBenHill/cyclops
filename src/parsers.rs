@@ -14,14 +14,14 @@ lazy_static! {
     static ref MOB_MISS_MATCHER: Regex 	= Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) MISSES! (.+) power had a (.+)% chance to hit, but rolled a (.+)[.]").unwrap();
     static ref MOB_PSEDUOPET_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) HITS you! (.+) power had a (.+)% chance to hit and rolled a (.+)[.]").unwrap();
     static ref MOB_PSEDUOPET_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) MISSES! (.+) power had a (.+)% chance to hit, but rolled a (.+)[.]").unwrap();
-    static ref MOB_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) for ([0-9.]+) points of (.+) damage.*[.]").unwrap();
-    static ref MOB_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) for ([0-9.]+) points of (.+) damage over time[.]").unwrap();
-    static ref MOB_PSEUDO_PET_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of (.+) damage.*[.]").unwrap();
-    static ref MOB_PSEUDO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of (.+) damage over time[.]").unwrap();
+    static ref MOB_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage.*[.]").unwrap();
+    static ref MOB_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage over time[.]").unwrap();
+    static ref MOB_PSEUDO_PET_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage.*[.]").unwrap();
+    static ref MOB_PSEUDO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage over time[.]").unwrap();
 
-    static ref PLAYER_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of (.+) damage[.]").unwrap();
+    static ref PLAYER_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage[.]").unwrap();
     static ref PLAYER_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\)[.]").unwrap();
-    static ref PLAYER_DOT_MATCHER:Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for (.+) points of (.+) damage over time.").unwrap();
+    static ref PLAYER_DOT_MATCHER:Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage over time.").unwrap();
     static ref PLAYER_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
     static ref PLAYER_HIT_STREAKBREAKER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power was forced to hit by streakbreaker.").unwrap();
     static ref PLAYER_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
@@ -32,9 +32,9 @@ lazy_static! {
 
     static ref ACTIVATION_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You activated the (.+) power.$").unwrap();
 
-    static ref PSEDUO_PET_DIRECT_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage.$").unwrap();
+    static ref PSEDUO_PET_DIRECT_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage.$").unwrap();
     static ref PSEDUO_PET_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\).$").unwrap();
-    static ref PSEDUO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of (.+) damage over time.").unwrap();
+    static ref PSEDUO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage over time.").unwrap();
     static ref PSEDUO_PET_KNOCKBACK_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.*):  You knock (.+) off their feet with your (.+)!").unwrap();
     static ref PSEUDO_PET_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
     static ref PSEUDO_PET_STREAKBREAKER_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power was forced to hit by streakbreaker.").unwrap();
@@ -46,9 +46,9 @@ lazy_static! {
     static ref OTHER_VICTORY_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) has defeated (.+)").unwrap();
     static ref POWER_RECHARGED_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) is recharged.$").unwrap();
 
-    static ref PLAYER_CONTROL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You (Stun|Hold|Immobilize|Confuse|Taunt|Terrify?) (.+?) with your ([a-zA-Z ]+?)[.]").unwrap();
-    static ref PSEUDO_PET_CONTROL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You (Stun|Hold|Immobilize|Confuse|Taunt|Terrify?) (.+) with your ([a-zA-Z ]+)[.]").unwrap();
-    static ref MOB_CONTROL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?) (Stuns|Holds|Immobilizes|Confuses|Taunts|Terrifies?) you with their ([a-zA-Z ]+?)[.]").unwrap();
+    static ref PLAYER_CONTROL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You (Stun|Hold|Immobilize|Confuse|Taunt|Terrify?) (.+?) with your (.+)[.]").unwrap();
+    static ref PSEUDO_PET_CONTROL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You (Stun|Hold|Immobilize|Confuse|Taunt|Terrify?) (.+) with your (.+)[.]").unwrap();
+    static ref MOB_CONTROL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?) (Stuns|Holds|Immobilizes|Confuses|Taunts|Terrifies?) you with their (.+)[.]").unwrap();
     static ref MOB_PSEUDO_PET_CONTROL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+?) (Stuns|Holds|Immobilizes|Confuses|Taunts|Terrifies?) you with their ([a-zA-Z ]+?)[.]").unwrap();
 
     static ref AUTOHIT_ONE_MATCHER: Regex  = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power is autohit.").unwrap();

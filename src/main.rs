@@ -31,27 +31,34 @@ struct Args {
     #[arg(
         short,
         long,
+        required = false,
+        conflicts_with = "files",
         value_name = "Directory where you game chat files are stored. All files in the directory will be processed."
     )]
     logdir: Option<PathBuf>,
     #[arg(
         short,
         long,
+        required = false,
+        value_delimiter = ',',
+        conflicts_with = "logdir",
+        value_name = "List of game log files comma separated."
+    )]
+    pub files: Option<Vec<PathBuf>>,
+    #[arg(
+        short,
+        long,
+        required = false,
         value_name = "Time in seconds between combat sessions for DPS reports"
     )]
     interval: Option<usize>,
     #[arg(
         short,
         long,
-        value_name = "Directory where you want report written. Defaults to \"output\""
+        required = false,
+        value_name = "Directory where you want the reports written. Defaults to \"output\""
     )]
     outputdir: Option<PathBuf>,
-    #[arg(
-        short,
-        long,
-        value_name = "List of game log files comma or space separated."
-    )]
-    pub files: Option<Vec<PathBuf>>,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -125,9 +132,8 @@ fn main() {
         dps_interval = interval_arg;
     }
 
-    if !create_output_dir(&output_path) {
-        std::process::exit(-1);
-    }
+    create_dir(&output_path);
+    println!("Output directory: {}", output_path.display());
 
     for file in log_file_names {
         let result = verify_file(&file);
@@ -161,11 +167,15 @@ fn read_log_file_dir(dir: PathBuf) -> Vec<String> {
     match fs::canonicalize(&dir) {
         Ok(path) => {
             if path.exists() && path.is_dir() {
-                let mut file_list: Vec<String> = Vec::new();
-                for file in fs::read_dir(path).unwrap() {
-                    let file_name = file.unwrap().path().into_os_string().into_string().unwrap();
-                    file_list.push(file_name);
-                }
+                let file_list: Vec<String> = fs::read_dir(path)
+                    .unwrap()
+                    .into_iter()
+                    .filter(|r| r.is_ok())
+                    .map(|r| r.unwrap().path())
+                    .filter(|r| r.is_file())
+                    .map(|r| r.into_os_string().into_string().unwrap())
+                    .collect();
+
                 return file_list;
             } else {
                 panic!(
@@ -195,12 +205,7 @@ fn create_report_dir(
     .iter()
     .collect();
 
-    if !report_dir.exists() {
-        match fs::create_dir(&report_dir) {
-            Ok(_) => (),
-            Err(e) => panic!("Unable to create report dir: {:?}:{:?}", report_dir, e),
-        }
-    }
+    create_dir(&report_dir);
 
     println!("Report directory: {:?}", report_dir);
     report_dir.clone()
@@ -524,27 +529,13 @@ fn write_effected_report(report_dir: &PathBuf, effected_reports: &Vec<&EffectedR
     }
 }
 
-fn create_output_dir(output_path: &PathBuf) -> bool {
-    let result: bool = match fs::canonicalize(&output_path) {
-        Ok(path) => {
-            println!("Output dir: {:?}", path);
-            true
+fn create_dir(dir_path: &PathBuf) {
+    if !dir_path.exists() {
+        match fs::create_dir_all(dir_path) {
+            Ok(_) => println!("Directory created: {:?}", dir_path),
+            Err(err) => panic!("Unable to create directory: {:?}", err),
         }
-        Err(_) => match fs::create_dir(&output_path) {
-            Ok(output_dir) => {
-                println!(
-                    "Output directory did not exist. Creating dir: {:?}",
-                    output_dir
-                );
-                true
-            }
-            Err(e) => {
-                eprintln!("Unable to create output directory: {:?}", e);
-                false
-            }
-        },
-    };
-    result
+    }
 }
 
 fn verify_file(filename: &String) -> (&Path, u64) {
@@ -584,13 +575,21 @@ fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<Summ
 
     let start = Instant::now();
     for line in lines.flatten() {
+        //let start_match = Instant::now();
         line_count += 1;
+        //let mut loop_count = 0;
         for p in &parsers {
+            // loop_count += 1;
             if let Some(data) = p(line_count, &line) {
                 data_points.push(data);
                 break;
             }
         }
+        // println!(
+        //     "Matching:  {} micros. Loops: {}",
+        //     start_match.elapsed().as_micros(),
+        //     loop_count
+        // );
     }
 
     println!(
