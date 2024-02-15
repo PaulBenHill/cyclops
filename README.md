@@ -31,17 +31,17 @@ Make sure these categories are in the left column:
 
 ![combat tab settings](combat_chat_settings.png)
 
-Once, you log into a character, log files should start appearing in <coh install dir>/accounts/<account name>/Logs
+Once, you log into a character, log files should start appearing in \<coh install dir\>/accounts/\<account name\>/Logs
 
 ## Cyclops instructions
 
 Usage: cyclops.exe [OPTIONS]
 
   Options:  
-  -l, --logdir <Directory where you game chat files are stored. All files in the directory will be processed.>  
-  -f, --files <List of game log files comma separated.>  
-  -i, --interval <Time in seconds between combat sessions for DPS reports>  
-  -o, --outputdir <Directory where you want the reports written. Defaults to "output">  
+  -l, --logdir \<Directory where you game chat files are stored. All files in the directory will be processed.\>  
+  -f, --files \<List of game log files comma separated.\>  
+  -i, --interval \<Time in seconds between combat sessions for DPS reports\>  
+  -o, --outputdir \<Directory where you want the reports written. Defaults to "output"\>  
   -h, --help Print help  
   -V, --version   
 
@@ -57,11 +57,11 @@ Usage: cyclops.exe [OPTIONS]
 
   Report directory structure:  
     Directory name is designed to limit the chance of you overwriting log files when the chat file name is the same from different accounts.  
-      <chat log file name>_<file size in bytes>  
+      \<chat log file name\>_\<file size in bytes\>  
       Example: chatlog_2024_02_08.txt_1260281  
     Inside the report directory:  
       Summary of the report session.   
-      <player name>_<session number>_summary.html  
+      \<player name\>_\<session number\>_summary.html  
       Each time you log in or out. Or use /local START PARSE or /local END PARSE a new session is assumed.  
       You can have multiple characters in the same log. Or multiple sessions of the same character.  
       Copy of the source chat log. Example: chatlog_2024_02_08.txt  
@@ -73,7 +73,7 @@ Usage: cyclops.exe [OPTIONS]
 Summary.html  
   Attack Summary - Global combat totals for this session  
   Attack Summary By Power - Combat totals per power  
-  DPS using an interval of <interval> - DPS (Damage per second) when the gap between damage log messages is less than the interval. Example, you attack a spawn, defeat them, wait 20 seconds, then attack another spawn. That would be considered two DPS sessions with an interval of 20.  
+  DPS using an interval of \<interval\> - DPS (Damage per second) when the gap between damage log messages is less than the interval. Example, you attack a spawn, defeat them, wait 20 seconds, then attack another spawn. That would be considered two DPS sessions with an interval of 20.  
   Number of targets effected by power (experimental) - How many targets were effected by an power even if the attack missed. A rough idea of how many mobs a player is hitting in gameplay with a power.  
 
 
