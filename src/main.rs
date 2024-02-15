@@ -125,6 +125,11 @@ fn main() {
         }
     }
 
+    if log_file_names.is_empty() {
+        println!("No chat logs found. Exiting");
+        std::process::exit(1);
+    }
+
     let mut output_path = PathBuf::new().join(OUTPUT_DIR);
     if let Some(outputdir) = args.outputdir {
         println!("Value for output dir: {:?}", outputdir);
@@ -521,10 +526,17 @@ fn write_reports(
 }
 
 fn write_effected_report(report_dir: &PathBuf, effected_reports: &Vec<&EffectedReport>) {
-    let effected_file = match File::create(report_dir.join("effected_report.csv")) {
-        Ok(f) => f,
-        Err(e) => panic!("Cannot create effected.csv file: {:?}", e),
-    };
+    let final_path = report_dir.join("effected_report.csv");
+
+    let effected_file: File;
+    if final_path.exists() {
+        effected_file = File::options()
+            .append(true)
+            .open(final_path)
+            .expect("Cannot open effected.csv for appending");
+    } else {
+        effected_file = File::create(final_path).expect("Cannot create effected.csv file");
+    }
 
     let mut wtr = csv::Writer::from_writer(effected_file);
     for r in effected_reports {
@@ -560,17 +572,21 @@ fn verify_file(filename: &String) -> (&Path, u64) {
 }
 
 fn open_log_file(path: &Path) -> BufReader<File> {
-    let file = match File::open(path) {
-        Ok(file) => file,
-        Err(e) => panic!("Unable to open file {:?}", e),
-    };
-    println!(
-        "File opened for processing: {}",
-        path.as_os_str()
-            .to_str()
-            .expect("Could not create a file name from os string.")
-    );
-    BufReader::new(file)
+    if path.exists() && path.is_file() {
+        let file = match File::open(path) {
+            Ok(file) => file,
+            Err(e) => panic!("Unable to open file {:?}:{:?}", e, path),
+        };
+        println!(
+            "File opened for processing: {}",
+            path.as_os_str()
+                .to_str()
+                .expect("Could not create a file name from os string.")
+        );
+        return BufReader::new(file);
+    } else {
+        panic!("Path provided is not a file: {:?}", path);
+    }
 }
 
 fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<SummaryReport>) {
