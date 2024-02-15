@@ -60,7 +60,7 @@ Usage: cyclops.exe [OPTIONS]
       \<chat log file name\>\_\<file size in bytes\>  
       Example: chatlog_2024_02_08.txt_1260281  
 
-## Inside the report directory:  
+## Inside the report directory  
       Summary of the report session.   
         - \<player name\>_\<session number\>_summary.html  
         - Each time you log in or out. Or use /local START PARSE or /local END PARSE a new session is assumed.  
@@ -72,10 +72,10 @@ Usage: cyclops.exe [OPTIONS]
         - parsed.txt - Log files parsed into internal format. Useful for finding missed log messages. Look for, Unparsed.  
 
 ### Summary.html  
-  - Attack Summary - Global combat totals for this session  
-  - Attack Summary By Power - Combat totals per power  
-  - DPS using an interval of \<interval\> - DPS (Damage per second) when the gap between damage log messages is less than the interval. Example, you attack a spawn, defeat them, wait 20 seconds, then attack another spawn. That would be considered two DPS sessions with an interval of 20.  
-  - Number of targets effected by power (experimental) - How many targets were effected by an power even if the attack missed. A rough idea of how many mobs a player is hitting in gameplay with a power.  
+        - Attack Summary - Global combat totals for this session  
+        - Attack Summary By Power - Combat totals per power  
+        - DPS using an interval of \<interval\> - DPS (Damage per second) when the gap between damage log messages is less than the interval. Example, you attack a spawn, defeat them, wait 20 seconds, then attack another spawn. That would be considered two DPS sessions with an interval of 20.  
+        - Number of targets effected by power (experimental) - How many targets were effected by an power even if the attack missed. A rough idea of how many mobs a player is hitting in gameplay with a power.  
 
 
 
