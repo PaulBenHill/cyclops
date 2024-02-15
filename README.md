@@ -10,6 +10,7 @@ Application for parsing game chat logs into analysis reports.
 Please, follow setup instructions otherwiase you will log incomplete or no data at all.
 
 Under Option->Windows->Chat, Set "Log Chat" to Enabled, hit, Apply Now.
+![window chat log settings](chat_log_settings.png)
 
 In your chat Window, select the, Combat, tab, right click and edit.
 Make sure these categories are in the left column:
@@ -27,6 +28,8 @@ Make sure these categories are in the left column:
 - Pets
 - Pet Healing Received
 - Pet Healing Delivery
+
+![combat tab settings](combat_chat_settings.png)
 
 Once, you log into a character, log files should start appearing in <coh install dir>/accounts/<account name>/Logs
 
