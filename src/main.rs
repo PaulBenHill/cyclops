@@ -1,4 +1,5 @@
 use clap::Parser;
+use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fs::File;
@@ -106,6 +107,10 @@ fn main() {
     let start = Instant::now();
 
     let working_dir = env::current_dir().unwrap().clone();
+    println!(
+        "Cyclops was compiled on {}:{}.",
+        CURRENT_PLATFORM, COMPILED_ON
+    );
     println!("The current directory is {}", working_dir.display());
 
     let args = Args::parse();
@@ -532,7 +537,7 @@ fn write_effected_report(report_dir: &PathBuf, effected_reports: &Vec<&EffectedR
 fn create_dir(dir_path: &PathBuf) {
     if !dir_path.exists() {
         match fs::create_dir_all(dir_path) {
-            Ok(_) => println!("Directory created: {:?}", dir_path),
+            Ok(_) => (),
             Err(err) => panic!("Unable to create directory: {:?}", err),
         }
     }
