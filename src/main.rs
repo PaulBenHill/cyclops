@@ -567,7 +567,7 @@ fn verify_file(filename: &String) -> (&Path, u64) {
             ),
         }
     } else {
-        panic!("Cannot find file");
+        panic!("Cannot find file: {}", filename);
     }
 }
 
