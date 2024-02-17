@@ -1,9 +1,14 @@
+use std::{str::FromStr, time::Instant};
+
 use lazy_static::lazy_static;
 use regex::Regex;
 
 use crate::parser_model::*;
 
 lazy_static! {
+    static ref TEST_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) ").unwrap();
+    static ref TEST_HIT_MATCHER: Regex = Regex::new(r"^HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
+
     static ref SESSION_MARKER_MATCHER_1: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) \[Local\] (.+): (?:(STARTPARSE|ENDPARSE).*).*").unwrap();
     static ref SESSION_MARKER_MATCHER_2: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (?:Now entering the Rogue Isles|Welcome to City of Heroes), (.+)!").unwrap();
 
@@ -19,9 +24,6 @@ lazy_static! {
     static ref MOB_PSEUDO_PET_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage.*[.]").unwrap();
     static ref MOB_PSEUDO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  (.+) hits you with their (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage over time[.]").unwrap();
 
-    static ref PLAYER_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage[.]").unwrap();
-    static ref PLAYER_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\)[.]").unwrap();
-    static ref PLAYER_DOT_MATCHER:Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage over time.").unwrap();
     static ref PLAYER_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
     static ref PLAYER_HIT_STREAKBREAKER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power was forced to hit by streakbreaker.").unwrap();
     static ref PLAYER_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
@@ -32,9 +34,6 @@ lazy_static! {
 
     static ref ACTIVATION_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You activated the (.+) power.$").unwrap();
 
-    static ref PSEDUO_PET_DIRECT_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage.$").unwrap();
-    static ref PSEDUO_PET_CRITICAL_DAMAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage \((.*)\).$").unwrap();
-    static ref PSEDUO_PET_DAMAGE_DOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage over time.").unwrap();
     static ref PSEDUO_PET_KNOCKBACK_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.*):  You knock (.+) off their feet with your (.+)!").unwrap();
     static ref PSEUDO_PET_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).").unwrap();
     static ref PSEUDO_PET_STREAKBREAKER_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power was forced to hit by streakbreaker.").unwrap();
@@ -67,13 +66,17 @@ lazy_static! {
     static ref PLAYER_ENDURANCE_OTHER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with (.+) granting them (.*) points of endurance[.]$").unwrap();
     static ref PLAYER_ENDURANCE_BUFF_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) granting you (.+) points of endurance").unwrap();
 
+    // Combined regex
+    static ref PLAYER_ATTACK_DAMAGE: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage\s*(?P<dot>over time){0,1}(?P<critical>.+){0,1}[.]").unwrap();
+    static ref PSEUDO_PET_ATTACK_DAMAGE: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage\s*(?P<dot>over time){0,1}(?P<critical>.+){0,1}[.]").unwrap();
+    static ref PLAYER_PET_ATTACK_DAMAGE: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+)(?:(?P<pet>.+){0,1}:){0,1}\s+You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage\s*(?P<dot>over time){0,1}(?P<critical>.+){0,1}[.]").unwrap();
+
     // todo next
     //static ref PLAYER_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
     //static ref PSEUDO_PET_HEAL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
     //static ref PSEUDO_PET_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
     /*
     public static final String PATTERN_MISS 	 	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).";
-    public static final String PATTERN_DAM_CRIT		= ".+\\[CRITICAL\\].+";
     public static final String PATTERN_PSEUDOHEAL	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  You heal (.+) with (.+) for (.+) health points.";
     public static final String PATTERN_END			= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) granting them (.+) points of endurance(.*)[.]$";
     public static final String PATTERN_END2			= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) Your (.+) grants you (.+) points of endurance(.*)[.]$";
@@ -88,11 +91,25 @@ lazy_static! {
     */
 }
 
-pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
+pub fn initialize_matchers() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
     // Order matters!
     vec![
         extract_session_marker_1,
         extract_session_marker_2,
+        pseudo_pet_attack_damage,
+        extract_pseudo_pet_miss,
+        extract_pseudo_pet_hit,
+        extract_pseudo_pet_streakbreaker_hit,
+        player_pet_attack_damage,
+        extract_power_recharged,
+        extract_exp_inf_gain,
+        extract_other_victory,
+        extract_player_activation,
+        extract_chat_message,
+        extract_mob_pseudopet_hit,
+        extract_mob_pseudopet_miss,
+        extract_player_terrify_proc,
+        extract_player_hit,
         extract_player_endurance,
         extract_player_endurance_other,
         extract_player_healed,
@@ -104,32 +121,15 @@ pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_pseudo_pet_knockback,
         extract_pseudo_pet_resist_debuff,
         extract_pseudo_pet_sleep_debuff,
-        extract_player_terrify_proc,
         extract_player_knockback,
         extract_player_readying_power,
-        extract_mob_pseudopet_hit,
-        extract_mob_pseudopet_miss,
-        extract_player_activation,
         extract_player_blind,
-        extract_player_hit,
         extract_player_streakbreaker_hit,
         extract_player_miss,
-        extract_player_damage_dot,
-        extract_player_direct_damage,
-        extract_player_critical_damage,
-        extract_pseudo_pet_damage_dot,
-        extract_pseudo_pet_damage,
-        extract_pseudo_pet_hit,
-        extract_pseudo_pet_streakbreaker_hit,
-        extract_pseudo_pet_critical_damage,
-        extract_pseudo_pet_miss,
-        extract_exp_inf_gain,
         extract_loot_drop,
         extract_mob_hit,
         extract_mob_miss,
         extract_player_victory,
-        extract_other_victory,
-        extract_power_recharged,
         extract_mob_pseudo_pet_control,
         extract_mob_control,
         extract_pseudo_pet_control,
@@ -138,7 +138,6 @@ pub fn initialize_matcher() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_mob_pseudo_pet_damage,
         extract_mob_damage_dot,
         extract_mob_damage,
-        extract_chat_message,
         //extract_recipe_drop,
         //extract_player_knockback,
         //extract_pet_knockback,
@@ -166,6 +165,63 @@ pub fn extract_session_marker_2(line_number: u32, line: &String) -> Option<FileD
             data_position: DataPosition::new(line_number, &data[1]),
             player_name: String::from(&data[2]),
         }),
+        None => None,
+    }
+}
+
+pub fn player_pet_attack_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PLAYER_ATTACK_DAMAGE.captures(line);
+
+    match caps {
+        Some(data) => {
+            if data.name("critical").is_some() {
+                Some(FileDataPoint::PlayerCriticalDamage {
+                    data_position: DataPosition::new(line_number, &data[1]),
+                    damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
+                    critical_type: String::from(&data[7]),
+                })
+            } else if data.name("dot").is_some() {
+                Some(FileDataPoint::PlayerDamageDoT {
+                    data_position: DataPosition::new(line_number, &data[1]),
+                    damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
+                })
+            } else {
+                Some(FileDataPoint::PlayerDirectDamage {
+                    data_position: DataPosition::new(line_number, &data[1]),
+                    damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
+                })
+            }
+        }
+        None => None,
+    }
+}
+
+pub fn pseudo_pet_attack_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = PSEUDO_PET_ATTACK_DAMAGE.captures(line);
+
+    match caps {
+        Some(data) => {
+            if data.name("critical").is_some() {
+                Some(FileDataPoint::PsuedoPetCriticalDamage {
+                    data_position: DataPosition::new(line_number, &data[1]),
+                    pet_name: String::from(&data[2]),
+                    damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
+                    critical_type: String::from(&data[8]),
+                })
+            } else if data.name("dot").is_some() {
+                Some(FileDataPoint::PsuedoPetDamageDoT {
+                    data_position: DataPosition::new(line_number, &data[1]),
+                    pet_name: String::from(&data[2]),
+                    damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
+                })
+            } else {
+                Some(FileDataPoint::PseudoPetDirectDamage {
+                    data_position: DataPosition::new(line_number, &data[1]),
+                    pet_name: String::from(&data[2]),
+                    damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
+                })
+            }
+        }
         None => None,
     }
 }
@@ -299,19 +355,6 @@ pub fn extract_player_streakbreaker_hit(line_number: u32, line: &String) -> Opti
     }
 }
 
-pub fn extract_player_critical_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = PLAYER_CRITICAL_DAMAGE_MATCHER.captures(line);
-
-    match caps {
-        Some(data) => Some(FileDataPoint::PlayerCriticalDamage {
-            data_position: DataPosition::new(line_number, &data[1]),
-            damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
-            critical_type: String::from(&data[6]),
-        }),
-        None => None,
-    }
-}
-
 pub fn extract_player_miss(line_number: u32, line: &String) -> Option<FileDataPoint> {
     let caps = PLAYER_MISS_MATCHER.captures(line);
 
@@ -357,30 +400,6 @@ fn extract_player_readying_power(line_number: u32, line: &String) -> Option<File
         Some(data) => Some(FileDataPoint::PlayerReadyingPower {
             data_position: DataPosition::new(line_number, &data[1]),
             power_name: String::from(&data[2]),
-        }),
-        None => None,
-    }
-}
-
-pub fn extract_player_direct_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = PLAYER_DAMAGE_MATCHER.captures(line);
-
-    match caps {
-        Some(data) => Some(FileDataPoint::PlayerDirectDamage {
-            data_position: DataPosition::new(line_number, &data[1]),
-            damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
-        }),
-        None => None,
-    }
-}
-
-pub fn extract_player_damage_dot(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = PLAYER_DOT_MATCHER.captures(line);
-
-    match caps {
-        Some(data) => Some(FileDataPoint::PlayerDamageDoT {
-            data_position: DataPosition::new(line_number, &data[1]),
-            damage_dealt: DamageDealt::new(&data[2], &data[3], &data[4], &data[5]),
         }),
         None => None,
     }
@@ -434,54 +453,11 @@ pub fn extract_player_endurance_other(line_number: u32, line: &String) -> Option
     }
 }
 
-pub fn extract_pseudo_pet_damage(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = PSEDUO_PET_DIRECT_DAMAGE_MATCHER.captures(line);
-
-    match caps {
-        Some(data) => Some(FileDataPoint::PsuedoPetDirectDamage {
-            data_position: DataPosition::new(line_number, &data[1]),
-            pet_name: String::from(&data[2]),
-            damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
-        }),
-        None => None,
-    }
-}
-
-pub fn extract_pseudo_pet_critical_damage(
-    line_number: u32,
-    line: &String,
-) -> Option<FileDataPoint> {
-    let caps = PSEDUO_PET_CRITICAL_DAMAGE_MATCHER.captures(line);
-
-    match caps {
-        Some(data) => Some(FileDataPoint::PsuedoPetCriticalDamage {
-            data_position: DataPosition::new(line_number, &data[1]),
-            pet_name: String::from(&data[2]),
-            damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
-            critical_type: String::from(&data[7]),
-        }),
-        None => None,
-    }
-}
-
-pub fn extract_pseudo_pet_damage_dot(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = PSEDUO_PET_DAMAGE_DOT_MATCHER.captures(line);
-
-    match caps {
-        Some(data) => Some(FileDataPoint::PsuedoPetDamageDoT {
-            data_position: DataPosition::new(line_number, &data[1]),
-            pet_name: String::from(&data[2]),
-            damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
-        }),
-        None => None,
-    }
-}
-
 pub fn extract_pseudo_pet_hit(line_number: u32, line: &String) -> Option<FileDataPoint> {
     let caps = PSEUDO_PET_HIT_MATCHER.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::PsuedoPetHit {
+        Some(data) => Some(FileDataPoint::PseudoPetHit {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
             action_result: HitOrMiss::new(&data[3], &data[4], &data[5]),

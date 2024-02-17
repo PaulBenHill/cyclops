@@ -33,7 +33,7 @@ impl DataPosition {
         }
     }
 
-    fn extract_date(date_str: &str) -> DateTime<Local> {
+    pub fn extract_date(date_str: &str) -> DateTime<Local> {
         NaiveDateTime::parse_from_str(date_str, "%Y-%m-%d %H:%M:%S")
             .unwrap()
             .and_local_timezone(Local)
@@ -315,7 +315,7 @@ pub enum FileDataPoint {
         pet_name: String,
         control_type: ControlPower,
     },
-    PsuedoPetHit {
+    PseudoPetHit {
         data_position: DataPosition,
         name: String,
         action_result: HitOrMiss,
@@ -330,7 +330,7 @@ pub enum FileDataPoint {
         name: String,
         action_result: HitOrMiss,
     },
-    PsuedoPetDirectDamage {
+    PseudoPetDirectDamage {
         data_position: DataPosition,
         pet_name: String,
         damage_dealt: DamageDealt,

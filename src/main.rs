@@ -221,105 +221,107 @@ fn create_report_dir(
     report_dir.clone()
 }
 
-// fn generate_effected_report(summary: &SummaryReport, results: &mut Vec<&EffectedReport>) {
-//     let inital_points = summary.get_targets_effected_by_power();
+fn generate_effected_report(summary: &SummaryReport) -> Box<Vec<EffectedReport>> {
+    let mut results: Vec<EffectedReport> = Vec::new();
+    let inital_points = summary.get_targets_effected_by_power();
 
-//     let mut activations: Vec<TargetsEffected> = Vec::new();
-//     let mut points_counted: Vec<(u32, String, u32)> = Vec::new();
-//     for point in inital_points.clone() {
-//         if point.activation {
-//             activations.push(point.clone());
-//         }
-//     }
+    let mut activations: Vec<TargetsEffected> = Vec::new();
+    let mut points_counted: Vec<(u32, String, u32)> = Vec::new();
+    for point in inital_points.clone() {
+        if point.activation {
+            activations.push(point.clone());
+        }
+    }
 
-//     // for a in &activations {
-//     //     println!("{:?}", a);
-//     // }
-//     let mut next_activation_line_number: u32 = u32::MAX;
-//     for action in activations {
-//         let mut initial_activation_line_number = action.line_number;
-//         let power_name = action.power_name;
-//         // println!(
-//         // "Inital: {}:{}:{}",
-//         // power_name, initial_activation_line_number, next_activation_line_number
-//         // );
-//         for np in inital_points.clone() {
-//             if np.activation
-//                 && np.line_number > initial_activation_line_number
-//                 && np.power_name == power_name
-//             {
-//                 next_activation_line_number = np.line_number;
-//                 //println!("NP: {}:{}", next_activation_line_number, power_name);
-//                 break;
-//             }
-//         }
-//         let mut effected_count: u32 = 0;
-//         for point in inital_points.clone() {
-//             if !point.activation
-//                 && point.line_number > initial_activation_line_number
-//                 && point.line_number < next_activation_line_number
-//                 && point.power_name == power_name
-//             {
-//                 // println!(
-//                 //     "Final: {}:{}:{}:{}:{}:{}",
-//                 //     point.activation,
-//                 //     point.line_number,
-//                 //     initial_activation_line_number,
-//                 //     next_activation_line_number,
-//                 //     power_name,
-//                 //     point.power_name
-//                 // );
-//                 effected_count += 1;
-//             }
-//         }
-//         if effected_count > 0 {
-//             points_counted.push((initial_activation_line_number, power_name, effected_count));
-//         }
+    // for a in &activations {
+    //     println!("{:?}", a);
+    // }
+    let mut next_activation_line_number: u32 = u32::MAX;
+    for action in activations {
+        let mut initial_activation_line_number = action.line_number;
+        let power_name = action.power_name;
+        // println!(
+        // "Inital: {}:{}:{}",
+        // power_name, initial_activation_line_number, next_activation_line_number
+        // );
+        for np in inital_points.clone() {
+            if np.activation
+                && np.line_number > initial_activation_line_number
+                && np.power_name == power_name
+            {
+                next_activation_line_number = np.line_number;
+                //println!("NP: {}:{}", next_activation_line_number, power_name);
+                break;
+            }
+        }
+        let mut effected_count: u32 = 0;
+        for point in inital_points.clone() {
+            if !point.activation
+                && point.line_number > initial_activation_line_number
+                && point.line_number < next_activation_line_number
+                && point.power_name == power_name
+            {
+                // println!(
+                //     "Final: {}:{}:{}:{}:{}:{}",
+                //     point.activation,
+                //     point.line_number,
+                //     initial_activation_line_number,
+                //     next_activation_line_number,
+                //     power_name,
+                //     point.power_name
+                // );
+                effected_count += 1;
+            }
+        }
+        if effected_count > 0 {
+            points_counted.push((initial_activation_line_number, power_name, effected_count));
+        }
 
-//         if next_activation_line_number == u32::MAX {
-//             break;
-//         }
+        if next_activation_line_number == u32::MAX {
+            break;
+        }
 
-//         initial_activation_line_number = next_activation_line_number;
-//     }
+        initial_activation_line_number = next_activation_line_number;
+    }
 
-//     let mut effected_reports: HashMap<String, EffectedReport> = HashMap::new();
-//     for p in &points_counted {
-//         match effected_reports.get_mut(&p.1) {
-//             Some(r) => {
-//                 if p.2 > r.max_hits {
-//                     r.max_hits = p.2;
-//                 }
-//                 if p.2 < r.min_hits {
-//                     r.min_hits = p.2;
-//                 }
-//                 r.activations += 1;
-//                 r.total_hits += p.2;
-//                 r.counts.push(p.2)
-//             }
-//             None => {
-//                 let mut report = EffectedReport::default();
-//                 report.power_name = p.1.clone();
-//                 report.activations = 1;
-//                 report.max_hits = p.2;
-//                 report.min_hits = p.2;
-//                 report.total_hits += p.2;
-//                 report.counts = Vec::new();
-//                 report.counts.push(p.2);
+    let mut effected_reports: HashMap<String, EffectedReport> = HashMap::new();
+    for p in &points_counted {
+        match effected_reports.get_mut(&p.1) {
+            Some(r) => {
+                if p.2 > r.max_hits {
+                    r.max_hits = p.2;
+                }
+                if p.2 < r.min_hits {
+                    r.min_hits = p.2;
+                }
+                r.activations += 1;
+                r.total_hits += p.2;
+                r.counts.push(p.2)
+            }
+            None => {
+                let mut report = EffectedReport::default();
+                report.power_name = p.1.clone();
+                report.activations = 1;
+                report.max_hits = p.2;
+                report.min_hits = p.2;
+                report.total_hits += p.2;
+                report.counts = Vec::new();
+                report.counts.push(p.2);
 
-//                 effected_reports.insert(p.1.clone(), report);
-//             }
-//         }
-//     }
+                effected_reports.insert(p.1.clone(), report);
+            }
+        }
+    }
 
-//     for r in effected_reports.values_mut() {
-//         r.average_hits = (r.total_hits as f32 / r.activations as f32);
-//         r.median = median(&mut r.counts.clone());
-//         r.mode = mode(&mut r.counts.clone());
-//         println!("Final: {}", serde_json::to_string(r).unwrap());
-//         results.push(r);
-//     }
-// }
+    for r in effected_reports.values_mut() {
+        r.average_hits = r.total_hits as f32 / r.activations as f32;
+        r.median = median(&mut r.counts.clone());
+        r.mode = mode(&mut r.counts.clone());
+        results.push(r.to_owned());
+    }
+
+    Box::new(results)
+}
 
 fn write_reports(
     report_dir: &PathBuf,
@@ -407,103 +409,7 @@ fn write_reports(
         }
     }
 
-    let inital_points = summary.get_targets_effected_by_power();
-
-    let mut activations: Vec<TargetsEffected> = Vec::new();
-    let mut points_counted: Vec<(u32, String, u32)> = Vec::new();
-    for point in inital_points.clone() {
-        if point.activation {
-            activations.push(point.clone());
-        }
-    }
-
-    // for a in &activations {
-    //     println!("{:?}", a);
-    // }
-    let mut next_activation_line_number: u32 = u32::MAX;
-    for action in activations {
-        let initial_activation_line_number = action.line_number;
-        let power_name = action.power_name;
-        // println!(
-        // "Inital: {}:{}:{}",
-        // power_name, initial_activation_line_number, next_activation_line_number
-        // );
-        for np in inital_points.clone() {
-            if np.activation
-                && np.line_number > initial_activation_line_number
-                && np.power_name == power_name
-            {
-                next_activation_line_number = np.line_number;
-                //println!("NP: {}:{}", next_activation_line_number, power_name);
-                break;
-            }
-        }
-        let mut effected_count: u32 = 0;
-        for point in inital_points.clone() {
-            if !point.activation
-                && point.line_number > initial_activation_line_number
-                && point.line_number < next_activation_line_number
-                && point.power_name == power_name
-            {
-                // println!(
-                //     "Final: {}:{}:{}:{}:{}:{}",
-                //     point.activation,
-                //     point.line_number,
-                //     initial_activation_line_number,
-                //     next_activation_line_number,
-                //     power_name,
-                //     point.power_name
-                // );
-                effected_count += 1;
-            }
-        }
-        if effected_count > 0 {
-            points_counted.push((initial_activation_line_number, power_name, effected_count));
-        }
-
-        if next_activation_line_number == u32::MAX {
-            break;
-        }
-
-        //        initial_activation_line_number = next_activation_line_number;
-    }
-
-    let mut effected_reports: HashMap<String, EffectedReport> = HashMap::new();
-    for p in &points_counted {
-        match effected_reports.get_mut(&p.1) {
-            Some(r) => {
-                if p.2 > r.max_hits {
-                    r.max_hits = p.2;
-                }
-                if p.2 < r.min_hits {
-                    r.min_hits = p.2;
-                }
-                r.activations += 1;
-                r.total_hits += p.2;
-                r.counts.push(p.2)
-            }
-            None => {
-                let mut report = EffectedReport::default();
-                report.power_name = p.1.clone();
-                report.activations = 1;
-                report.max_hits = p.2;
-                report.min_hits = p.2;
-                report.total_hits += p.2;
-                report.counts = Vec::new();
-                report.counts.push(p.2);
-
-                effected_reports.insert(p.1.clone(), report);
-            }
-        }
-    }
-
-    for r in effected_reports.values_mut() {
-        r.average_hits = r.total_hits as f32 / r.activations as f32;
-        r.median = median(&mut r.counts.clone());
-        r.mode = mode(&mut r.counts.clone());
-    }
-    let effected: Vec<&EffectedReport> = effected_reports.values().collect();
-
+    let effected: Vec<EffectedReport> = *generate_effected_report(&summary);
     write_effected_report(report_dir, &effected);
 
     let mut report_context = Context::new();
@@ -525,7 +431,7 @@ fn write_reports(
     }
 }
 
-fn write_effected_report(report_dir: &PathBuf, effected_reports: &Vec<&EffectedReport>) {
+fn write_effected_report(report_dir: &PathBuf, effected_reports: &Vec<EffectedReport>) {
     let final_path = report_dir.join("effected_report.csv");
 
     let effected_file: File;
@@ -591,7 +497,7 @@ fn open_log_file(path: &Path) -> BufReader<File> {
 
 fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<SummaryReport>) {
     let mut line_count: u32 = 0;
-    let parsers = initialize_matcher();
+    let parsers = initialize_matchers();
     let mut data_points: Vec<FileDataPoint> = Vec::with_capacity(50000);
 
     let start = Instant::now();

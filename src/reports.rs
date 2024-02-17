@@ -512,7 +512,7 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 report.update_critical_damage(report.player_name.clone(), damage_dealt);
                 report.create_damage_point(data_position, damage_dealt.damage);
             }
-            FileDataPoint::PsuedoPetDirectDamage {
+            FileDataPoint::PseudoPetDirectDamage {
                 data_position,
                 pet_name,
                 damage_dealt,
@@ -558,7 +558,7 @@ pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryRepo
                 report.update_player_misses(report.player_name.clone(), action_result);
                 report.capture_targets_effected(point);
             }
-            FileDataPoint::PsuedoPetHit {
+            FileDataPoint::PseudoPetHit {
                 data_position: _,
                 name,
                 action_result,
