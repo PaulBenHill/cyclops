@@ -1,6 +1,7 @@
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
 use serde::{Deserialize, Serialize, Serializer};
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
@@ -222,7 +223,6 @@ fn create_report_dir(
 }
 
 fn generate_effected_report(summary: &SummaryReport) -> Box<Vec<EffectedReport>> {
-    let mut results: Vec<EffectedReport> = Vec::new();
     let inital_points = summary.get_targets_effected_by_power();
 
     let mut activations: Vec<TargetsEffected> = Vec::new();
@@ -313,6 +313,8 @@ fn generate_effected_report(summary: &SummaryReport) -> Box<Vec<EffectedReport>>
         }
     }
 
+    let mut results: Vec<EffectedReport> = Vec::new();
+    // let mut results: Vec<EffectedReport> = Vec::new();
     for r in effected_reports.values_mut() {
         r.average_hits = r.total_hits as f32 / r.activations as f32;
         r.median = median(&mut r.counts.clone());
@@ -323,24 +325,7 @@ fn generate_effected_report(summary: &SummaryReport) -> Box<Vec<EffectedReport>>
     Box::new(results)
 }
 
-fn write_reports(
-    report_dir: &PathBuf,
-    data_file: &Path,
-    file_name: &str,
-    parsed_lines: &Vec<FileDataPoint>,
-    index: usize,
-    summary: &SummaryReport,
-    dps_interval: usize,
-) {
-    // files to write
-    // original data file
-    // parsed log
-    // error log todo
-    // summary files for each session
-    if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
-        println!("Copying data file return zero bytes: {}", e);
-    }
-
+fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
     let parsed_json_file = match File::create(report_dir.join("parsed.json")) {
         Ok(f) => f,
         Err(e) => panic!("Cannot create parser.json file: {:?}", e),
@@ -358,6 +343,26 @@ fn write_reports(
             .write_all(format!("{:?}\n,", data_point).as_bytes())
             .expect("Unable to write parsed.txt")
     }
+}
+
+fn write_reports(
+    report_dir: &PathBuf,
+    data_file: &Path,
+    file_name: &str,
+    parsed_lines: &Vec<FileDataPoint>,
+    index: usize,
+    summary: &SummaryReport,
+    dps_interval: usize,
+) {
+    // error log todo
+    // summary files for each session
+    // original data file
+    if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
+        println!("Copying data file return zero bytes: {}", e);
+    }
+
+    // write parsed logs for troubleshooting
+    write_parsed_files(report_dir, parsed_lines);
 
     let summary_file_name = format!(
         "{}_{}_summary.html",
