@@ -468,7 +468,6 @@ where
 pub fn total_player_attacks(data_points: &Vec<FileDataPoint>) -> Vec<SummaryReport> {
     let mut summaries: Vec<SummaryReport> = Vec::new();
     let mut report = SummaryReport::new();
-    let mut targets_effected: Vec<&mut TargetsEffected> = Vec::new();
 
     for point in data_points {
         match point {

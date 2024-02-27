@@ -1,5 +1,6 @@
 use chrono::{self, DateTime, Local, NaiveDateTime};
 use serde::{Serialize, Serializer};
+use std::fmt;
 
 #[derive(Debug, Serialize, Clone)]
 pub struct HitOrMiss {
@@ -76,6 +77,12 @@ impl DamageType {
             "Special" => Self::Special,
             _ => panic!("Unable to parse damage type {}", damage_type),
         }
+    }
+}
+
+impl fmt::Display for DamageType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
     }
 }
 
@@ -403,5 +410,5 @@ fn date_to_string<S>(date: &DateTime<Local>, s: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    s.serialize_str(&format!("{}", date.format("%Y-%M-%d %H:%M:%S")))
+    s.serialize_str(&format!("{}", date.format(r"%Y-%M-%d %H:%M:%S")))
 }

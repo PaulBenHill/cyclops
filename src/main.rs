@@ -15,7 +15,9 @@ use crate::parser_model::FileDataPoint;
 use crate::parsers::*;
 
 mod db_actions;
+mod models;
 mod parser_model;
+mod schema;
 
 mod reports;
 use crate::reports::*;
@@ -154,7 +156,7 @@ fn main() {
 
         let lines = reader.lines();
 
-        let reports: (Vec<FileDataPoint>, Vec<SummaryReport>) = process_lines(lines);
+        let reports: (Vec<FileDataPoint>, Vec<SummaryReport>) = process_lines(&file, lines);
 
         let report_dir = create_report_dir(&working_dir, &output_path, file_name, result.1);
 
@@ -496,7 +498,10 @@ fn open_log_file(path: &Path) -> BufReader<File> {
     }
 }
 
-fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<SummaryReport>) {
+fn process_lines(
+    file: &String,
+    lines: Lines<BufReader<File>>,
+) -> (Vec<FileDataPoint>, Vec<SummaryReport>) {
     let mut line_count: u32 = 0;
     let parsers = initialize_matchers();
     let mut data_points: Vec<FileDataPoint> = Vec::with_capacity(50000);
@@ -531,7 +536,7 @@ fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<Summ
     );
 
     // write to database
-    db_actions::write_to_database(data_points);
+    db_actions::write_to_database(&file, &data_points);
 
     let start = Instant::now();
     let summaries: Vec<SummaryReport> = total_player_attacks(&data_points);
