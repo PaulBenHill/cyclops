@@ -1,3 +1,4 @@
+use crate::parser_model::*;
 use crate::parser_model::{DamageDealt, DataPosition, FileDataPoint, HitOrMiss};
 use chrono::{self, DateTime, Local};
 use serde::{Deserialize, Serialize, Serializer};

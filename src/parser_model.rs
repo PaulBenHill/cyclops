@@ -161,7 +161,7 @@ impl HealEnduranceAction {
             Ok(number) => number,
             Err(error) => {
                 println!("Unparsable heal or endurance number {}:{:?}", amount, error);
-                12345 as f32
+                12345.0
             }
         };
         HealEnduranceAction {

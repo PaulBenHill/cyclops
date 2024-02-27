@@ -1,7 +1,6 @@
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
 use serde::{Deserialize, Serialize, Serializer};
-use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
@@ -15,6 +14,7 @@ use tera::{Context, Tera};
 use crate::parser_model::FileDataPoint;
 use crate::parsers::*;
 
+mod db_actions;
 mod parser_model;
 
 mod reports;
@@ -240,17 +240,17 @@ fn generate_effected_report(summary: &SummaryReport) -> Box<Vec<EffectedReport>>
     for action in activations {
         let mut initial_activation_line_number = action.line_number;
         let power_name = action.power_name;
-        // println!(
-        // "Inital: {}:{}:{}",
-        // power_name, initial_activation_line_number, next_activation_line_number
-        // );
+        //        println!(
+        //           "Inital: {}:{}:{}",
+        //          power_name, initial_activation_line_number, next_activation_line_number
+        //     );
         for np in inital_points.clone() {
             if np.activation
                 && np.line_number > initial_activation_line_number
                 && np.power_name == power_name
             {
                 next_activation_line_number = np.line_number;
-                //println!("NP: {}:{}", next_activation_line_number, power_name);
+                //                println!("NP: {}:{}", next_activation_line_number, power_name);
                 break;
             }
         }
@@ -275,10 +275,6 @@ fn generate_effected_report(summary: &SummaryReport) -> Box<Vec<EffectedReport>>
         }
         if effected_count > 0 {
             points_counted.push((initial_activation_line_number, power_name, effected_count));
-        }
-
-        if next_activation_line_number == u32::MAX {
-            break;
         }
 
         initial_activation_line_number = next_activation_line_number;
@@ -533,6 +529,9 @@ fn process_lines(lines: Lines<BufReader<File>>) -> (Vec<FileDataPoint>, Vec<Summ
         "Matching and conversion: {} second.",
         start.elapsed().as_secs()
     );
+
+    // write to database
+    db_actions::write_to_database(data_points);
 
     let start = Instant::now();
     let summaries: Vec<SummaryReport> = total_player_attacks(&data_points);

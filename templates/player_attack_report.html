@@ -142,6 +142,14 @@
                 return percent + '%';
             }
         }
+        function format_as_integer(numerator, denominator) {
+            var value = (numerator / denominator).toFixed(0);
+            if (value == 0 || isNaN(value) || !isFinite(value)) {
+                return "";
+            } else {
+                return value;
+            }
+        }
         /*
  *   This content is licensed according to the W3C Software License at
  *   https://www.w3.org/Consortium/Legal/2015/copyright-software-and-document
@@ -414,6 +422,12 @@
                     </th>
                     <th class="num">
                         <button>
+                            DPA
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
                             Critical Hits
                             <span aria-hidden="true"></span>
                         </button>
@@ -461,6 +475,11 @@
                     </td>
                     <td>{{ power.direct_damage }}</td>
                     <td>{{ power.dot_damage }}</td>
+                    <td>
+                       <script>
+              document.write(format_as_integer( {{power.total_damage}}, {{power.activations}}));
+                       </script> 
+                    </td>
                     <td>{{ power.critical_hits }}</td>
                     <td>
                         <script>
