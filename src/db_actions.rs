@@ -1,14 +1,14 @@
 use chrono::{self, DateTime, Local};
+use diesel::dsl::not;
 use diesel::{debug_query, prelude::*};
 use dotenvy::dotenv;
 use std::env;
 
-use crate::models::{DamageAction, Summary};
+use crate::models::{DamageAction, HitOrMiss, Summary};
 use crate::parser_model::*;
-use crate::schema::damage_action::dsl::*;
 use crate::schema::damage_action::{line_number, source_name, summary_key};
 use crate::schema::summary::{first_line_number, last_line_number};
-use crate::schema::{damage_action, summary};
+use crate::schema::{damage_action, hit_or_miss, summary};
 
 pub fn establish_connection() -> SqliteConnection {
     dotenv().ok();
@@ -23,6 +23,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
     let key = 42;
     let mut summaries: Vec<Summary> = Vec::new();
     let mut damage_actions: Vec<DamageAction> = Vec::new();
+    let mut hits_misses: Vec<HitOrMiss> = Vec::new();
 
     // Create placeholder summary
     let placeholder = Summary {
@@ -43,7 +44,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
             } => {
                 summaries.push(Summary {
                     summary_key: data_position.date.timestamp() as i32,
-                    player_name: String::from(player_name),
+                    player_name: player_name.clone(),
                     log_date: data_position.date.to_rfc2822(),
                     first_line_number: data_position.line_number as i32,
                     last_line_number: i32::MAX,
@@ -58,13 +59,13 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc2822(),
-                    target: String::from(&damage_dealt.target),
-                    power_name: String::from(&damage_dealt.power_name),
-                    damage: damage_dealt.damage as i32,
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
                     damage_mode: String::from("Direct"),
                     source_type: String::from("Player"),
-                    source_name: Some(String::from("Player")),
+                    source_name: String::from("Player"),
                 });
             }
             FileDataPoint::PlayerDamageDoT {
@@ -75,13 +76,13 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc2822(),
-                    target: String::from(&damage_dealt.target),
-                    power_name: String::from(&damage_dealt.power_name),
-                    damage: damage_dealt.damage as i32,
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
                     damage_mode: String::from("DoT"),
                     source_type: String::from("Player"),
-                    source_name: Some(String::from("Player")),
+                    source_name: String::from("Player"),
                 });
             }
             FileDataPoint::PlayerCriticalDamage {
@@ -93,13 +94,119 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc2822(),
-                    target: String::from(&damage_dealt.target),
-                    power_name: String::from(&damage_dealt.power_name),
-                    damage: damage_dealt.damage as i32,
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
                     damage_mode: String::from("Critical"),
                     source_type: String::from("Player"),
-                    source_name: Some(String::from("Player")),
+                    source_name: String::from("Player"),
+                });
+            }
+            FileDataPoint::PseudoPetDirectDamage {
+                data_position,
+                damage_dealt,
+                pet_name,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc2822(),
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("Direct"),
+                    source_type: String::from("PlayerPet"),
+                    source_name: String::from(pet_name),
+                });
+            }
+            FileDataPoint::PsuedoPetDamageDoT {
+                data_position,
+                damage_dealt,
+                pet_name,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc2822(),
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("DoT"),
+                    source_type: String::from("PlayerPet"),
+                    source_name: String::from(pet_name),
+                });
+            }
+            FileDataPoint::PsuedoPetCriticalDamage {
+                data_position,
+                damage_dealt,
+                pet_name,
+                critical_type: _,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc2822(),
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("Critical"),
+                    source_type: String::from("PlayerPet"),
+                    source_name: String::from(pet_name),
+                });
+            }
+            FileDataPoint::PlayerHit {
+                data_position,
+                action_result,
+            } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc2822(),
+                    hit: 1,
+                    chance_to_hit: action_result.chance_to_hit.round() as i32,
+                    source_type: String::from("Player"),
+                    source_name: String::from("Player"),
+                    target_name: action_result.target.clone(),
+                    power_name: action_result.power_name.clone(),
+                    streakbreaker: 0,
+                });
+            }
+            FileDataPoint::PlayerStreakbreakerHit {
+                data_position,
+                action_result,
+            } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc2822(),
+                    hit: 1,
+                    chance_to_hit: action_result.chance_to_hit.round() as i32,
+                    source_type: String::from("Player"),
+                    source_name: String::from("Player"),
+                    target_name: action_result.target.clone(),
+                    power_name: action_result.power_name.clone(),
+                    streakbreaker: 1,
+                });
+            }
+            FileDataPoint::PlayerMiss {
+                data_position,
+                action_result,
+            } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc2822(),
+                    hit: 0,
+                    chance_to_hit: action_result.chance_to_hit.round() as i32,
+                    source_type: String::from("Player"),
+                    source_name: String::from("Player"),
+                    target_name: action_result.target.clone(),
+                    power_name: action_result.power_name.clone(),
+                    streakbreaker: 0,
                 });
             }
             _ => (),
@@ -108,15 +215,40 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
 
     if !summaries.is_empty() {
         insert_summaries(&mut conn, &summaries);
-    }
 
-    if !damage_actions.is_empty() {
-        insert_damage(&mut conn, &damage_actions);
-    }
+        if !hits_misses.is_empty() {
+            insert_hits_misses(&mut conn, &hits_misses);
+        }
 
-    let final_summaries = finalize_summaries(&mut conn, &summaries[..]);
-    finalize_data(&mut conn, &final_summaries[..]);
+        if !damage_actions.is_empty() {
+            insert_damage(&mut conn, &damage_actions);
+        }
+        let final_summaries = finalize_summaries(&mut conn, &summaries[..]);
+        finalize_data(&mut conn, &final_summaries[..]);
+    }
 }
+
+pub fn insert_summaries(conn: &mut SqliteConnection, summaries: &Vec<Summary>) {
+    diesel::insert_into(summary::table)
+        .values(summaries)
+        .execute(conn)
+        .expect("Error saving new summary");
+}
+
+fn insert_hits_misses(conn: &mut SqliteConnection, hits_misses: &Vec<HitOrMiss>) {
+    diesel::insert_into(hit_or_miss::table)
+        .values(hits_misses)
+        .execute(conn)
+        .expect("Error saving new hit or miss");
+}
+
+fn insert_damage(conn: &mut SqliteConnection, actions: &Vec<DamageAction>) {
+    diesel::insert_into(damage_action::table)
+        .values(actions)
+        .execute(conn)
+        .expect("Error saving new damage action");
+}
+
 fn finalize_summaries(conn: &mut SqliteConnection, summaries: &[Summary]) -> Vec<Summary> {
     let mut start_lines: Vec<i32> = Vec::new();
     for s in summaries {
@@ -141,32 +273,53 @@ fn finalize_summaries(conn: &mut SqliteConnection, summaries: &[Summary]) -> Vec
 
 fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
     for s in summaries {
-        let gt_ln = line_number.gt(s.first_line_number);
-        let lt_ln = line_number.lt(s.last_line_number);
-        let player_type = source_type.eq("Player");
-        diesel::update(damage_action)
-            .filter(gt_ln.and(lt_ln).and(player_type))
-            .set((
-                summary_key.eq(s.summary_key),
-                source_name.eq(s.player_name.clone()),
-            ))
-            .execute(conn)
-            .expect("Unable to update damage_action");
+        finalize_damage_action(conn, s);
+        finalize_hits_misses(conn, s);
     }
 }
 
-pub fn insert_summaries(conn: &mut SqliteConnection, summaries: &Vec<Summary>) {
-    diesel::insert_into(summary::table)
-        .values(summaries)
+fn finalize_damage_action(conn: &mut SqliteConnection, s: &Summary) {
+    let gt_ln = line_number.gt(s.first_line_number);
+    let lt_ln = line_number.lt(s.last_line_number);
+
+    use crate::schema::damage_action::dsl::*;
+    let player_damage_pre = crate::schema::damage_action::source_type.eq("Player");
+    diesel::update(damage_action)
+        .filter(gt_ln.and(lt_ln).and(player_damage_pre))
+        .set((
+            summary_key.eq(s.summary_key),
+            source_name.eq(s.player_name.clone()),
+        ))
         .execute(conn)
-        .expect("Error saving new summary");
+        .expect("Unable to update damage_action");
+
+    diesel::update(damage_action)
+        .filter(gt_ln.and(lt_ln))
+        .filter(not(player_damage_pre))
+        .set(summary_key.eq(s.summary_key))
+        .execute(conn)
+        .expect("Unable to update damage_action");
 }
 
-fn insert_damage(conn: &mut SqliteConnection, actions: &Vec<DamageAction>) {
-    // todo!("Critical")
+fn finalize_hits_misses(conn: &mut SqliteConnection, s: &Summary) {
+    let gt_ln = line_number.gt(s.first_line_number);
+    let lt_ln = line_number.lt(s.last_line_number);
 
-    diesel::insert_into(damage_action::table)
-        .values(actions)
+    use crate::schema::hit_or_miss::dsl::*;
+    let player_hit_miss_pre = crate::schema::hit_or_miss::source_type.eq("Player");
+    diesel::update(hit_or_miss)
+        .filter(gt_ln.and(lt_ln).and(player_hit_miss_pre))
+        .set((
+            summary_key.eq(s.summary_key),
+            source_name.eq(s.player_name.clone()),
+        ))
         .execute(conn)
-        .expect("Error saving new damage action");
+        .expect("Unable to update damage_action");
+
+    diesel::update(hit_or_miss)
+        .filter(gt_ln.and(lt_ln))
+        .filter(not(player_hit_miss_pre))
+        .set(summary_key.eq(s.summary_key))
+        .execute(conn)
+        .expect("Unable to update damage_action");
 }

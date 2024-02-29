@@ -19,7 +19,7 @@ pub struct DamageAction {
     pub damage_type: String,
     pub damage_mode: String,
     pub source_type: String,
-    pub source_name: Option<String>,
+    pub source_name: String,
 }
 
 #[derive(Queryable, Debug, Identifiable)]
@@ -47,16 +47,15 @@ pub struct DefeatedTarget {
     pub target_name: String,
 }
 
-#[derive(Queryable, Debug, Identifiable, Insertable)]
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable)]
 #[diesel(primary_key(summary_key, line_number, log_date))]
 #[diesel(table_name = hit_or_miss)]
-pub struct HitOrMis {
+pub struct HitOrMiss {
     pub summary_key: i32,
     pub line_number: i32,
     pub log_date: String,
     pub hit: i32,
     pub chance_to_hit: i32,
-    pub hit_roll: i32,
     pub source_type: String,
     pub source_name: String,
     pub target_name: String,

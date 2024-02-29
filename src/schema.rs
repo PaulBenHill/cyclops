@@ -11,7 +11,7 @@ diesel::table! {
         damage_type -> Text,
         damage_mode -> Text,
         source_type -> Text,
-        source_name -> Nullable<Text>,
+        source_name -> Text,
     }
 }
 
@@ -45,7 +45,6 @@ diesel::table! {
         log_date -> Text,
         hit -> Integer,
         chance_to_hit -> Integer,
-        hit_roll -> Integer,
         source_type -> Text,
         source_name -> Text,
         target_name -> Text,
