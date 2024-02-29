@@ -12,11 +12,12 @@ use diesel::prelude::*;
 pub struct DamageAction {
     pub summary_key: i32,
     pub line_number: i32,
-    pub log_date: i32,
+    pub log_date: String,
     pub target: String,
     pub power_name: String,
     pub damage: i32,
     pub damage_type: String,
+    pub damage_mode: String,
     pub source_type: String,
     pub source_name: Option<String>,
 }
@@ -86,13 +87,14 @@ pub struct Reward {
     pub reward_type: Option<String>,
 }
 
-#[derive(Queryable, Debug, Identifiable, Insertable, Selectable)]
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable)]
 #[diesel(primary_key(summary_key))]
 #[diesel(table_name = summary)]
 pub struct Summary {
-    pub player_name: String,
-    pub log_date: String,
-    pub line_number: i32,
-    pub log_file_name: String,
     pub summary_key: i32,
+    pub first_line_number: i32,
+    pub last_line_number: i32,
+    pub log_date: String,
+    pub player_name: String,
+    pub log_file_name: String,
 }

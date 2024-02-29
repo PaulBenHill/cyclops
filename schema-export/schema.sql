@@ -1,5 +1,5 @@
 --
--- File generated with SQLiteStudio v3.4.4 on Mon Feb 26 07:21:28 2024
+-- File generated with SQLiteStudio v3.4.4 on Wed Feb 28 11:54:14 2024
 --
 -- Text encoding used: System
 --
@@ -8,11 +8,11 @@ BEGIN TRANSACTION;
 
 -- Table: damage_action
 DROP TABLE IF EXISTS damage_action;
-CREATE TABLE IF NOT EXISTS damage_action (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date INTEGER NOT NULL, target TEXT NOT NULL, power_name TEXT NOT NULL, damage INTEGER NOT NULL, damage_type TEXT NOT NULL, source_type TEXT NOT NULL, source_name TEXT, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
+CREATE TABLE IF NOT EXISTS damage_action (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, target TEXT NOT NULL, power_name TEXT NOT NULL, damage INTEGER NOT NULL, damage_type TEXT NOT NULL, damage_mode TEXT CHECK (damage_mode IN ('Direct', 'DoT', 'Critical')) NOT NULL, source_type TEXT CHECK (source_type IN ('Player', 'PlayerPet', 'Mob', 'MobPet')) NOT NULL, source_name TEXT, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
 
 -- Table: debuff_action
 DROP TABLE IF EXISTS debuff_action;
-CREATE TABLE IF NOT EXISTS debuff_action (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, source_type TEXT CHECK (source_type IN ('Player', 'PlayerPet', 'Mob', 'MobPet')), source_name TEXT CHECK (source_type IN ('Player', 'PlayerPet', 'Mob', 'MobPet')) NOT NULL, power_name TEXT, target_name ANY, debuff_type TEXT, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
+CREATE TABLE IF NOT EXISTS debuff_action (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, source_type TEXT CHECK (source_type IN ('Player', 'PlayerPet', 'Mob', 'MobPet')), source_name TEXT CHECK (source_type IN ('Player', 'PlayerPet', 'Mob', 'MobPet')) NOT NULL, power_name TEXT, target_name TEXT, debuff_type TEXT, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
 
 -- Table: defeated_targets
 DROP TABLE IF EXISTS defeated_targets;
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS hit_or_miss (summary_key INTEGER NOT NULL, line_numbe
 
 -- Table: player_activation
 DROP TABLE IF EXISTS player_activation;
-CREATE TABLE IF NOT EXISTS player_activation (summary_key INTEGER, line_number INTEGER, log_date INTEGER, power_name TEXT, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
+CREATE TABLE IF NOT EXISTS player_activation (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, power_name TEXT NOT NULL, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
 
 -- Table: reward
 DROP TABLE IF EXISTS reward;
@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS reward (session_key INTEGER REFERENCES summary (summa
 
 -- Table: summary
 DROP TABLE IF EXISTS summary;
-CREATE TABLE IF NOT EXISTS summary (player_name TEXT NOT NULL, log_date TEXT NOT NULL, line_number INTEGER NOT NULL CHECK ((line_number > 0)), log_file_name TEXT NOT NULL, summary_key INTEGER PRIMARY KEY UNIQUE NOT NULL) STRICT;
+CREATE TABLE IF NOT EXISTS summary (summary_key INTEGER PRIMARY KEY UNIQUE NOT NULL, first_line_number INTEGER NOT NULL CHECK ((first_line_number > 0)), last_line_number INTEGER NOT NULL, log_date TEXT NOT NULL, player_name TEXT NOT NULL, log_file_name TEXT NOT NULL CHECK ((last_line_number > first_line_number))) STRICT;
 
 COMMIT TRANSACTION;
 PRAGMA foreign_keys = on;
+

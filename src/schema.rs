@@ -4,11 +4,12 @@ diesel::table! {
     damage_action (summary_key, line_number, log_date) {
         summary_key -> Integer,
         line_number -> Integer,
-        log_date -> Integer,
+        log_date -> Text,
         target -> Text,
         power_name -> Text,
         damage -> Integer,
         damage_type -> Text,
+        damage_mode -> Text,
         source_type -> Text,
         source_name -> Nullable<Text>,
     }
@@ -57,8 +58,8 @@ diesel::table! {
     player_activation (summary_key, line_number, log_date) {
         summary_key -> Integer,
         line_number -> Integer,
-        log_date -> Integer,
-        power_name -> Nullable<Text>,
+        log_date -> Text,
+        power_name -> Text,
     }
 }
 
@@ -76,11 +77,12 @@ diesel::table! {
 
 diesel::table! {
     summary (summary_key) {
-        player_name -> Text,
-        log_date -> Text,
-        line_number -> Integer,
-        log_file_name -> Text,
         summary_key -> Integer,
+        first_line_number -> Integer,
+        last_line_number -> Integer,
+        log_date -> Text,
+        player_name -> Text,
+        log_file_name -> Text,
     }
 }
 

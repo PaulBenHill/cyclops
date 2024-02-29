@@ -2,7 +2,7 @@
 --
 -- Table: damage_action
 DROP TABLE IF EXISTS damage_action;
-CREATE TABLE IF NOT EXISTS damage_action (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date INTEGER NOT NULL, target TEXT NOT NULL, power_name TEXT NOT NULL, damage INTEGER NOT NULL, damage_type TEXT NOT NULL, source_type TEXT NOT NULL, source_name TEXT, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
+CREATE TABLE IF NOT EXISTS damage_action (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, target TEXT NOT NULL, power_name TEXT NOT NULL, damage INTEGER NOT NULL, damage_type TEXT NOT NULL, source_type TEXT NOT NULL, source_name TEXT, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
 
 -- Table: debuff_action
 DROP TABLE IF EXISTS debuff_action;
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS hit_or_miss (summary_key INTEGER NOT NULL, line_numbe
 
 -- Table: player_activation
 DROP TABLE IF EXISTS player_activation;
-CREATE TABLE IF NOT EXISTS player_activation (summary_key INTEGER, line_number INTEGER, log_date INTEGER, power_name TEXT, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
+CREATE TABLE IF NOT EXISTS player_activation (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, power_name TEXT NOT NULL, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key)) STRICT;
 
 -- Table: reward
 DROP TABLE IF EXISTS reward;
@@ -26,4 +26,6 @@ CREATE TABLE IF NOT EXISTS reward (session_key INTEGER REFERENCES summary (summa
 
 -- Table: summary
 DROP TABLE IF EXISTS summary;
-CREATE TABLE IF NOT EXISTS summary (player_name TEXT NOT NULL, log_date TEXT NOT NULL, line_number INTEGER NOT NULL CHECK ((line_number > 0)), log_file_name TEXT NOT NULL, summary_key INTEGER PRIMARY KEY UNIQUE NOT NULL) STRICT;
+CREATE TABLE IF NOT EXISTS summary (summary_key INTEGER PRIMARY KEY UNIQUE NOT NULL, line_number INTEGER NOT NULL CHECK ((line_number > 0)), log_date TEXT NOT NULL, player_name TEXT NOT NULL, log_file_name TEXT NOT NULL) STRICT;
+
+
