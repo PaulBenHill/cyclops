@@ -63,14 +63,14 @@ pub struct HitOrMiss {
     pub streakbreaker: i32,
 }
 
-#[derive(Queryable, Debug, Identifiable)]
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable)]
 #[diesel(primary_key(summary_key, line_number, log_date))]
 #[diesel(table_name = player_activation)]
 pub struct PlayerActivation {
     pub summary_key: i32,
     pub line_number: i32,
-    pub log_date: i32,
-    pub power_name: Option<String>,
+    pub log_date: String,
+    pub power_name: String,
 }
 
 #[derive(Queryable, Debug, Identifiable)]
