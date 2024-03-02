@@ -1,26 +1,54 @@
-use chrono::{self, DateTime, Local};
 use diesel::dsl::not;
+use diesel::sql_types::Integer;
 use diesel::{debug_query, prelude::*};
 use dotenvy::dotenv;
 use std::env;
+use std::fs;
+use std::path::*;
 
-use crate::models::{DamageAction, HitOrMiss, PlayerActivation, Summary};
+use crate::models::{DamageAction, HitOrMiss, PlayerActivation, Summary, TotalDamageReport};
 use crate::parser_model::*;
 use crate::schema::damage_action::{line_number, source_name, summary_key};
 use crate::schema::summary::{first_line_number, last_line_number};
-use crate::schema::{damage_action, hit_or_miss, player_activation, summary};
+use crate::schema::{damage_action, hit_or_miss, player_activation, summary, total_damage_report};
 
 pub fn establish_connection() -> SqliteConnection {
     dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     SqliteConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
+        .unwrap_or_else(|_| panic!("Unable to create in memory database"))
 }
 
-pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
-    let mut conn = establish_connection();
-    let key = 42;
+pub fn initialize_db(conn: &mut SqliteConnection) {
+    diesel::sql_query("pragma foreign_keys=ON")
+        .execute(conn)
+        .expect("Could not turn on foreign keys");
+    diesel::delete(summary::table)
+        .execute(conn)
+        .expect("Unable to delete summary rows");
+}
+
+pub fn copy_db(conn: &mut SqliteConnection, path: PathBuf) {
+    if path.exists() {
+        fs::remove_file(&path).expect("Unable to remove old db file");
+    }
+    let command = format!(
+        "VACUUM main INTO '{}'",
+        &path.into_os_string().into_string().unwrap()
+    );
+    println!("{}", command);
+    if let Err(e) = diesel::sql_query(command).execute(conn) {
+        println!("Unable to copy db: {:?}", e);
+    }
+}
+
+pub fn write_to_database(
+    conn: &mut SqliteConnection,
+    file_name: &String,
+    data_points: &Vec<FileDataPoint>,
+) {
+    let key = (chrono::offset::Local::now().timestamp() % 1000) as i32;
     let mut summaries: Vec<Summary> = Vec::new();
     let mut activations: Vec<PlayerActivation> = Vec::new();
     let mut hits_misses: Vec<HitOrMiss> = Vec::new();
@@ -46,7 +74,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 summaries.push(Summary {
                     summary_key: data_position.date.timestamp() as i32,
                     player_name: player_name.clone(),
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     first_line_number: data_position.line_number as i32,
                     last_line_number: i32::MAX,
                     log_file_name: file_name.clone(),
@@ -58,7 +86,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
             } => activations.push(PlayerActivation {
                 summary_key: key,
                 line_number: data_position.line_number as i32,
-                log_date: data_position.date.to_rfc2822(),
+                log_date: data_position.date.to_rfc3339(),
                 power_name: power_name.clone(),
             }),
             FileDataPoint::PlayerHit {
@@ -68,7 +96,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 hits_misses.push(crate::models::HitOrMiss {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     hit: 1,
                     chance_to_hit: action_result.chance_to_hit.round() as i32,
                     source_type: String::from("Player"),
@@ -85,7 +113,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 hits_misses.push(crate::models::HitOrMiss {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     hit: 1,
                     chance_to_hit: action_result.chance_to_hit.round() as i32,
                     source_type: String::from("Player"),
@@ -102,7 +130,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 hits_misses.push(crate::models::HitOrMiss {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     hit: 0,
                     chance_to_hit: action_result.chance_to_hit.round() as i32,
                     source_type: String::from("Player"),
@@ -120,7 +148,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 hits_misses.push(crate::models::HitOrMiss {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     hit: 1,
                     chance_to_hit: action_result.chance_to_hit.round() as i32,
                     source_type: String::from("PlayerPet"),
@@ -138,7 +166,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 hits_misses.push(crate::models::HitOrMiss {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     hit: 1,
                     chance_to_hit: action_result.chance_to_hit.round() as i32,
                     source_type: String::from("PlayerPet"),
@@ -156,7 +184,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 hits_misses.push(crate::models::HitOrMiss {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     hit: 0,
                     chance_to_hit: action_result.chance_to_hit.round() as i32,
                     source_type: String::from("PlayerPet"),
@@ -173,7 +201,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 damage_actions.push(DamageAction {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     target: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
@@ -190,7 +218,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 damage_actions.push(DamageAction {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     target: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
@@ -208,7 +236,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 damage_actions.push(DamageAction {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     target: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
@@ -226,7 +254,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 damage_actions.push(DamageAction {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     target: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
@@ -244,7 +272,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 damage_actions.push(DamageAction {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     target: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
@@ -263,7 +291,7 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
                 damage_actions.push(DamageAction {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc2822(),
+                    log_date: data_position.date.to_rfc3339(),
                     target: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
@@ -278,23 +306,27 @@ pub fn write_to_database(file_name: &String, data_points: &Vec<FileDataPoint>) {
     }
 
     if !summaries.is_empty() {
-        insert_summaries(&mut conn, &summaries);
+        insert_summaries(conn, &summaries);
 
         if !activations.is_empty() {
-            insert_activations(&mut conn, &activations);
+            insert_activations(conn, &activations);
         }
 
         if !hits_misses.is_empty() {
-            insert_hits_misses(&mut conn, &hits_misses);
+            insert_hits_misses(conn, &hits_misses);
         }
 
         if !damage_actions.is_empty() {
-            insert_damage(&mut conn, &damage_actions);
+            insert_damage(conn, &damage_actions);
         }
-        let final_summaries = finalize_summaries(&mut conn, &summaries[..]);
-        finalize_data(&mut conn, &final_summaries[..]);
+        let final_summaries = finalize_summaries(conn, &summaries[..]);
+        finalize_data(conn, &final_summaries[..]);
 
-        cleanup_summaries(&mut conn);
+        cleanup_summaries(conn);
+
+        for s in final_summaries {
+            total_damage_report(conn, &s);
+        }
     }
 }
 
@@ -418,4 +450,14 @@ fn cleanup_summaries(conn: &mut SqliteConnection) {
     diesel::sql_query("delete from summary as s WHERE summary_key NOT IN (select summary_key from damage_action a where s.summary_key = a.summary_key)")
         .execute(conn)
         .expect("An error has occured");
+}
+
+fn total_damage_report(conn: &mut SqliteConnection, s: &Summary) {
+    use crate::schema::total_damage_report::dsl::*;
+    let td_report = total_damage_report
+        .filter(summary_key.eq(s.summary_key))
+        .select(TotalDamageReport::as_select())
+        .load(conn)
+        .expect("Unable to load total damage report");
+    println!("{:?}", td_report);
 }

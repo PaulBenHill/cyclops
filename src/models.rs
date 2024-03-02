@@ -74,10 +74,10 @@ pub struct PlayerActivation {
 }
 
 #[derive(Queryable, Debug, Identifiable)]
-#[diesel(primary_key(session_key, line_number, log_date))]
+#[diesel(primary_key(summary_key, line_number, log_date))]
 #[diesel(table_name = reward)]
 pub struct Reward {
-    pub session_key: i32,
+    pub summary_key: i32,
     pub line_number: i32,
     pub log_date: String,
     pub experience: Option<i32>,
@@ -96,4 +96,22 @@ pub struct Summary {
     pub log_date: String,
     pub player_name: String,
     pub log_file_name: String,
+}
+
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, QueryableByName)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = total_damage_report)]
+pub struct TotalDamageReport {
+    summary_key: i32,
+    activations: i32,
+    hits: i32,
+    streakbreaker: i32,
+    misses: i32,
+    total_damage: i32,
+    direct_damage: i32,
+    dot_damage: i32,
+    critical_damage: i32,
+    critical_hits: i32,
+    critical_hit_percentage: i32,
+    critical_damage_percentage: i32,
 }

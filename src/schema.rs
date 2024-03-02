@@ -63,8 +63,8 @@ diesel::table! {
 }
 
 diesel::table! {
-    reward (session_key, line_number, log_date) {
-        session_key -> Integer,
+    reward (summary_key, line_number, log_date) {
+        summary_key -> Integer,
         line_number -> Integer,
         log_date -> Text,
         experience -> Nullable<Integer>,
@@ -85,12 +85,30 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    total_damage_report (summary_key) {
+        summary_key -> Integer,
+        activations -> Integer,
+        hits -> Integer,
+        streakbreaker -> Integer,
+        misses -> Integer,
+        total_damage -> Integer,
+        direct_damage -> Integer,
+        dot_damage -> Integer,
+        critical_damage -> Integer,
+        critical_hits -> Integer,
+        critical_hit_percentage -> Integer,
+        critical_damage_percentage -> Integer,
+    }
+}
+
 diesel::joinable!(damage_action -> summary (summary_key));
 diesel::joinable!(debuff_action -> summary (summary_key));
 diesel::joinable!(defeated_targets -> summary (summary_key));
 diesel::joinable!(hit_or_miss -> summary (summary_key));
 diesel::joinable!(player_activation -> summary (summary_key));
-diesel::joinable!(reward -> summary (session_key));
+diesel::joinable!(reward -> summary (summary_key));
+diesel::joinable!(total_damage_report -> summary (summary_key));
 
 diesel::allow_tables_to_appear_in_same_query!(
     damage_action,
@@ -100,4 +118,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     player_activation,
     reward,
     summary,
+    total_damage_report
 );

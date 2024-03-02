@@ -8,6 +8,8 @@ use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
 
+use diesel::SqliteConnection;
+
 mod parsers;
 use tera::{Context, Tera};
 
@@ -148,7 +150,10 @@ fn main() {
     create_dir(&output_path);
     println!("Output directory: {}", output_path.display());
 
+    let mut conn = &mut db_actions::establish_connection();
+
     for file in log_file_names {
+        db_actions::initialize_db(conn);
         let result = verify_file(&file);
         let file_name = result.0.file_name().unwrap().to_str().unwrap();
 
@@ -156,7 +161,7 @@ fn main() {
 
         let lines = reader.lines();
 
-        let reports: (Vec<FileDataPoint>, Vec<SummaryReport>) = process_lines(&file, lines);
+        let reports: (Vec<FileDataPoint>, Vec<SummaryReport>) = process_lines(conn, &file, lines);
 
         let report_dir = create_report_dir(&working_dir, &output_path, file_name, result.1);
 
@@ -171,6 +176,7 @@ fn main() {
                 dps_interval,
             );
         }
+        db_actions::copy_db(conn, report_dir.join("summary.db"));
     }
 
     println!("Total run time took: {} second.", start.elapsed().as_secs());
@@ -499,6 +505,7 @@ fn open_log_file(path: &Path) -> BufReader<File> {
 }
 
 fn process_lines(
+    conn: &mut SqliteConnection,
     file: &String,
     lines: Lines<BufReader<File>>,
 ) -> (Vec<FileDataPoint>, Vec<SummaryReport>) {
@@ -536,7 +543,7 @@ fn process_lines(
     );
 
     // write to database
-    db_actions::write_to_database(&file, &data_points);
+    db_actions::write_to_database(conn, &file, &data_points);
 
     let start = Instant::now();
     let summaries: Vec<SummaryReport> = total_player_attacks(&data_points);
