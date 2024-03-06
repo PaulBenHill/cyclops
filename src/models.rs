@@ -2,6 +2,8 @@
 use super::schema::*;
 use diesel::prelude::*;
 use diesel::prelude::*;
+use diesel::sql_types::{Integer, Nullable};
+use serde::{Deserialize, Serialize};
 
 //#![allow(unused)]
 //#![allow(clippy::all)]
@@ -86,7 +88,7 @@ pub struct Reward {
     pub reward_type: Option<String>,
 }
 
-#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable)]
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, Serialize, Deserialize)]
 #[diesel(primary_key(summary_key))]
 #[diesel(table_name = summary)]
 pub struct Summary {
@@ -98,20 +100,74 @@ pub struct Summary {
     pub log_file_name: String,
 }
 
-#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, QueryableByName)]
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
 #[diesel(primary_key(summary_key))]
 #[diesel(table_name = total_damage_report)]
 pub struct TotalDamageReport {
-    summary_key: i32,
-    activations: i32,
-    hits: i32,
-    streakbreaker: i32,
-    misses: i32,
-    total_damage: i32,
-    direct_damage: i32,
-    dot_damage: i32,
-    critical_damage: i32,
-    critical_hits: i32,
-    critical_hit_percentage: i32,
-    critical_damage_percentage: i32,
+    pub summary_key: i32,
+    pub activations: i32,
+    pub hits: i32,
+    pub streak_breakers: i32,
+    pub misses: i32,
+    pub total_damage: i32,
+    pub direct_damage: i32,
+    pub dot_damage: i32,
+    pub critical_damage: i32,
+    pub critical_hits: i32,
+    pub critical_hit_percentage: i32,
+    pub critical_damage_percentage: i32,
+}
+
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, QueryableByName)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = activations_per_power)]
+pub struct ActivationsPerPower {
+    pub summary_key: i32,
+    pub power_name: String,
+    pub activations: i32,
+}
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = damage_report_by_power)]
+pub struct DamageReportByPower {
+    pub summary_key: i32,
+    pub power_name: String,
+    pub activations: i32,
+    pub hits: i32,
+    pub streak_breakers: i32,
+    pub misses: i32,
+    #[diesel(sql_type = Nullable<Integer>)]
+    pub hit_percentage: Option<i32>,
+    pub power_total_damage: i32,
+    #[diesel(sql_type = Nullable<Integer>)]
+    pub dpa: Option<i32>,
+    pub direct_damage: i32,
+    pub dot_damage: i32,
+    pub critical_damage: i32,
+    pub critical_hits: i32,
+    #[diesel(sql_type = Nullable<Integer>)]
+    pub percent_hits_critical: Option<i32>,
+    #[diesel(sql_type = Nullable<Integer>)]
+    pub percent_damage_critical: Option<i32>,
 }

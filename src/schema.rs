@@ -90,7 +90,7 @@ diesel::table! {
         summary_key -> Integer,
         activations -> Integer,
         hits -> Integer,
-        streakbreaker -> Integer,
+        streak_breakers -> Integer,
         misses -> Integer,
         total_damage -> Integer,
         direct_damage -> Integer,
@@ -99,6 +99,34 @@ diesel::table! {
         critical_hits -> Integer,
         critical_hit_percentage -> Integer,
         critical_damage_percentage -> Integer,
+    }
+}
+
+diesel::table! {
+    activations_per_power (summary_key) {
+        summary_key -> Integer,
+        power_name -> Text,
+        activations -> Integer,
+    }
+}
+
+diesel::table! {
+    damage_report_by_power (summary_key) {
+        summary_key -> Integer,
+        power_name -> Text,
+        activations -> Integer,
+        hits -> Integer,
+        streak_breakers -> Integer,
+        misses -> Integer,
+        hit_percentage -> Nullable<Integer>,
+        power_total_damage -> Integer,
+        dpa -> Nullable<Integer>,
+        direct_damage -> Integer,
+        dot_damage -> Integer,
+        critical_damage -> Integer,
+        critical_hits -> Integer,
+        percent_hits_critical -> Nullable<Integer>,
+        percent_damage_critical -> Nullable<Integer>,
     }
 }
 
@@ -118,5 +146,6 @@ diesel::allow_tables_to_appear_in_same_query!(
     player_activation,
     reward,
     summary,
-    total_damage_report
+    total_damage_report,
+    damage_report_by_power,
 );

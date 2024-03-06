@@ -6,11 +6,17 @@ use std::env;
 use std::fs;
 use std::path::*;
 
-use crate::models::{DamageAction, HitOrMiss, PlayerActivation, Summary, TotalDamageReport};
+use crate::models::{
+    ActivationsPerPower, DamageAction, DamageReportByPower, HitOrMiss, PlayerActivation, Summary,
+    TotalDamageReport,
+};
 use crate::parser_model::*;
 use crate::schema::damage_action::{line_number, source_name, summary_key};
 use crate::schema::summary::{first_line_number, last_line_number};
-use crate::schema::{damage_action, hit_or_miss, player_activation, summary, total_damage_report};
+use crate::schema::{
+    damage_action, damage_report_by_power, hit_or_miss, player_activation, summary,
+    total_damage_report,
+};
 
 pub fn establish_connection() -> SqliteConnection {
     dotenv().ok();
@@ -323,10 +329,6 @@ pub fn write_to_database(
         finalize_data(conn, &final_summaries[..]);
 
         cleanup_summaries(conn);
-
-        for s in final_summaries {
-            total_damage_report(conn, &s);
-        }
     }
 }
 
@@ -378,6 +380,14 @@ fn finalize_summaries(conn: &mut SqliteConnection, summaries: &[Summary]) -> Vec
 
     use crate::schema::summary::dsl::*;
     summary.select(Summary::as_select()).load(conn).unwrap()
+}
+
+pub fn get_summaries(conn: &mut SqliteConnection) -> Vec<Summary> {
+    use crate::schema::summary::dsl::*;
+    summary
+        .select(Summary::as_select())
+        .load(conn)
+        .expect("Unable to load summaries")
 }
 
 fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
@@ -452,12 +462,51 @@ fn cleanup_summaries(conn: &mut SqliteConnection) {
         .expect("An error has occured");
 }
 
-fn total_damage_report(conn: &mut SqliteConnection, s: &Summary) {
+fn select_total_damage_reports(conn: &mut SqliteConnection) -> Vec<TotalDamageReport> {
     use crate::schema::total_damage_report::dsl::*;
-    let td_report = total_damage_report
-        .filter(summary_key.eq(s.summary_key))
+    total_damage_report
         .select(TotalDamageReport::as_select())
         .load(conn)
-        .expect("Unable to load total damage report");
-    println!("{:?}", td_report);
+        .expect("Unable to load total damage report")
+}
+
+pub fn get_total_damage_report(conn: &mut SqliteConnection, key: i32) -> Option<TotalDamageReport> {
+    for r in select_total_damage_reports(conn) {
+        if r.summary_key == key {
+            return Some(r);
+        }
+    }
+
+    None
+}
+
+fn activations_by_power(conn: &mut SqliteConnection) -> Vec<ActivationsPerPower> {
+    use crate::schema::activations_per_power::dsl::*;
+    activations_per_power
+        .select(ActivationsPerPower::as_select())
+        .load(conn)
+        .expect("Unable to load activations by power")
+}
+
+fn select_damage_reports_by_power(conn: &mut SqliteConnection) -> Vec<DamageReportByPower> {
+    use crate::schema::damage_report_by_power::dsl::*;
+    damage_report_by_power
+        .select(DamageReportByPower::as_select())
+        .load(conn)
+        .expect("Unable to load damage report by power")
+}
+
+pub fn get_damage_by_power_report(
+    conn: &mut SqliteConnection,
+    key: i32,
+) -> Vec<DamageReportByPower> {
+    let mut reports: Vec<DamageReportByPower> = Vec::new();
+
+    for r in select_damage_reports_by_power(conn) {
+        if r.summary_key == key {
+            reports.push(r);
+        }
+    }
+
+    reports
 }

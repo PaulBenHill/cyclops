@@ -1,5 +1,6 @@
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
+use models::{DamageAction, DamageReportByPower, TotalDamageReport};
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fs::File;
@@ -22,6 +23,7 @@ mod parser_model;
 mod schema;
 
 mod reports;
+use crate::models::Summary;
 use crate::reports::*;
 
 const OUTPUT_DIR: &str = "output";
@@ -176,10 +178,70 @@ fn main() {
                 dps_interval,
             );
         }
+
+        let summaries = db_actions::get_summaries(conn);
+        for (i, s) in summaries.iter().enumerate() {
+            let damage_report = db_actions::get_total_damage_report(conn, s.summary_key);
+            let damage_report_by_power =
+                db_actions::get_damage_by_power_report(conn, s.summary_key);
+
+            write_report(
+                &report_dir,
+                file_name,
+                i,
+                s,
+                damage_report.unwrap(),
+                damage_report_by_power,
+            )
+        }
+
         db_actions::copy_db(conn, report_dir.join("summary.db"));
     }
 
     println!("Total run time took: {} second.", start.elapsed().as_secs());
+}
+
+fn write_report(
+    report_dir: &PathBuf,
+    file_name: &str,
+    index: usize,
+    summary: &Summary,
+    total_damage: TotalDamageReport,
+    damage_by_power: Vec<DamageReportByPower>,
+) {
+    let mut report_context = Context::new();
+    report_context.insert("data_file_name", file_name);
+    report_context.insert("summary", summary);
+    report_context.insert("total_damage", &total_damage);
+    report_context.insert("powers", &damage_by_power);
+    //report_context.insert("dps_interval", &dps_interval);
+    //report_context.insert("dps_reports", &dps_reports);
+    //report_context.insert("targets_effected", &effected);
+    //
+    let summary_file_name = format!(
+        "new_{}_{}_summary.html",
+        summary.player_name.replace(" ", "_").to_lowercase(),
+        (index + 1).to_string()
+    );
+    let mut summary_file = match File::create(report_dir.join(summary_file_name)) {
+        Ok(f) => f,
+        Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
+    };
+
+    let tera = match Tera::new(&format!("{}{}*.html", TEMPLATES, std::path::MAIN_SEPARATOR)) {
+        Ok(t) => t,
+        Err(e) => panic!("Unable to load templates: {:?}", e),
+    };
+
+    let result = tera.render("new_player_attack_report.html", &report_context);
+    match result {
+        Ok(data) => {
+            summary_file
+                .write_all(data.as_bytes())
+                .expect("Unable to write file.");
+        }
+        Err(e) => panic!("Could not render {}:{:?}", PLAYER_ATTACK_REPORT_TEMPLATE, e),
+    }
 }
 
 fn read_log_file_dir(dir: PathBuf) -> Vec<String> {

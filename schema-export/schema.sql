@@ -1,5 +1,5 @@
 --
--- File generated with SQLiteStudio v3.4.4 on Sat Mar 2 12:47:51 2024
+-- File generated with SQLiteStudio v3.4.4 on Wed Mar 6 15:46:26 2024
 --
 -- Text encoding used: System
 --
@@ -34,23 +34,123 @@ CREATE TABLE IF NOT EXISTS reward (session_key INTEGER REFERENCES summary (summa
 DROP TABLE IF EXISTS summary;
 CREATE TABLE IF NOT EXISTS summary (summary_key INTEGER PRIMARY KEY UNIQUE NOT NULL, first_line_number INTEGER NOT NULL CHECK ((first_line_number > 0)), last_line_number INTEGER NOT NULL, log_date TEXT NOT NULL, player_name TEXT NOT NULL, log_file_name TEXT NOT NULL CHECK ((last_line_number > first_line_number))) STRICT;
 
+-- View: activations_per_power
+DROP VIEW IF EXISTS activations_per_power;
+CREATE VIEW IF NOT EXISTS activations_per_power AS select
+summary_key,
+power_name,
+count(power_name) as activations
+from player_activation
+group by summary_key, power_name;
+
+-- View: damage_report_by_power
+DROP VIEW IF EXISTS damage_report_by_power;
+CREATE VIEW IF NOT EXISTS damage_report_by_power AS select
+summary_key,
+power_name,
+activations,
+sum(hits) as hits,
+sum(streak_breakers) as streak_breakers,
+sum(misses) misses,
+ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100) as hit_percentage,
+sum(power_total_damage) as power_total_damage,
+(sum(power_total_damage)/activations) as dpa,
+sum(direct_damage) as direct_damage,
+sum(dot_damage) as dot_damage,
+sum(critical_damage) as critical_damage,
+sum(critical_hits) as critical_hits,
+(ROUND(1.0 * sum(critical_hits) / (sum(hits)) * 100)) as percent_hits_critical,
+(ROUND(1.0 * sum(critical_damage) / (sum(power_total_damage)) * 100)) as percent_damage_critical
+from (
+select 
+pa.summary_key, 
+pa.power_name,
+count(pa.power_name) as activations,
+0 as hits,
+0 as streak_breakers,
+0 as misses,
+0 as power_total_damage,
+0 as direct_damage,
+0 as dot_damage,
+0 as critical_damage,
+0 as critical_hits
+from
+player_activation pa
+group by summary_key, power_name
+UNION ALL
+select 
+hm.summary_key,
+hm.power_name,
+0 as activations,
+sum(hm.hit) AS hits,
+sum(hm.streakbreaker) as streak_breakers,
+sum(CASE WHEN hit = 0 THEN 1 ELSE 0 END) AS misses,
+0 as power_total_damage,
+0 as direct_damage,
+0 as dot_damage,
+0 as critical_damage,
+0 as critical_hits
+from
+hit_or_miss hm
+group by summary_key, power_name
+UNION ALL
+select
+da.summary_key,
+da.power_name,
+0 as activations,
+0 as hits,
+0 as streak_breakers,
+0 as misses,
+sum(da.damage) as power_total_damage,
+SUM(CASE WHEN da.damage_mode = 'Direct' AND da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS direct_damage,
+SUM(CASE WHEN da.damage_mode = 'DoT' AND da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS dot_damage,
+SUM(CASE WHEN da.damage_mode = 'Critical' AND da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS critical_damage,
+SUM(CASE WHEN da.damage_mode = 'Critical' AND da.source_type IN ('Player', 'PlayerPet') THEN 1 ELSE 0 END) AS critical_hits
+from
+damage_action da
+group by summary_key, power_name)
+group by summary_key, power_name
+order by power_total_damage desc;
+
 -- View: total_damage_report
 DROP VIEW IF EXISTS total_damage_report;
 CREATE VIEW IF NOT EXISTS total_damage_report AS select s.summary_key, 
 (select count(*) from player_activation pa where s.summary_key = pa.summary_key) as activations,
 (select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 1 ) AS hits,
-(select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.streakbreaker = 1 ) AS streakbreaker,
+(select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.streakbreaker = 1 ) AS streak_breakers,
 (select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 0 ) AS misses,
 (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND source_type IN ('Player', 'PlayerPet')) AS total_damage,
 (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Direct' AND source_type IN ('Player', 'PlayerPet')) AS direct_damage,
 (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'DoT' AND source_type IN ('Player', 'PlayerPet')) AS dot_damage,
-(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) AS critical_damage,
+
+(CASE WHEN(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) IS NULL
+THEN 0
+ELSE
+(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet'))
+END) AS critical_damage,
+
 (select count(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) AS critical_hits,
+
+(CASE
+WHEN (select ROUND(1.0 * count(da.damage) / (select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 1) *100 )
+ from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) IS NULL
+THEN 0
+ELSE
 (select ROUND(1.0 * count(da.damage) / (select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 1) *100 )
- from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) AS critical_hit_percentage,
+ from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet'))
+END) AS critical_hit_percentage,
+ 
+(CASE 
+WHEN (select ROUND((1.0 * sum(da.damage) / (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND source_type IN ('Player', 'PlayerPet')) * 100))
+ from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) IS NULL
+THEN 0
+ELSE
 (select ROUND((1.0 * sum(da.damage) / (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND source_type IN ('Player', 'PlayerPet')) * 100))
- from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) AS critical_damage_percentage
-from summary s;
+ from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) 
+END) AS critical_damage_percentage
+ 
+from summary s
+order by total_damage desc;
 
 COMMIT TRANSACTION;
 PRAGMA foreign_keys = on;
