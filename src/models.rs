@@ -38,7 +38,7 @@ pub struct DebuffAction {
     pub debuff_type: Option<String>,
 }
 
-#[derive(Queryable, Debug, Identifiable)]
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable)]
 #[diesel(primary_key(summary_key, line_number, log_date))]
 #[diesel(table_name = defeated_targets)]
 pub struct DefeatedTarget {
@@ -128,6 +128,27 @@ pub struct TotalDamageReport {
     pub critical_damage_percentage: i32,
 }
 
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = damage_intervals)]
+pub struct DamageIntervals {
+    pub summary_key: i32,
+    pub line_number: i32,
+    pub log_date: String,
+    pub damage: i32,
+    pub delta: i32,
+}
+
 #[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, QueryableByName)]
 #[diesel(primary_key(summary_key))]
 #[diesel(table_name = activations_per_power)]
@@ -162,6 +183,8 @@ pub struct DamageReportByPower {
     pub power_total_damage: i32,
     #[diesel(sql_type = Nullable<Integer>)]
     pub dpa: Option<i32>,
+    #[diesel(sql_type = Nullable<Integer>)]
+    pub ate: Option<i32>,
     pub direct_damage: i32,
     pub dot_damage: i32,
     pub critical_damage: i32,

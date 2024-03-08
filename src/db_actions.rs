@@ -7,15 +7,15 @@ use std::fs;
 use std::path::*;
 
 use crate::models::{
-    ActivationsPerPower, DamageAction, DamageReportByPower, HitOrMiss, PlayerActivation, Summary,
-    TotalDamageReport,
+    ActivationsPerPower, DamageAction, DamageIntervals, DamageReportByPower, DefeatedTarget,
+    HitOrMiss, PlayerActivation, Summary, TotalDamageReport,
 };
 use crate::parser_model::*;
 use crate::schema::damage_action::{line_number, source_name, summary_key};
 use crate::schema::summary::{first_line_number, last_line_number};
 use crate::schema::{
-    damage_action, damage_report_by_power, hit_or_miss, player_activation, summary,
-    total_damage_report,
+    damage_action, damage_intervals, damage_report_by_power, defeated_targets, hit_or_miss,
+    player_activation, summary, total_damage_report,
 };
 
 pub fn establish_connection() -> SqliteConnection {
@@ -59,6 +59,7 @@ pub fn write_to_database(
     let mut activations: Vec<PlayerActivation> = Vec::new();
     let mut hits_misses: Vec<HitOrMiss> = Vec::new();
     let mut damage_actions: Vec<DamageAction> = Vec::new();
+    let mut defeats: Vec<DefeatedTarget> = Vec::new();
 
     // Create placeholder summary
     let placeholder = Summary {
@@ -307,6 +308,31 @@ pub fn write_to_database(
                     source_name: String::from(pet_name),
                 });
             }
+            FileDataPoint::PlayerVictory {
+                data_position,
+                target,
+            } => {
+                defeats.push(DefeatedTarget {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    source_name: String::from("Player"),
+                    target_name: String::from(target),
+                });
+            }
+            FileDataPoint::OtherVictory {
+                data_position,
+                source,
+                target,
+            } => {
+                defeats.push(DefeatedTarget {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    source_name: String::from(source),
+                    target_name: String::from(target),
+                });
+            }
             _ => (),
         }
     }
@@ -324,6 +350,10 @@ pub fn write_to_database(
 
         if !damage_actions.is_empty() {
             insert_damage(conn, &damage_actions);
+        }
+
+        if !defeats.is_empty() {
+            insert_defeats(conn, &defeats);
         }
         let final_summaries = finalize_summaries(conn, &summaries[..]);
         finalize_data(conn, &final_summaries[..]);
@@ -355,6 +385,13 @@ fn insert_hits_misses(conn: &mut SqliteConnection, hits_misses: &Vec<HitOrMiss>)
 
 fn insert_damage(conn: &mut SqliteConnection, actions: &Vec<DamageAction>) {
     diesel::insert_into(damage_action::table)
+        .values(actions)
+        .execute(conn)
+        .expect("Error saving new damage action");
+}
+
+fn insert_defeats(conn: &mut SqliteConnection, actions: &Vec<DefeatedTarget>) {
+    diesel::insert_into(defeated_targets::table)
         .values(actions)
         .execute(conn)
         .expect("Error saving new damage action");
@@ -395,6 +432,7 @@ fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
         finalize_activations(conn, s);
         finalize_hits_misses(conn, s);
         finalize_damage_action(conn, s);
+        finalize_defeats(conn, s);
     }
 }
 
@@ -439,6 +477,14 @@ fn finalize_damage_action(conn: &mut SqliteConnection, s: &Summary) {
 
     use crate::schema::damage_action::dsl::*;
     let player_damage_pre = crate::schema::damage_action::source_type.eq("Player");
+
+    diesel::update(damage_action)
+        .filter(gt_ln.and(lt_ln))
+        .filter(not(player_damage_pre))
+        .set(summary_key.eq(s.summary_key))
+        .execute(conn)
+        .expect("Unable to update other damage action");
+
     diesel::update(damage_action)
         .filter(gt_ln.and(lt_ln).and(player_damage_pre))
         .set((
@@ -446,14 +492,31 @@ fn finalize_damage_action(conn: &mut SqliteConnection, s: &Summary) {
             source_name.eq(s.player_name.clone()),
         ))
         .execute(conn)
-        .expect("Unable to update damage_action");
+        .expect("Unable to update player damage action");
+}
 
-    diesel::update(damage_action)
+fn finalize_defeats(conn: &mut SqliteConnection, s: &Summary) {
+    let gt_ln = line_number.gt(s.first_line_number);
+    let lt_ln = line_number.lt(s.last_line_number);
+
+    use crate::schema::defeated_targets::dsl::*;
+    let player_damage_pre = crate::schema::defeated_targets::source_name.eq("Player");
+
+    diesel::update(defeated_targets)
         .filter(gt_ln.and(lt_ln))
         .filter(not(player_damage_pre))
         .set(summary_key.eq(s.summary_key))
         .execute(conn)
-        .expect("Unable to update damage_action");
+        .expect("Unable to update other defeats");
+
+    diesel::update(defeated_targets)
+        .filter(gt_ln.and(lt_ln).and(player_damage_pre))
+        .set((
+            summary_key.eq(s.summary_key),
+            source_name.eq(s.player_name.clone()),
+        ))
+        .execute(conn)
+        .expect("Unable to update player defeats");
 }
 
 fn cleanup_summaries(conn: &mut SqliteConnection) {
@@ -509,4 +572,41 @@ pub fn get_damage_by_power_report(
     }
 
     reports
+}
+
+fn select_damage_intervals(conn: &mut SqliteConnection) -> Vec<DamageIntervals> {
+    use crate::schema::damage_intervals::dsl::*;
+    damage_intervals
+        .select(DamageIntervals::as_select())
+        .load(conn)
+        .expect("Unable to load damage report by power")
+}
+
+pub fn get_damage_intervals(
+    conn: &mut SqliteConnection,
+    key: i32,
+    interval: i32,
+) -> Vec<Vec<DamageIntervals>> {
+    let mut intervals: Vec<DamageIntervals> = Vec::new();
+    for r in select_damage_intervals(conn) {
+        if r.summary_key == key {
+            intervals.push(r);
+        }
+    }
+
+    let mut result: Vec<Vec<DamageIntervals>> = Vec::new();
+    let mut current_interval: Vec<DamageIntervals> = Vec::new();
+
+    for i in intervals {
+        current_interval.push(i.to_owned());
+        if i.delta >= interval {
+            result.push(current_interval);
+            current_interval = Vec::new();
+        }
+    }
+    if !current_interval.is_empty() {
+        result.push(current_interval);
+    }
+
+    result
 }

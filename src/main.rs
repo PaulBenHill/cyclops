@@ -1,6 +1,7 @@
+use chrono::DateTime;
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
-use models::{DamageAction, DamageReportByPower, TotalDamageReport};
+use models::{DamageAction, DamageIntervals, DamageReportByPower, TotalDamageReport};
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fs::File;
@@ -181,17 +182,22 @@ fn main() {
 
         let summaries = db_actions::get_summaries(conn);
         for (i, s) in summaries.iter().enumerate() {
-            let damage_report = db_actions::get_total_damage_report(conn, s.summary_key);
+            let damage_report = db_actions::get_total_damage_report(conn, s.summary_key).unwrap();
             let damage_report_by_power =
                 db_actions::get_damage_by_power_report(conn, s.summary_key);
+            let damage_intervals =
+                db_actions::get_damage_intervals(conn, s.summary_key, dps_interval as i32);
 
             write_report(
                 &report_dir,
                 file_name,
                 i,
                 s,
-                damage_report.unwrap(),
+                &reports.0,
+                damage_report,
                 damage_report_by_power,
+                dps_interval,
+                damage_intervals,
             )
         }
 
@@ -206,18 +212,62 @@ fn write_report(
     file_name: &str,
     index: usize,
     summary: &Summary,
+    parsed_lines: &Vec<FileDataPoint>,
     total_damage: TotalDamageReport,
     damage_by_power: Vec<DamageReportByPower>,
+    dps_interval: usize,
+    damage_intervals: Vec<Vec<DamageIntervals>>,
 ) {
+    let mut dps_reports: Vec<Vec<String>> = Vec::new();
+
+    for intervals in damage_intervals {
+        let first_interval = intervals.first().unwrap();
+        let last_interval = intervals.last().unwrap();
+
+        println!("First: {:?}", first_interval);
+        println!("Last: {:?}", last_interval);
+
+        let mut end_line: usize = 0;
+        if end_line < parsed_lines.len() {
+            end_line = last_interval.line_number as usize;
+        } else {
+            end_line = parsed_lines.len();
+        }
+
+        let total_damage: i32 = intervals.iter().map(|i| i.damage).sum();
+
+        let elapsed_seconds = DateTime::parse_from_rfc3339(last_interval.log_date.as_str())
+            .unwrap()
+            .timestamp()
+            - DateTime::parse_from_rfc3339(first_interval.log_date.as_str())
+                .unwrap()
+                .timestamp();
+        println!("Elapsed seconds: {}", elapsed_seconds);
+        println!("Length: {}", intervals.len());
+        let mut dps: i64 = 1;
+        if elapsed_seconds == 0 {
+            dps = total_damage as i64;
+        } else {
+            dps = (total_damage as i64) / elapsed_seconds;
+        }
+
+        dps_reports.push(vec![
+            first_interval.line_number.to_string(),
+            end_line.to_string(),
+            intervals.len().to_string(),
+            elapsed_seconds.to_string(),
+            total_damage.to_string(),
+            dps.to_string(),
+        ]);
+    }
     let mut report_context = Context::new();
     report_context.insert("data_file_name", file_name);
     report_context.insert("summary", summary);
     report_context.insert("total_damage", &total_damage);
     report_context.insert("powers", &damage_by_power);
-    //report_context.insert("dps_interval", &dps_interval);
-    //report_context.insert("dps_reports", &dps_reports);
-    //report_context.insert("targets_effected", &effected);
-    //
+    report_context.insert("dps_interval", &dps_interval);
+    report_context.insert("dps_reports", &dps_reports);
+
     let summary_file_name = format!(
         "new_{}_{}_summary.html",
         summary.player_name.replace(" ", "_").to_lowercase(),

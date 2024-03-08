@@ -103,6 +103,16 @@ diesel::table! {
 }
 
 diesel::table! {
+    damage_intervals (summary_key) {
+        summary_key -> Integer,
+        line_number -> Integer,
+        log_date -> Text,
+        damage -> Integer,
+        delta -> Integer,
+    }
+}
+
+diesel::table! {
     activations_per_power (summary_key) {
         summary_key -> Integer,
         power_name -> Text,
@@ -121,6 +131,7 @@ diesel::table! {
         hit_percentage -> Nullable<Integer>,
         power_total_damage -> Integer,
         dpa -> Nullable<Integer>,
+        ate -> Nullable<Integer>,
         direct_damage -> Integer,
         dot_damage -> Integer,
         critical_damage -> Integer,

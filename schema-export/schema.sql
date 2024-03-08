@@ -43,6 +43,25 @@ count(power_name) as activations
 from player_activation
 group by summary_key, power_name;
 
+-- View: damage_intervals
+DROP VIEW IF EXISTS damage_intervals;
+CREATE VIEW IF NOT EXISTS damage_intervals AS select 
+da1.summary_key, 
+da1.line_number,
+da1.log_date,
+da1.damage as damage,
+(CASE
+WHEN 
+  ROUND(((julianday((select da2.log_date from damage_action da2 where da1.summary_key = da2.summary_key AND da2.line_number > da1.line_number limit 1)) - julianday(da1.log_date)) * 86400)) IS NULL
+THEN 1000000
+ELSE
+  ROUND(((julianday((select da2.log_date from damage_action da2 where da1.summary_key = da2.summary_key AND da2.line_number > da1.line_number limit 1)) - julianday(da1.log_date)) * 86400))
+END)
+as delta
+from damage_action da1
+order by da1.summary_key;
+
+
 -- View: damage_report_by_power
 DROP VIEW IF EXISTS damage_report_by_power;
 CREATE VIEW IF NOT EXISTS damage_report_by_power AS select
@@ -55,6 +74,7 @@ sum(misses) misses,
 ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100) as hit_percentage,
 sum(power_total_damage) as power_total_damage,
 (sum(power_total_damage)/activations) as dpa,
+(ROUND(1.0 * sum(hits + misses) / activations)) as ate,
 sum(direct_damage) as direct_damage,
 sum(dot_damage) as dot_damage,
 sum(critical_damage) as critical_damage,
