@@ -66,47 +66,6 @@ struct Args {
     outputdir: Option<PathBuf>,
 }
 
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct EffectedReport {
-    pub power_name: String,
-    pub max_hits: u32,
-    pub min_hits: u32,
-    pub activations: u32,
-    pub total_hits: u32,
-    pub average_hits: f32,
-    pub median: u32,
-    pub mode: u32,
-    #[serde(serialize_with = "counts_to_string")]
-    counts: Vec<u32>,
-}
-
-fn counts_to_string<S>(counts: &Vec<u32>, s: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    s.serialize_str(&format!("{:?}", counts))
-}
-
-fn median(numbers: &mut Vec<u32>) -> u32 {
-    numbers.sort();
-    let mid = numbers.len() / 2;
-    numbers[mid]
-}
-
-fn mode(numbers: &[u32]) -> u32 {
-    let mut occurrences = HashMap::new();
-
-    for &value in numbers {
-        *occurrences.entry(value).or_insert(0) += 1;
-    }
-
-    occurrences
-        .into_iter()
-        .max_by_key(|&(_, count)| count)
-        .map(|(val, _)| val)
-        .expect("Cannot compute the mode of zero numbers")
-}
-
 fn main() {
     let start = Instant::now();
 
@@ -179,10 +138,8 @@ fn main() {
                 result.0,
                 &data_points,
                 s,
-                damage_report,
-                damage_report_by_power,
                 dps_interval,
-                damage_intervals,
+                conn,
             )
         }
 
@@ -199,10 +156,8 @@ fn write_report(
     data_file: &Path,
     parsed_lines: &Vec<FileDataPoint>,
     summary: &Summary,
-    total_damage: TotalDamageReport,
-    damage_by_power: Vec<DamageReportByPower>,
     dps_interval: usize,
-    damage_intervals: Vec<Vec<DamageIntervals>>,
+    conn: &mut SqliteConnection,
 ) {
     if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
         println!("Copying data file return zero bytes: {}", e);
@@ -214,6 +169,10 @@ fn write_report(
     // write parsed logs for troubleshooting
     write_parsed_files(report_dir, parsed_lines);
     let mut dps_reports: Vec<Vec<String>> = Vec::new();
+    let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key).unwrap();
+    let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
+    let damage_intervals =
+        db_actions::get_damage_intervals(conn, summary.summary_key, dps_interval as i32);
 
     let dps_file = match File::create(report_dir.join("dps.csv")) {
         Ok(f) => f,
@@ -279,7 +238,7 @@ fn write_report(
     let summary_file_name = format!(
         "{}_{}_summary.html",
         summary.player_name.replace(" ", "_").to_lowercase(),
-        (index + 1).to_string()
+        (index + 1)
     );
     let mut summary_file = match File::create(report_dir.join(summary_file_name)) {
         Ok(f) => f,
@@ -367,27 +326,6 @@ fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
         buf_text_writer
             .write_all(format!("{:?}\n,", data_point).as_bytes())
             .expect("Unable to write parsed.txt")
-    }
-}
-
-fn write_effected_report(report_dir: &PathBuf, effected_reports: &Vec<EffectedReport>) {
-    let final_path = report_dir.join("effected_report.csv");
-
-    let effected_file: File;
-    if final_path.exists() {
-        effected_file = File::options()
-            .append(true)
-            .open(final_path)
-            .expect("Cannot open effected.csv for appending");
-    } else {
-        effected_file = File::create(final_path).expect("Cannot create effected.csv file");
-    }
-
-    let mut wtr = csv::Writer::from_writer(effected_file);
-    for r in effected_reports {
-        if let Err(e) = wtr.serialize(r) {
-            panic!("Unable to write effected data. {:?}:{:?}", e, r);
-        }
     }
 }
 

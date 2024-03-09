@@ -1,6 +1,5 @@
 use diesel::dsl::not;
-use diesel::sql_types::Integer;
-use diesel::{debug_query, prelude::*};
+use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::env;
 use std::fs;
@@ -11,12 +10,7 @@ use crate::models::{
     HitOrMiss, PlayerActivation, Summary, TotalDamageReport,
 };
 use crate::parser_model::*;
-use crate::schema::damage_action::{line_number, source_name, summary_key};
-use crate::schema::summary::{first_line_number, last_line_number};
-use crate::schema::{
-    damage_action, damage_intervals, damage_report_by_power, defeated_targets, hit_or_miss,
-    player_activation, summary, total_damage_report,
-};
+use crate::schema::{damage_action, defeated_targets, hit_or_miss, player_activation, summary};
 
 pub fn establish_connection() -> SqliteConnection {
     dotenv().ok();
@@ -541,14 +535,6 @@ pub fn get_total_damage_report(conn: &mut SqliteConnection, key: i32) -> Option<
     }
 
     None
-}
-
-fn activations_by_power(conn: &mut SqliteConnection) -> Vec<ActivationsPerPower> {
-    use crate::schema::activations_per_power::dsl::*;
-    activations_per_power
-        .select(ActivationsPerPower::as_select())
-        .load(conn)
-        .expect("Unable to load activations by power")
 }
 
 fn select_damage_reports_by_power(conn: &mut SqliteConnection) -> Vec<DamageReportByPower> {

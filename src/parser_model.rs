@@ -27,9 +27,9 @@ pub struct DataPosition {
 }
 
 impl DataPosition {
-    pub fn new(line_number: u32, date_str: &str) -> Self {
+    pub fn new(ln: u32, date_str: &str) -> Self {
         DataPosition {
-            line_number: line_number,
+            line_number: ln,
             date: Self::extract_date(date_str),
         }
     }
