@@ -142,6 +142,13 @@
                 return percent + '%';
             }
         }
+        function parse_percent(value) {
+            if (value == 0 || isNaN(value) || !isFinite(value)) {
+                return "";
+            } else {
+                return value + '%';
+            }
+        }
         function format_as_integer(numerator, denominator) {
             var value = (numerator / denominator).toFixed(0);
             if (value == 0 || isNaN(value) || !isFinite(value)) {
@@ -323,52 +330,45 @@
 </head>
 
 <body>
-    <h3>Name: {{report.player_name}}</h3>
+    <h3>Name: {{summary.player_name}}</h3>
     <h3>File: {{data_file_name}}</h3>
-    <h3>Start Date: {{report.start_date}}</h3>
-    <h3>Starting Line Number: {{report.line_number}}</h3>
+    <h3>Start Date: {{summary.log_date}}</h3>
+    <h3>Starting Line Number: {{summary.first_line_number}}</h3>
+    <h3>Last Line Number: {{last_line_number}}</h3>
     <h3>Attack Summary</h3>
     <table title="Attack Summary">
         <th>Total Attacks</th>
-        <th>Total Hits (Streakbreaker)</th>
+        <th>Total Hits (Streakbreakers)</th>
         <th>Total Misses</th>
         <th>Total Damage</th>
         <th>Direct Damage</th>
         <th>DoT Damage</th>
+        <th>Critical Damage</th>
         <th>Critical Hits</th>
         <th>Critical Hit Percentage</th>
-        <th>Critical Damage</th>
         <th>Critical Damage Percentage</th>
         <tr>
-            <td>{{ report.total_activations }}</td>
-            <td>{{ report.total_hits }} ({{report.total_streakbreaker_hits}})</td>
-            <td>{{ report.total_misses }}</td>
-            <td>{{ report.total_damage }}</td>
-            <td>{{ report.total_direct_damage }}</td>
-            <td>{{ report.total_dot_damage }}</td>
-            <td>{{ report.total_critical_hits }}</td>
-            <td>
-                <script>
-                    document.write(percent_as_string({{ report.total_critical_hits }}, {{ report.total_hits }}))
-                </script>
-            </td>
-            <td>{{ report.total_critical_damage }}</td>
-            <td>
-                <script>
-                    document.write(percent_as_string({{ report.total_critical_damage }}, {{ report.total_damage }}))
-                </script>
-            </td>
+            <td>{{ total_damage.activations }}</td>
+            <td>{{ total_damage.hits }} ({{total_damage.streak_breakers}})</td>
+            <td>{{ total_damage.misses }}</td>
+            <td>{{ total_damage.total_damage }}</td>
+            <td>{{ total_damage.direct_damage }}</td>
+            <td>{{ total_damage.dot_damage }}</td>
+            <td>{{ total_damage.critical_damage }}</td>
+            <td>{{ total_damage.critical_hits }}</td>
+            <td>{{total_damage.critical_hit_percentage}}% </td>
+            <td>{{total_damage.critical_damage_percentage}}% </td>
         </tr>
     </table>
     </div>
     <h2>Attack Summary By Power</h2>
     <div class="table-wrap">
-        <table title="Attack Summary By Power" class="sortable">
+        <table title="Summary By Power" class="sortable">
             <thead>
                 <tr>
                     <th>
                         <button>
-                            Attack
+                            Power
                             <span aria-hidden="true"></span>
                         </button>
                     </th>
@@ -380,7 +380,7 @@
                     </th>
                     <th class="num">
                         <button>
-                            Hits (Streakbreaker)
+                            Hits (Streakbreakers)
                             <span aria-hidden="true"></span>
                         </button>
                     </th>
@@ -410,6 +410,18 @@
                     </th>
                     <th class="num">
                         <button>
+                            Damage Per Activation
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
+                            Average Targets Effected
+                            <span aria-hidden="true"></span>
+                        </button>
+                    </th>
+                    <th class="num">
+                        <button>
                             Direct Damage
                             <span aria-hidden="true"></span>
                         </button>
@@ -422,7 +434,7 @@
                     </th>
                     <th class="num">
                         <button>
-                            DPA
+                            Critical Damage
                             <span aria-hidden="true"></span>
                         </button>
                     </th>
@@ -438,12 +450,6 @@
                             <span aria-hidden="true"></span>
                         </button>
                     </th>
-                    <th class="num">
-                        <button>
-                            Critical Damage
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
                     <th>
                         <button>
                             % damage critical
@@ -454,44 +460,26 @@
             </thead>
             <tbody>
                 {% for power in powers %}
-                {% set critical_percentage = (power.critical_hits/power.hits) * 100 %}
-                {% set critical_damage_percentage = (power.critical_damage/power.total_damage) * 100 %}
                 <tr>
-                    <td>{{ power.name }}</td>
+                    <td>{{ power.power_name }}</td>
                     <td>{{ power.activations }}</td>
-                    <td>{{ power.hits }} ({{power.streakbreaker_hits}})</td>
+                    <td>{{ power.hits }} ({{power.streak_breakers}})</td>
                     <td>{{ power.misses }}</td>
-                    <td>
-                        {% set hit_miss_total = power.hits + power.misses %}
-                        <script>
-                            document.write(percent_as_string({{ power.hits }}, {{ hit_miss_total }}));
-                        </script>
-                    </td>
-                    <td>{{ power.total_damage }}</td>
+            <td>{{power.hit_percentage}} </td>
+                    <td>{{ power.power_total_damage }}</td>
                     <td>
                         <script>
-                            document.write(percent_as_string({{ power.total_damage }}, {{ report.total_damage }}));
+                            document.write(percent_as_string({{ power.power_total_damage }}, {{ total_damage.total_damage }}));
                         </script>
                     </td>
+                    <td>{{ power.dpa }}</td>
+                    <td>{{ power.ate }}</td>
                     <td>{{ power.direct_damage }}</td>
                     <td>{{ power.dot_damage }}</td>
-                    <td>
-                       <script>
-              document.write(format_as_integer( {{power.total_damage}}, {{power.activations}}));
-                       </script> 
-                    </td>
-                    <td>{{ power.critical_hits }}</td>
-                    <td>
-                        <script>
-                            document.write(percent_as_string({{ power.critical_hits }}, {{ power.hits }}));
-                        </script>
-                    </td>
                     <td>{{ power.critical_damage }}</td>
-                    <td>
-                        <script>
-                            document.write(percent_as_string({{ power.critical_damage }}, {{ power.total_damage }}));
-                        </script>
-                    </td>
+                    <td>{{ power.critical_hits}}</td>
+                    <td>{{ power.percent_hits_critical }}%</td>
+                    <td>{{ power.percent_damage_critical }}%</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -549,74 +537,5 @@
             </tbody>
         </table>
     </div>
-
-    <h2>Number of targets effected by power (experimental)</h2>
-    <div class="table-wrap">
-        <table title="Targets Effected" style="width: 50%;" class="sortable">
-            <thead>
-                <th>
-                    <button>
-                        Power
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Activations
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Max targets hit
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Min targets hit
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th>
-                    <button>
-                        Average
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Median
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Mode
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-            </thead>
-            <tbody>
-                {% for eff in targets_effected %}
-                <tr>
-                    <td>{{ eff.power_name }}</td>
-                    <td>{{ eff.activations }}</td>
-                    <td>{{ eff.max_hits }}</td>
-                    <td>{{ eff.min_hits }}</td>
-                    <td>
-                        <script>
-                            var average = {{ eff.average_hits }};
-                            document.write(average.toFixed(2));
-                        </script>
-                    </td>
-                    <td>{{ eff.median }}</td>
-                    <td>{{ eff.mode }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</body>
-
+   </body>
 </html>

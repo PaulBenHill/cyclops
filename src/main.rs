@@ -1,7 +1,7 @@
 use chrono::DateTime;
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
-use models::{DamageAction, DamageIntervals, DamageReportByPower, TotalDamageReport};
+use models::{DamageIntervals, DamageReportByPower, Summary, TotalDamageReport};
 use serde::{Deserialize, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fs::File;
@@ -22,10 +22,6 @@ mod db_actions;
 mod models;
 mod parser_model;
 mod schema;
-
-mod reports;
-use crate::models::Summary;
-use crate::reports::*;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
@@ -164,21 +160,9 @@ fn main() {
 
         let lines = reader.lines();
 
-        let reports: (Vec<FileDataPoint>, Vec<SummaryReport>) = process_lines(conn, &file, lines);
+        let data_points: Vec<FileDataPoint> = process_lines(conn, &file, lines);
 
         let report_dir = create_report_dir(&working_dir, &output_path, file_name, result.1);
-
-        for (index, report) in reports.1.iter().enumerate() {
-            write_reports(
-                &report_dir,
-                result.0,
-                file_name,
-                &reports.0,
-                index,
-                report,
-                dps_interval,
-            );
-        }
 
         let summaries = db_actions::get_summaries(conn);
         for (i, s) in summaries.iter().enumerate() {
@@ -192,8 +176,9 @@ fn main() {
                 &report_dir,
                 file_name,
                 i,
+                result.0,
+                &data_points,
                 s,
-                &reports.0,
                 damage_report,
                 damage_report_by_power,
                 dps_interval,
@@ -211,21 +196,33 @@ fn write_report(
     report_dir: &PathBuf,
     file_name: &str,
     index: usize,
-    summary: &Summary,
+    data_file: &Path,
     parsed_lines: &Vec<FileDataPoint>,
+    summary: &Summary,
     total_damage: TotalDamageReport,
     damage_by_power: Vec<DamageReportByPower>,
     dps_interval: usize,
     damage_intervals: Vec<Vec<DamageIntervals>>,
 ) {
+    if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
+        println!("Copying data file return zero bytes: {}", e);
+    }
+
+    // write parsed logs for troubleshooting
+    write_parsed_files(report_dir, parsed_lines);
+
+    // write parsed logs for troubleshooting
+    write_parsed_files(report_dir, parsed_lines);
     let mut dps_reports: Vec<Vec<String>> = Vec::new();
 
+    let dps_file = match File::create(report_dir.join("dps.csv")) {
+        Ok(f) => f,
+        Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
+    };
+    let mut wtr = csv::Writer::from_writer(dps_file);
     for intervals in damage_intervals {
         let first_interval = intervals.first().unwrap();
         let last_interval = intervals.last().unwrap();
-
-        println!("First: {:?}", first_interval);
-        println!("Last: {:?}", last_interval);
 
         let mut end_line: usize = 0;
         if end_line < parsed_lines.len() {
@@ -242,8 +239,7 @@ fn write_report(
             - DateTime::parse_from_rfc3339(first_interval.log_date.as_str())
                 .unwrap()
                 .timestamp();
-        println!("Elapsed seconds: {}", elapsed_seconds);
-        println!("Length: {}", intervals.len());
+
         let mut dps: i64 = 1;
         if elapsed_seconds == 0 {
             dps = total_damage as i64;
@@ -259,17 +255,29 @@ fn write_report(
             total_damage.to_string(),
             dps.to_string(),
         ]);
+
+        for dp in intervals {
+            if let Err(e) = wtr.serialize(&dp) {
+                panic!("Unable to write dps data. {:?}:{}", dp, e);
+            }
+        }
     }
+
     let mut report_context = Context::new();
     report_context.insert("data_file_name", file_name);
-    report_context.insert("summary", summary);
+    report_context.insert("summary", &summary);
+    if summary.last_line_number == i32::MAX {
+        report_context.insert("last_line_number", &parsed_lines.len().to_owned());
+    } else {
+        report_context.insert("last_line_number", &summary.last_line_number.to_owned());
+    }
     report_context.insert("total_damage", &total_damage);
     report_context.insert("powers", &damage_by_power);
     report_context.insert("dps_interval", &dps_interval);
     report_context.insert("dps_reports", &dps_reports);
 
     let summary_file_name = format!(
-        "new_{}_{}_summary.html",
+        "{}_{}_summary.html",
         summary.player_name.replace(" ", "_").to_lowercase(),
         (index + 1).to_string()
     );
@@ -283,7 +291,7 @@ fn write_report(
         Err(e) => panic!("Unable to load templates: {:?}", e),
     };
 
-    let result = tera.render("new_player_attack_report.html", &report_context);
+    let result = tera.render(PLAYER_ATTACK_REPORT_TEMPLATE, &report_context);
     match result {
         Ok(data) => {
             summary_file
@@ -342,105 +350,6 @@ fn create_report_dir(
     report_dir.clone()
 }
 
-fn generate_effected_report(summary: &SummaryReport) -> Box<Vec<EffectedReport>> {
-    let inital_points = summary.get_targets_effected_by_power();
-
-    let mut activations: Vec<TargetsEffected> = Vec::new();
-    let mut points_counted: Vec<(u32, String, u32)> = Vec::new();
-    for point in inital_points.clone() {
-        if point.activation {
-            activations.push(point.clone());
-        }
-    }
-
-    // for a in &activations {
-    //     println!("{:?}", a);
-    // }
-    let mut next_activation_line_number: u32 = u32::MAX;
-    for action in activations {
-        let mut initial_activation_line_number = action.line_number;
-        let power_name = action.power_name;
-        //        println!(
-        //           "Inital: {}:{}:{}",
-        //          power_name, initial_activation_line_number, next_activation_line_number
-        //     );
-        for np in inital_points.clone() {
-            if np.activation
-                && np.line_number > initial_activation_line_number
-                && np.power_name == power_name
-            {
-                next_activation_line_number = np.line_number;
-                //                println!("NP: {}:{}", next_activation_line_number, power_name);
-                break;
-            }
-        }
-        let mut effected_count: u32 = 0;
-        for point in inital_points.clone() {
-            if !point.activation
-                && point.line_number > initial_activation_line_number
-                && point.line_number < next_activation_line_number
-                && point.power_name == power_name
-            {
-                // println!(
-                //     "Final: {}:{}:{}:{}:{}:{}",
-                //     point.activation,
-                //     point.line_number,
-                //     initial_activation_line_number,
-                //     next_activation_line_number,
-                //     power_name,
-                //     point.power_name
-                // );
-                effected_count += 1;
-            }
-        }
-        if effected_count > 0 {
-            points_counted.push((initial_activation_line_number, power_name, effected_count));
-        }
-
-        initial_activation_line_number = next_activation_line_number;
-    }
-
-    let mut effected_reports: HashMap<String, EffectedReport> = HashMap::new();
-    for p in &points_counted {
-        match effected_reports.get_mut(&p.1) {
-            Some(r) => {
-                if p.2 > r.max_hits {
-                    r.max_hits = p.2;
-                }
-                if p.2 < r.min_hits {
-                    r.min_hits = p.2;
-                }
-                r.activations += 1;
-                r.total_hits += p.2;
-                r.counts.push(p.2)
-            }
-            None => {
-                let mut report = EffectedReport::default();
-                report.power_name = p.1.clone();
-                report.activations = 1;
-                report.max_hits = p.2;
-                report.min_hits = p.2;
-                report.total_hits += p.2;
-                report.counts = Vec::new();
-                report.counts.push(p.2);
-
-                effected_reports.insert(p.1.clone(), report);
-            }
-        }
-    }
-
-    let mut results: Vec<EffectedReport> = Vec::new();
-    // let mut results: Vec<EffectedReport> = Vec::new();
-    for r in effected_reports.values_mut() {
-        r.average_hits = r.total_hits as f32 / r.activations as f32;
-        r.median = median(&mut r.counts.clone());
-        r.mode = mode(&mut r.counts.clone());
-        results.push(r.to_owned());
-    }
-
-    Box::new(results)
-}
-
 fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
     let parsed_json_file = match File::create(report_dir.join("parsed.json")) {
         Ok(f) => f,
@@ -458,97 +367,6 @@ fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
         buf_text_writer
             .write_all(format!("{:?}\n,", data_point).as_bytes())
             .expect("Unable to write parsed.txt")
-    }
-}
-
-fn write_reports(
-    report_dir: &PathBuf,
-    data_file: &Path,
-    file_name: &str,
-    parsed_lines: &Vec<FileDataPoint>,
-    index: usize,
-    summary: &SummaryReport,
-    dps_interval: usize,
-) {
-    // error log todo
-    // summary files for each session
-    // original data file
-    if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
-        println!("Copying data file return zero bytes: {}", e);
-    }
-
-    // write parsed logs for troubleshooting
-    write_parsed_files(report_dir, parsed_lines);
-
-    let summary_file_name = format!(
-        "{}_{}_summary.html",
-        summary.player_name.replace(" ", "_").to_lowercase(),
-        (index + 1).to_string()
-    );
-    let mut summary_file = match File::create(report_dir.join(summary_file_name)) {
-        Ok(f) => f,
-        Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
-    };
-
-    let tera = match Tera::new(&format!("{}{}*.html", TEMPLATES, std::path::MAIN_SEPARATOR)) {
-        Ok(t) => t,
-        Err(e) => panic!("Unable to load templates: {:?}", e),
-    };
-
-    let dps_file = match File::create(report_dir.join("dps.csv")) {
-        Ok(f) => f,
-        Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
-    };
-
-    let mut wtr = csv::Writer::from_writer(dps_file);
-    let mut dps_reports: Vec<Vec<String>> = Vec::new();
-    for interval in &summary.get_damage_points_by_interval(dps_interval) {
-        let line_count = interval.len();
-        let elapsed_second = DamagePoint::get_delta_in_seconds(interval);
-        let total_damage = DamagePoint::get_total_damage(interval);
-
-        let mut dps: u64 = 0;
-        if total_damage > 0 && elapsed_second > 0 {
-            dps = total_damage / elapsed_second;
-        }
-
-        let line_positions = DamagePoint::get_line_positions(interval);
-
-        dps_reports.push(vec![
-            line_positions.0.to_string(),
-            line_positions.1.to_string(),
-            line_count.to_string(),
-            elapsed_second.to_string(),
-            total_damage.to_string(),
-            dps.to_string(),
-        ]);
-
-        for dp in interval {
-            if let Err(e) = wtr.serialize(dp) {
-                panic!("Unable to write dps data. {:?}:{}", dp, e);
-            }
-        }
-    }
-
-    let effected: Vec<EffectedReport> = *generate_effected_report(&summary);
-    write_effected_report(report_dir, &effected);
-
-    let mut report_context = Context::new();
-    report_context.insert("data_file_name", file_name);
-    report_context.insert("report", &summary);
-    report_context.insert("powers", &summary.sort_powers_by_total_damage());
-    report_context.insert("dps_interval", &dps_interval);
-    report_context.insert("dps_reports", &dps_reports);
-    report_context.insert("targets_effected", &effected);
-
-    let result = tera.render(PLAYER_ATTACK_REPORT_TEMPLATE, &report_context);
-    match result {
-        Ok(data) => {
-            summary_file
-                .write_all(data.as_bytes())
-                .expect("Unable to write file.");
-        }
-        Err(e) => panic!("Could not render {}:{:?}", PLAYER_ATTACK_REPORT_TEMPLATE, e),
     }
 }
 
@@ -620,7 +438,7 @@ fn process_lines(
     conn: &mut SqliteConnection,
     file: &String,
     lines: Lines<BufReader<File>>,
-) -> (Vec<FileDataPoint>, Vec<SummaryReport>) {
+) -> Vec<FileDataPoint> {
     let mut line_count: u32 = 0;
     let parsers = initialize_matchers();
     let mut data_points: Vec<FileDataPoint> = Vec::with_capacity(50000);
@@ -655,10 +473,9 @@ fn process_lines(
     );
 
     // write to database
-    db_actions::write_to_database(conn, &file, &data_points);
 
     let start = Instant::now();
-    let summaries: Vec<SummaryReport> = total_player_attacks(&data_points);
+    db_actions::write_to_database(conn, &file, &data_points);
     println!(
         "Generating summaries took: {} second.",
         start.elapsed().as_secs()
@@ -666,5 +483,5 @@ fn process_lines(
 
     data_points.shrink_to_fit();
 
-    (data_points, summaries)
+    data_points
 }
