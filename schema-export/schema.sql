@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS player_activation (summary_key INTEGER NOT NULL, line
 
 -- Table: reward
 DROP TABLE IF EXISTS reward;
-CREATE TABLE IF NOT EXISTS reward (session_key INTEGER REFERENCES summary (summary_key) NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, experience INTEGER CHECK ((experience > 0)), influence INTEGER CHECK ((influence > 0)), item_drop TEXT, reward_type TEXT, PRIMARY KEY (session_key, line_number, log_date)) STRICT;
+CREATE TABLE IF NOT EXISTS reward (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, experience INTEGER, influence INTEGER, item_drop TEXT, reward_type TEXT NOT NULL CHECK (reward_type IN ('ExpAndInf', 'Threads', 'Item')), PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key) ON DELETE CASCADE) STRICT;
 
 -- Table: summary
 DROP TABLE IF EXISTS summary;

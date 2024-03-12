@@ -1,9 +1,8 @@
 use chrono::DateTime;
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
-use models::{DamageIntervals, DamageReportByPower, Summary, TotalDamageReport};
-use serde::{Deserialize, Serialize, Serializer};
-use std::collections::HashMap;
+use models::Summary;
+use serde::Serializer;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
 use std::path::*;
@@ -108,7 +107,7 @@ fn main() {
     create_dir(&output_path);
     println!("Output directory: {}", output_path.display());
 
-    let mut conn = &mut db_actions::establish_connection();
+    let conn = &mut db_actions::establish_connection();
 
     for file in log_file_names {
         db_actions::initialize_db(conn);
@@ -125,12 +124,6 @@ fn main() {
 
         let summaries = db_actions::get_summaries(conn);
         for (i, s) in summaries.iter().enumerate() {
-            let damage_report = db_actions::get_total_damage_report(conn, s.summary_key).unwrap();
-            let damage_report_by_power =
-                db_actions::get_damage_by_power_report(conn, s.summary_key);
-            let damage_intervals =
-                db_actions::get_damage_intervals(conn, s.summary_key, dps_interval as i32);
-
             write_report(
                 &report_dir,
                 file_name,
@@ -173,6 +166,8 @@ fn write_report(
     let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
     let damage_intervals =
         db_actions::get_damage_intervals(conn, summary.summary_key, dps_interval as i32);
+    let rewards_defeats =
+        db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
 
     let dps_file = match File::create(report_dir.join("dps.csv")) {
         Ok(f) => f,
@@ -230,6 +225,7 @@ fn write_report(
     } else {
         report_context.insert("last_line_number", &summary.last_line_number.to_owned());
     }
+    report_context.insert("rewards_defeats", &rewards_defeats);
     report_context.insert("total_damage", &total_damage);
     report_context.insert("powers", &damage_by_power);
     report_context.insert("dps_interval", &dps_interval);
@@ -274,7 +270,7 @@ fn read_log_file_dir(dir: PathBuf) -> Vec<String> {
                     .map(|r| r.into_os_string().into_string().unwrap())
                     .collect();
 
-                return file_list;
+                file_list
             } else {
                 panic!(
                     "Log file directory does not exist or is not a directory: {:?}",
@@ -292,8 +288,8 @@ fn create_report_dir(
     filename: &str,
     file_size: u64,
 ) -> PathBuf {
-    let mut report_dir_name = format!("{}_{}", filename.replace("-", "_"), file_size.to_string());
-    report_dir_name = report_dir_name.replace(" ", "_");
+    let mut report_dir_name = format!("{}_{}", filename.replace('-', "_"), file_size.to_string());
+    report_dir_name = report_dir_name.replace(' ', "_");
 
     let report_dir: PathBuf = [
         working_dir,
@@ -366,7 +362,7 @@ fn open_log_file(path: &Path) -> BufReader<File> {
                 .to_str()
                 .expect("Could not create a file name from os string.")
         );
-        return BufReader::new(file);
+        BufReader::new(file)
     } else {
         panic!("Path provided is not a file: {:?}", path);
     }
@@ -374,7 +370,7 @@ fn open_log_file(path: &Path) -> BufReader<File> {
 
 fn process_lines(
     conn: &mut SqliteConnection,
-    file: &String,
+    file: &str,
     lines: Lines<BufReader<File>>,
 ) -> Vec<FileDataPoint> {
     let mut line_count: u32 = 0;
@@ -413,7 +409,7 @@ fn process_lines(
     // write to database
 
     let start = Instant::now();
-    db_actions::write_to_database(conn, &file, &data_points);
+    db_actions::write_to_database(conn, file, &data_points);
     println!(
         "Generating summaries took: {} second.",
         start.elapsed().as_secs()

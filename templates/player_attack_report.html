@@ -335,6 +335,19 @@
     <h3>Start Date: {{summary.log_date}}</h3>
     <h3>Starting Line Number: {{summary.first_line_number}}</h3>
     <h3>Last Line Number: {{last_line_number}}</h3>
+   <hr> 
+    <h3>Rewards-Mobs Defeated</h3>
+    <table title="Session details" style="width:50%">
+        <th>Experience</th>
+        <th>Influence</th>
+        <th>Mobs defeated</th>
+      <tr>
+            <td>{{ rewards_defeats.experience }}</td>
+            <td>{{ rewards_defeats.influence }}</td>
+            <td>{{ rewards_defeats.mobs_defeated }}</td>
+      </tr>
+    </table>
+   <hr> 
     <h3>Attack Summary</h3>
     <table title="Attack Summary">
         <th>Total Attacks</th>
@@ -360,7 +373,7 @@
             <td>{{total_damage.critical_damage_percentage}}% </td>
         </tr>
     </table>
-    </div>
+   <hr> 
     <h2>Attack Summary By Power</h2>
     <div class="table-wrap">
         <table title="Summary By Power" class="sortable">
@@ -485,6 +498,7 @@
             </tbody>
         </table>
     </div>
+   <hr> 
     <h2>DPS using an interval of {{ dps_interval}} </h2>
     <div class="table-wrap">
         <table title="DPS Report" style="width: 50%;" class="sortable">

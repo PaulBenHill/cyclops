@@ -5,12 +5,16 @@ use std::env;
 use std::fs;
 use std::path::*;
 
+use crate::models::RewardsDefeats;
 use crate::models::{
-    ActivationsPerPower, DamageAction, DamageIntervals, DamageReportByPower, DefeatedTarget,
-    HitOrMiss, PlayerActivation, Summary, TotalDamageReport,
+    DamageAction, DamageIntervals, DamageReportByPower, DefeatedTarget, HitOrMiss,
+    PlayerActivation, Reward, Summary, TotalDamageReport,
 };
 use crate::parser_model::*;
-use crate::schema::{damage_action, defeated_targets, hit_or_miss, player_activation, summary};
+use crate::schema::reward::influence;
+use crate::schema::{
+    damage_action, defeated_targets, hit_or_miss, player_activation, reward, summary,
+};
 
 pub fn establish_connection() -> SqliteConnection {
     dotenv().ok();
@@ -45,7 +49,7 @@ pub fn copy_db(conn: &mut SqliteConnection, path: PathBuf) {
 
 pub fn write_to_database(
     conn: &mut SqliteConnection,
-    file_name: &String,
+    file_name: &str,
     data_points: &Vec<FileDataPoint>,
 ) {
     let key = (chrono::offset::Local::now().timestamp() % 1000) as i32;
@@ -54,6 +58,7 @@ pub fn write_to_database(
     let mut hits_misses: Vec<HitOrMiss> = Vec::new();
     let mut damage_actions: Vec<DamageAction> = Vec::new();
     let mut defeats: Vec<DefeatedTarget> = Vec::new();
+    let mut rewards: Vec<Reward> = Vec::new();
 
     // Create placeholder summary
     let placeholder = Summary {
@@ -62,7 +67,7 @@ pub fn write_to_database(
         log_date: String::from("PLACEHOLDER"),
         first_line_number: 1,
         last_line_number: i32::MAX,
-        log_file_name: file_name.clone(),
+        log_file_name: String::from(file_name),
     };
     summaries.push(placeholder);
 
@@ -78,7 +83,7 @@ pub fn write_to_database(
                     log_date: data_position.date.to_rfc3339(),
                     first_line_number: data_position.line_number as i32,
                     last_line_number: i32::MAX,
-                    log_file_name: file_name.clone(),
+                    log_file_name: String::from(file_name),
                 });
             }
             FileDataPoint::PlayerPowerActivation {
@@ -327,6 +332,19 @@ pub fn write_to_database(
                     target_name: String::from(target),
                 });
             }
+            FileDataPoint::ExpAndInfGain {
+                data_position,
+                exp,
+                inf,
+            } => rewards.push(Reward {
+                summary_key: key,
+                line_number: data_position.line_number as i32,
+                log_date: data_position.date.to_rfc3339(),
+                experience: Some(*exp as i32),
+                influence: Some(*inf as i32),
+                item_drop: None,
+                reward_type: String::from("ExpAndInf"),
+            }),
             _ => (),
         }
     }
@@ -348,6 +366,10 @@ pub fn write_to_database(
 
         if !defeats.is_empty() {
             insert_defeats(conn, &defeats);
+        }
+
+        if !rewards.is_empty() {
+            insert_rewards(conn, &rewards);
         }
         let final_summaries = finalize_summaries(conn, &summaries[..]);
         finalize_data(conn, &final_summaries[..]);
@@ -391,6 +413,13 @@ fn insert_defeats(conn: &mut SqliteConnection, actions: &Vec<DefeatedTarget>) {
         .expect("Error saving new damage action");
 }
 
+fn insert_rewards(conn: &mut SqliteConnection, rewards: &Vec<Reward>) {
+    diesel::insert_into(reward::table)
+        .values(rewards)
+        .execute(conn)
+        .expect("Error saving new damage action");
+}
+
 fn finalize_summaries(conn: &mut SqliteConnection, summaries: &[Summary]) -> Vec<Summary> {
     let mut start_lines: Vec<i32> = Vec::new();
     for s in summaries {
@@ -427,6 +456,7 @@ fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
         finalize_hits_misses(conn, s);
         finalize_damage_action(conn, s);
         finalize_defeats(conn, s);
+        finalize_rewards(conn, s);
     }
 }
 
@@ -513,6 +543,19 @@ fn finalize_defeats(conn: &mut SqliteConnection, s: &Summary) {
         .expect("Unable to update player defeats");
 }
 
+fn finalize_rewards(conn: &mut SqliteConnection, s: &Summary) {
+    let gt_ln = line_number.gt(s.first_line_number);
+    let lt_ln = line_number.lt(s.last_line_number);
+
+    use crate::schema::reward::dsl::*;
+
+    diesel::update(reward)
+        .filter(gt_ln.and(lt_ln))
+        .set(summary_key.eq(s.summary_key))
+        .execute(conn)
+        .expect("Unable to update rewards");
+}
+
 fn cleanup_summaries(conn: &mut SqliteConnection) {
     diesel::sql_query("delete from summary as s WHERE summary_key NOT IN (select summary_key from damage_action a where s.summary_key = a.summary_key)")
         .execute(conn)
@@ -595,4 +638,21 @@ pub fn get_damage_intervals(
     }
 
     result
+}
+
+pub fn get_rewards_defeats(
+    conn: &mut SqliteConnection,
+    key: i32,
+    player_name: &str,
+) -> RewardsDefeats {
+    use diesel::sql_query;
+    use diesel::sql_types::*;
+
+    let reward_query = sql_query("select r.summary_key, sum(r.experience) as experience, sum( influence) as influence, mobs_defeated from reward r INNER JOIN (select count(dt.summary_key) as mobs_defeated from defeated_targets dt where dt.summary_key = ? AND dt.source_name = ?) where r.summary_key = ? group by summary_key");
+    reward_query
+        .bind::<Integer, _>(key)
+        .bind::<Text, _>(player_name)
+        .bind::<Integer, _>(key)
+        .get_result::<RewardsDefeats>(conn)
+        .expect("Unable to load rewards and defeats")
 }

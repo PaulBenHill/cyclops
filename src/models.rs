@@ -75,7 +75,7 @@ pub struct PlayerActivation {
     pub power_name: String,
 }
 
-#[derive(Queryable, Debug, Identifiable)]
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, Serialize, Deserialize)]
 #[diesel(primary_key(summary_key, line_number, log_date))]
 #[diesel(table_name = reward)]
 pub struct Reward {
@@ -85,7 +85,7 @@ pub struct Reward {
     pub experience: Option<i32>,
     pub influence: Option<i32>,
     pub item_drop: Option<String>,
-    pub reward_type: Option<String>,
+    pub reward_type: String,
 }
 
 #[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, Serialize, Deserialize)]
@@ -193,4 +193,24 @@ pub struct DamageReportByPower {
     pub percent_hits_critical: Option<i32>,
     #[diesel(sql_type = Nullable<Integer>)]
     pub percent_damage_critical: Option<i32>,
+}
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = rewards_defeats)]
+pub struct RewardsDefeats {
+    pub summary_key: i32,
+    pub experience: i32,
+    pub influence: i32,
+    pub mobs_defeated: i32,
 }

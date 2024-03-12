@@ -12,7 +12,8 @@ lazy_static! {
     static ref SESSION_MARKER_MATCHER_1: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) \[Local\] (.+): (?:(STARTPARSE|ENDPARSE).*).*").unwrap();
     static ref SESSION_MARKER_MATCHER_2: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (?:Now entering the Rogue Isles|Welcome to City of Heroes), (.+)!").unwrap();
 
-    static ref EXP_INF_GAIN_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You gain ([0-9,]+) experience and ([0-9,]+) inf.+").unwrap();
+    //static ref EXP_INF_GAIN_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You gain ([0-9,]+) experience and ([0-9,]+) inf.+").unwrap();
+    static ref EXP_INF_GAIN_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You gain (?:(?P<exp>[0-9,]+) experience)?(?: and )?(?:(?:(?P<inf>[0-9,]+)) influence)?.").unwrap();
     static ref LOOT_DROP_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You received (.+)[.]").unwrap();
 
     static ref MOB_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! (.+) power had a (.+)% chance to hit and rolled a (.+)[.]").unwrap();
@@ -230,11 +231,21 @@ pub fn extract_exp_inf_gain(line_number: u32, line: &String) -> Option<FileDataP
     let caps = EXP_INF_GAIN_MATCHER.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::ExpAndInfGain {
-            data_position: DataPosition::new(line_number, &data[1]),
-            exp: data[2].replace(",", "").parse().unwrap(),
-            inf: data[3].replace(",", "").parse().unwrap(),
-        }),
+        Some(data) => {
+            let mut experience = 0;
+            let mut influence = 0;
+            if let Some(value) = data.name("exp") {
+                experience = value.as_str().replace(',', "").parse().unwrap();
+            }
+            if let Some(value) = data.name("inf") {
+                influence = value.as_str().replace(',', "").parse().unwrap();
+            }
+            Some(FileDataPoint::ExpAndInfGain {
+                data_position: DataPosition::new(line_number, &data[1]),
+                exp: experience,
+                inf: influence,
+            })
+        }
         None => None,
     }
 }

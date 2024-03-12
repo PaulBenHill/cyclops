@@ -70,7 +70,7 @@ diesel::table! {
         experience -> Nullable<Integer>,
         influence -> Nullable<Integer>,
         item_drop -> Nullable<Text>,
-        reward_type -> Nullable<Text>,
+        reward_type -> Text,
     }
 }
 
@@ -138,6 +138,15 @@ diesel::table! {
         critical_hits -> Integer,
         percent_hits_critical -> Nullable<Integer>,
         percent_damage_critical -> Nullable<Integer>,
+    }
+}
+
+diesel::table! {
+    rewards_defeats (summary_key) {
+        summary_key -> Integer,
+        experience -> Integer,
+        influence -> Integer,
+        mobs_defeated -> Integer,
     }
 }
 
