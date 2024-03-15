@@ -11,7 +11,6 @@ use crate::models::{
     PlayerActivation, Reward, Summary, TotalDamageReport,
 };
 use crate::parser_model::*;
-use crate::schema::reward::influence;
 use crate::schema::{
     damage_action, defeated_targets, hit_or_miss, player_activation, reward, summary,
 };
@@ -423,7 +422,7 @@ fn insert_rewards(conn: &mut SqliteConnection, rewards: &Vec<Reward>) {
 fn finalize_summaries(conn: &mut SqliteConnection, summaries: &[Summary]) -> Vec<Summary> {
     let mut start_lines: Vec<i32> = Vec::new();
     for s in summaries {
-        start_lines.push(s.first_line_number.clone());
+        start_lines.push(s.first_line_number);
     }
 
     let mut end_lines: Vec<i32> = start_lines.iter().map(|i| i - 1).collect();
@@ -603,7 +602,7 @@ pub fn get_damage_by_power_report(
     reports
 }
 
-fn select_damage_intervals(conn: &mut SqliteConnection) -> Vec<DamageIntervals> {
+pub fn select_damage_intervals(conn: &mut SqliteConnection) -> Vec<DamageIntervals> {
     use crate::schema::damage_intervals::dsl::*;
     damage_intervals
         .select(DamageIntervals::as_select())

@@ -2,7 +2,6 @@ use chrono::DateTime;
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
 use models::Summary;
-use serde::Serializer;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
 use std::path::*;
@@ -108,6 +107,8 @@ fn main() {
     println!("Output directory: {}", output_path.display());
 
     let conn = &mut db_actions::establish_connection();
+    let mut tera = setup_tera();
+    tera.autoescape_on(vec![]);
 
     for file in log_file_names {
         db_actions::initialize_db(conn);
@@ -123,34 +124,32 @@ fn main() {
         let report_dir = create_report_dir(&working_dir, &output_path, file_name, result.1);
 
         let summaries = db_actions::get_summaries(conn);
+
+        let mut summary_renders: Vec<String> = Vec::new();
+        write_data_files(conn, &report_dir, file_name, result.0, &data_points);
         for (i, s) in summaries.iter().enumerate() {
-            write_report(
-                &report_dir,
-                file_name,
-                i,
-                result.0,
-                &data_points,
-                s,
-                dps_interval,
+            summary_renders.push(generate_summary(
                 conn,
-            )
+                &tera,
+                s,
+                data_points.len(),
+                dps_interval,
+            ));
         }
 
         db_actions::copy_db(conn, report_dir.join("summary.db"));
+        generate_top_level(&tera, &report_dir, file_name, summaries, summary_renders);
     }
 
     println!("Total run time took: {} second.", start.elapsed().as_secs());
 }
 
-fn write_report(
+fn write_data_files(
+    conn: &mut SqliteConnection,
     report_dir: &PathBuf,
     file_name: &str,
-    index: usize,
     data_file: &Path,
     parsed_lines: &Vec<FileDataPoint>,
-    summary: &Summary,
-    dps_interval: usize,
-    conn: &mut SqliteConnection,
 ) {
     if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
         println!("Copying data file return zero bytes: {}", e);
@@ -159,30 +158,72 @@ fn write_report(
     // write parsed logs for troubleshooting
     write_parsed_files(report_dir, parsed_lines);
 
-    // write parsed logs for troubleshooting
-    write_parsed_files(report_dir, parsed_lines);
-    let mut dps_reports: Vec<Vec<String>> = Vec::new();
-    let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key).unwrap();
-    let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
-    let damage_intervals =
-        db_actions::get_damage_intervals(conn, summary.summary_key, dps_interval as i32);
-    let rewards_defeats =
-        db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
-
     let dps_file = match File::create(report_dir.join("dps.csv")) {
         Ok(f) => f,
         Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
     };
+
+    let dps_intervals = db_actions::select_damage_intervals(conn);
     let mut wtr = csv::Writer::from_writer(dps_file);
+    for dp in dps_intervals {
+        if let Err(e) = wtr.serialize(&dp) {
+            panic!("Unable to write dps data. {:?}:{}", dp, e);
+        }
+    }
+}
+
+fn generate_top_level(
+    tera: &Tera,
+    report_dir: &PathBuf,
+    file_name: &str,
+    summaries: Vec<Summary>,
+    renders: Vec<String>,
+) {
+    let mut summary_file = match File::create(report_dir.join("summary.html")) {
+        Ok(f) => f,
+        Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
+    };
+
+    let mut top_level_context = Context::new();
+    top_level_context.insert("data_file_name", file_name);
+    top_level_context.insert("summaries", &summaries);
+    top_level_context.insert("renders", &renders);
+    let result = tera.render("summary.html", &top_level_context);
+    match result {
+        Ok(data) => {
+            summary_file
+                .write_all(data.as_bytes())
+                .expect("Unable to write file.");
+        }
+        Err(e) => panic!("Could not render {}:{:?}", "summary.html", e),
+    }
+}
+
+fn generate_summary(
+    conn: &mut SqliteConnection,
+    tera: &Tera,
+    summary: &Summary,
+    line_count: usize,
+    dps_interval: usize,
+) -> String {
+    let rewards_defeats =
+        db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
+    let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key).unwrap();
+    let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
+
+    let mut dps_reports: Vec<Vec<String>> = Vec::new();
+    let damage_intervals =
+        db_actions::get_damage_intervals(conn, summary.summary_key, dps_interval as i32);
+
     for intervals in damage_intervals {
         let first_interval = intervals.first().unwrap();
         let last_interval = intervals.last().unwrap();
 
         let mut end_line: usize = 0;
-        if end_line < parsed_lines.len() {
+        if end_line < line_count {
             end_line = last_interval.line_number as usize;
         } else {
-            end_line = parsed_lines.len();
+            end_line = line_count;
         }
 
         let total_damage: i32 = intervals.iter().map(|i| i.damage).sum();
@@ -209,19 +250,11 @@ fn write_report(
             total_damage.to_string(),
             dps.to_string(),
         ]);
-
-        for dp in intervals {
-            if let Err(e) = wtr.serialize(&dp) {
-                panic!("Unable to write dps data. {:?}:{}", dp, e);
-            }
-        }
     }
-
     let mut report_context = Context::new();
-    report_context.insert("data_file_name", file_name);
     report_context.insert("summary", &summary);
     if summary.last_line_number == i32::MAX {
-        report_context.insert("last_line_number", &parsed_lines.len().to_owned());
+        report_context.insert("last_line_number", &line_count);
     } else {
         report_context.insert("last_line_number", &summary.last_line_number.to_owned());
     }
@@ -231,29 +264,17 @@ fn write_report(
     report_context.insert("dps_interval", &dps_interval);
     report_context.insert("dps_reports", &dps_reports);
 
-    let summary_file_name = format!(
-        "{}_{}_summary.html",
-        summary.player_name.replace(" ", "_").to_lowercase(),
-        (index + 1)
-    );
-    let mut summary_file = match File::create(report_dir.join(summary_file_name)) {
-        Ok(f) => f,
-        Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
-    };
+    let result = tera.render("player_attack_report.html", &report_context);
+    match result {
+        Ok(data) => data,
+        Err(e) => panic!("Could not render {}:{:?}", "player_attack_report.html", e),
+    }
+}
 
-    let tera = match Tera::new(&format!("{}{}*.html", TEMPLATES, std::path::MAIN_SEPARATOR)) {
+fn setup_tera() -> Tera {
+    match Tera::new(&format!("{}{}*.html", TEMPLATES, std::path::MAIN_SEPARATOR)) {
         Ok(t) => t,
         Err(e) => panic!("Unable to load templates: {:?}", e),
-    };
-
-    let result = tera.render(PLAYER_ATTACK_REPORT_TEMPLATE, &report_context);
-    match result {
-        Ok(data) => {
-            summary_file
-                .write_all(data.as_bytes())
-                .expect("Unable to write file.");
-        }
-        Err(e) => panic!("Could not render {}:{:?}", PLAYER_ATTACK_REPORT_TEMPLATE, e),
     }
 }
 
@@ -288,7 +309,7 @@ fn create_report_dir(
     filename: &str,
     file_size: u64,
 ) -> PathBuf {
-    let mut report_dir_name = format!("{}_{}", filename.replace('-', "_"), file_size.to_string());
+    let mut report_dir_name = format!("{}_{}", filename.replace('-', "_"), file_size);
     report_dir_name = report_dir_name.replace(' ', "_");
 
     let report_dir: PathBuf = [
@@ -306,19 +327,12 @@ fn create_report_dir(
 }
 
 fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
-    let parsed_json_file = match File::create(report_dir.join("parsed.json")) {
-        Ok(f) => f,
-        Err(e) => panic!("Cannot create parser.json file: {:?}", e),
-    };
     let parsed_text_file = match File::create(report_dir.join("parsed.txt")) {
         Ok(f) => f,
         Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
     };
-    let mut buf_json_writer = BufWriter::new(parsed_json_file);
     let mut buf_text_writer = BufWriter::new(parsed_text_file);
     for data_point in parsed_lines {
-        serde_json::to_writer_pretty(&mut buf_json_writer, data_point)
-            .expect("Unable to write parsed.json");
         buf_text_writer
             .write_all(format!("{:?}\n,", data_point).as_bytes())
             .expect("Unable to write parsed.txt")
