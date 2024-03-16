@@ -97,7 +97,7 @@ fn main() {
         output_path = outputdir.to_path_buf();
     }
 
-    let mut dps_interval = 20;
+    let mut dps_interval = 60;
     if let Some(interval_arg) = args.interval {
         println!("Value for interval: {:?}", interval_arg);
         dps_interval = interval_arg;
@@ -127,7 +127,7 @@ fn main() {
 
         let mut summary_renders: Vec<String> = Vec::new();
         write_data_files(conn, &report_dir, file_name, result.0, &data_points);
-        for (i, s) in summaries.iter().enumerate() {
+        for s in &summaries[..] {
             summary_renders.push(generate_summary(
                 conn,
                 &tera,
@@ -146,7 +146,7 @@ fn main() {
 
 fn write_data_files(
     conn: &mut SqliteConnection,
-    report_dir: &PathBuf,
+    report_dir: &Path,
     file_name: &str,
     data_file: &Path,
     parsed_lines: &Vec<FileDataPoint>,
@@ -174,7 +174,7 @@ fn write_data_files(
 
 fn generate_top_level(
     tera: &Tera,
-    report_dir: &PathBuf,
+    report_dir: &Path,
     file_name: &str,
     summaries: Vec<Summary>,
     renders: Vec<String>,
@@ -284,7 +284,6 @@ fn read_log_file_dir(dir: PathBuf) -> Vec<String> {
             if path.exists() && path.is_dir() {
                 let file_list: Vec<String> = fs::read_dir(path)
                     .unwrap()
-                    .into_iter()
                     .filter(|r| r.is_ok())
                     .map(|r| r.unwrap().path())
                     .filter(|r| r.is_file())
@@ -326,7 +325,7 @@ fn create_report_dir(
     report_dir.clone()
 }
 
-fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
+fn write_parsed_files(report_dir: &Path, parsed_lines: &Vec<FileDataPoint>) {
     let parsed_text_file = match File::create(report_dir.join("parsed.txt")) {
         Ok(f) => f,
         Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
