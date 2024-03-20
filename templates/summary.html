@@ -56,135 +56,30 @@
     border: 1px solid #ddd;
     }
 
-    th,
+.sortable-table thead th{cursor:pointer}.sortable-table thead th:after{padding-left:7px}.sortable-table thead th[data-sort-direction="0"]:after{content:"\21D5"}.sortable-table thead th[data-sort-direction="1"]:after{content:"\25B4"}.sortable-table thead th[data-sort-direction="-1"]:after{content:"\25BE"}.sortable-table.sortable-fa-icons thead th:after{font-family:FontAwesome}.sortable-table.sortable-fa-icons thead th[data-sort-direction="0"]:after{content:"\f0dc"}.sortable-table.sortable-fa-icons thead th[data-sort-direction="1"]:after{content:"\f0de"}.sortable-table.sortable-fa-icons thead th[data-sort-direction="-1"]:after{content:"\f0dd"}
+
+     th,
     td {
     text-align: left;
-    padding: 16px;
+    padding: 5px;
     border: 1px solid #ddd;
     background-color: #1b283b;
     font-size: 100%;
     font-weight: bold;
-    }
-
-    tr:nth-child(even) {
-    background-color: #f2f2f2
-    }
-
-    .sr-only {
-    position: absolute;
-    top: -30em;
-    }
-
-    table.sortable td,
-    table.sortable th {
-    padding: 0.125em 0.25em;
-    width: 8em;
-    }
-
-    table.sortable th {
-    font-weight: bold;
-    border-bottom: thin solid #888;
-    position: relative;
-    }
-
-    table.sortable th.no-sort {
-    padding-top: 0.35em;
-    }
-
-    table.sortable th:nth-child(5) {
-    width: 10em;
-    }
-
-    table.sortable th button {
-    position: relative;
-    padding: 4px;
-    margin: 1px;
-    font-size: 100%;
-    font-weight: bold;
-    background: transparent;
-    border: none;
-    display: inline;
-    right: 0;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 100%;
-    text-align: left;
-    outline: none;
-    cursor: pointer;
-    color: #e67e22;
-    }
-
-    table.sortable th button span {
-    position: absolute;
-    right: 4px;
-    }
-
-    table.sortable th[aria-sort="descending"] span::after {
-    content: "▼";
-    color: currentcolor;
-    font-size: 100%;
-    top: 0;
-    }
-
-    table.sortable th[aria-sort="ascending"] span::after {
-    content: "▲";
-    color: currentcolor;
-    font-size: 100%;
-    top: 0;
-    }
-
-    table.show-unsorted-icon th:not([aria-sort]) button span::after {
-    content: "♢";
-    color: currentcolor;
-    font-size: 100%;
-    position: relative;
-    top: -3px;
-    left: -4px;
-    }
-
-    table.sortable td.num {
-    text-align: right;
-    }
-
-    table.sortable tbody tr:nth-child(odd) td {
-    background-color: rgb(1, 15, 26);
-    }
-
-    /* Focus and hover styling */
-
-    table.sortable th button:focus,
-    table.sortable th button:hover {
-    padding: 2px;
-    border: 2px solid currentcolor;
-    background-color: #e5f4ff;
-    }
-
-    table.sortable th button:focus span,
-    table.sortable th button:hover span {
-    right: 2px;
-    }
-
-    table.sortable th:not([aria-sort]) button:focus span::after,
-    table.sortable th:not([aria-sort]) button:hover span::after {
-    content: "▼";
-    color: currentcolor;
-    font-size: 100%;
-    top: 0;
     }
     </style>
     <script>
     function percent_as_string(numerator, denominator) {
       var percent = (numerator / denominator * 100).toFixed(0);
       if (percent == 0 || isNaN(percent) || !isFinite(percent)) {
-        return "";
+        return "0%";
       } else {
         return percent + '%';
       }
     }
     function parse_percent(value) {
       if (value == 0 || isNaN(value) || !isFinite(value)) {
-        return "";
+        return "0%";
       } else {
         return value + '%';
       }
@@ -197,195 +92,7 @@
         return value;
       }
     }
-    /*
-                     *   This content is licensed according to the W3C Software License at
-               *   https://www.w3.org/Consortium/Legal/2015/copyright-software-and-document
-               *
-                *   File:   sortable-table.js
-               *
-                *   Desc:   Adds sorting to a HTML data table that implements ARIA Authoring Practices
-                 */
 
-    'use strict';
-
-    class SortableTable {
-      constructor(tableNode) {
-        this.tableNode = tableNode;
-
-        this.columnHeaders = tableNode.querySelectorAll('thead th');
-
-        this.sortColumns = [];
-
-        for (var i = 0; i < this.columnHeaders.length; i++) {
-          var ch = this.columnHeaders[i];
-          var buttonNode = ch.querySelector('button');
-          if (buttonNode) {
-            this.sortColumns.push(i);
-            buttonNode.setAttribute('data-column-index', i);
-            buttonNode.addEventListener('click', this.handleClick.bind(this));
-          }
-        }
-
-        this.optionCheckbox = document.querySelector(
-          'input[type="checkbox"][value="show-unsorted-icon"]'
-        );
-
-        if (this.optionCheckbox) {
-          this.optionCheckbox.addEventListener(
-            'change',
-            this.handleOptionChange.bind(this)
-          );
-          if (this.optionCheckbox.checked) {
-            this.tableNode.classList.add('show-unsorted-icon');
-          }
-        }
-      }
-
-      setColumnHeaderSort(columnIndex) {
-        if (typeof columnIndex === 'string') {
-          columnIndex = parseInt(columnIndex);
-        }
-
-        for (var i = 0; i < this.columnHeaders.length; i++) {
-          var ch = this.columnHeaders[i];
-          var buttonNode = ch.querySelector('button');
-          if (i === columnIndex) {
-            var value = ch.getAttribute('aria-sort');
-            if (value === 'descending') {
-              ch.setAttribute('aria-sort', 'ascending');
-              this.sortColumn(
-                columnIndex,
-                'ascending',
-                ch.classList.contains('num')
-              );
-            } else {
-              ch.setAttribute('aria-sort', 'descending');
-              this.sortColumn(
-                columnIndex,
-                'descending',
-                ch.classList.contains('num')
-              );
-            }
-          } else {
-            if (ch.hasAttribute('aria-sort') && buttonNode) {
-              ch.removeAttribute('aria-sort');
-            }
-          }
-        }
-      }
-
-      sortColumn(columnIndex, sortValue, isNumber) {
-        function compareValues(a, b) {
-          if (sortValue === 'ascending') {
-            if (a.value === b.value) {
-              return 0;
-            } else {
-              if (isNumber) {
-                return a.value - b.value;
-              } else {
-                return a.value < b.value ? -1 : 1;
-              }
-            }
-          } else {
-            if (a.value === b.value) {
-              return 0;
-            } else {
-              if (isNumber) {
-                return b.value - a.value;
-              } else {
-                return a.value > b.value ? -1 : 1;
-              }
-            }
-          }
-        }
-
-        if (typeof isNumber !== 'boolean') {
-          isNumber = false;
-        }
-
-        var tbodyNode = this.tableNode.querySelector('tbody');
-        var rowNodes = [];
-        var dataCells = [];
-
-        var rowNode = tbodyNode.firstElementChild;
-
-        var index = 0;
-        while (rowNode) {
-          rowNodes.push(rowNode);
-          var rowCells = rowNode.querySelectorAll('th, td');
-          var dataCell = rowCells[columnIndex];
-
-          var data = {};
-          data.index = index;
-          data.value = dataCell.textContent.toLowerCase().trim();
-          if (isNumber) {
-            data.value = parseFloat(data.value);
-          }
-          dataCells.push(data);
-          rowNode = rowNode.nextElementSibling;
-          index += 1;
-        }
-
-        dataCells.sort(compareValues);
-
-        // remove rows
-        while (tbodyNode.firstChild) {
-          tbodyNode.removeChild(tbodyNode.lastChild);
-        }
-
-        // add sorted rows
-        for (var i = 0; i < dataCells.length; i += 1) {
-          tbodyNode.appendChild(rowNodes[dataCells[i].index]);
-        }
-      }
-
-      /* EVENT HANDLERS */
-
-      handleClick(event) {
-        var tgt = event.currentTarget;
-        this.setColumnHeaderSort(tgt.getAttribute('data-column-index'));
-      }
-
-      handleOptionChange(event) {
-        var tgt = event.currentTarget;
-
-        if (tgt.checked) {
-          this.tableNode.classList.add('show-unsorted-icon');
-        } else {
-          this.tableNode.classList.remove('show-unsorted-icon');
-        }
-      }
-    }
-
-    // Initialize sortable table buttons
-    window.addEventListener('load', function () {
-      var sortableTables = document.querySelectorAll('table.sortable');
-      for (var i = 0; i < sortableTables.length; i++) {
-        new SortableTable(sortableTables[i]);
-      }
-    });
-
-
-    </script>
-
-  </head>
-  <body>
-
-    <h2>Summaries</h2>
-    <p>File name: {{data_file_name}}</p>
-    <div class="tab">
-                {% for s in summaries %}
-      <button class="tablinks" onclick="openSummary(event, '{{s.player_name}} {{loop.index}}')">{{s.player_name}} {{loop.index}}</button>
-                {% endfor %}
-    </div>
-
-                {% for s in summaries %}
-    <div id="{{s.player_name}} {{loop.index}}" class="tabcontent">
-      {{renders[loop.index0]}}
-    </div>
-                {% endfor %}
-
-    <script>
 function openSummary(evt, summaryName) {
   var i, tabcontent, tablinks;
   tabcontent = document.getElementsByClassName("tabcontent");
@@ -399,8 +106,32 @@ function openSummary(evt, summaryName) {
   document.getElementById(summaryName).style.display = "block";
   evt.currentTarget.className += " active";
 }
+
+    function select_first_tab() {
+      var tabs = document.getElementsByClassName("tablinks");
+      tabs[0].click();
+    }
+
+!function(){function t(t,e){for(;(t=t.parentElement)&&!t.classList.contains(e););return t}function e(t){return t=t.replace(/[^\d\.-]/g,""),Number(t)}function n(t){var e=document.createElement("span");return e.innerHTML=t,e.textContent||e.innerText}function r(t,e,n){for(var r=0;r<n.length;r++)r==e?n[e].setAttribute("data-sort-direction",t):n[r].setAttribute("data-sort-direction",0)}function a(t,e){for(var n=t.getElementsByTagName("tbody")[0].getElementsByTagName("tr"),r=0;r<n.length;r++)for(var a=n[r].getElementsByTagName("td"),i=0;i<a.length;i++)a[i].innerHTML=e[r][i]}window.addEventListener("load",function(){for(var i=document.getElementsByClassName("sortable-table"),o=[],s=0;s<i.length;s++)!function(){i[s].setAttribute("data-sort-index",s);for(var d=i[s].getElementsByTagName("tbody")[0].getElementsByTagName("tr"),l=0;l<d.length;l++)for(var g=d[l].getElementsByTagName("td"),c=0;c<g.length;c++)void 0===o[s]&&o.splice(s,0,[]),void 0===o[s][l]&&o[s].splice(l,0,[]),o[s][l].splice(c,0,g[c].innerHTML);for(var u=i[s].getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].getElementsByTagName("th"),m=0;m<u.length;m++)!function(){var s=u[m].classList.contains("numeric-sort");u[m].setAttribute("data-sort-direction",0),u[m].setAttribute("data-sort-index",m),u[m].addEventListener("click",function(){var d=this.getAttribute("data-sort-direction"),l=this.getAttribute("data-sort-index"),g=t(this,"sortable-table").getAttribute("data-sort-index");r(1==d?-1:1,l,u),o[g]=o[g].sort(function(t,r){var a=n(t[l]),i=n(r[l]);return s&&(a=e(a),i=e(i)),a===i?0:1==d?a>i?-1:1:a<i?-1:1}),a(i[g],o[g])})}()}()})}();
     </script>
 
+  </head>
+  <body onLoad="select_first_tab()" >
+
+    <h2>Summaries</h2>
+    <p>File name: {{data_file_name}}</p>
+    <div class="tab">
+                {% for s in summaries %}
+      <button class="tablinks" onclick="openSummary(event, '{{s.player_name}} {{loop.index}}')">{{s.player_name}} {{loop.index}}</button>
+                {% endfor %}
+    </div>
+  
+
+                {% for s in summaries %}
+    <div id="{{s.player_name}} {{loop.index}}" class="tabcontent">
+      {{renders[loop.index0]}}
+    </div>
+                {% endfor %}
   </body>
 </html> 
 

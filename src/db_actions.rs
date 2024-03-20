@@ -1,7 +1,6 @@
 use diesel::dsl::not;
 use diesel::prelude::*;
-use dotenvy::dotenv;
-use std::env;
+use diesel_migrations::{FileBasedMigrations, MigrationHarness};
 use std::fs;
 use std::path::*;
 
@@ -16,20 +15,22 @@ use crate::schema::{
 };
 
 pub fn establish_connection() -> SqliteConnection {
-    dotenv().ok();
+    //let database_url = "summary.db";
+    //let mut conn = SqliteConnection::establish(&database_url)
+    //    .unwrap_or_else(|_| panic!("Unable to create in memory database"));
+    let mut conn = SqliteConnection::establish(":memory:")
+        .unwrap_or_else(|_| panic!("Unable to create in memory database"));
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    SqliteConnection::establish(&database_url)
-        .unwrap_or_else(|_| panic!("Unable to create in memory database"))
-}
+    let migrations_harness =
+        FileBasedMigrations::find_migrations_directory().expect("Unable to find migrations dir");
+    conn.run_pending_migrations(migrations_harness)
+        .expect("Unable to migrate db");
 
-pub fn initialize_db(conn: &mut SqliteConnection) {
     diesel::sql_query("pragma foreign_keys=ON")
-        .execute(conn)
+        .execute(&mut conn)
         .expect("Could not turn on foreign keys");
-    diesel::delete(summary::table)
-        .execute(conn)
-        .expect("Unable to delete summary rows");
+
+    conn
 }
 
 pub fn copy_db(conn: &mut SqliteConnection, path: PathBuf) {
@@ -65,7 +66,7 @@ pub fn write_to_database(
         player_name: String::from("NO NAME"),
         log_date: String::from("PLACEHOLDER"),
         first_line_number: 1,
-        last_line_number: i32::MAX,
+        last_line_number: data_points.len() as i32,
         log_file_name: String::from(file_name),
     };
     summaries.push(placeholder);
@@ -81,7 +82,7 @@ pub fn write_to_database(
                     player_name: player_name.clone(),
                     log_date: data_position.date.to_rfc3339(),
                     first_line_number: data_position.line_number as i32,
-                    last_line_number: i32::MAX,
+                    last_line_number: data_points.len() as i32,
                     log_file_name: String::from(file_name),
                 });
             }
@@ -370,7 +371,7 @@ pub fn write_to_database(
         if !rewards.is_empty() {
             insert_rewards(conn, &rewards);
         }
-        let final_summaries = finalize_summaries(conn, &summaries[..]);
+        let final_summaries = finalize_summaries(conn, data_points.len(), &summaries[..]);
         finalize_data(conn, &final_summaries[..]);
 
         cleanup_summaries(conn);
@@ -419,7 +420,11 @@ fn insert_rewards(conn: &mut SqliteConnection, rewards: &Vec<Reward>) {
         .expect("Error saving new damage action");
 }
 
-fn finalize_summaries(conn: &mut SqliteConnection, summaries: &[Summary]) -> Vec<Summary> {
+fn finalize_summaries(
+    conn: &mut SqliteConnection,
+    end_line: usize,
+    summaries: &[Summary],
+) -> Vec<Summary> {
     let mut start_lines: Vec<i32> = Vec::new();
     for s in summaries {
         start_lines.push(s.first_line_number);
@@ -428,7 +433,7 @@ fn finalize_summaries(conn: &mut SqliteConnection, summaries: &[Summary]) -> Vec
     let mut end_lines: Vec<i32> = start_lines.iter().map(|i| i - 1).collect();
 
     end_lines.remove(0);
-    end_lines.push(i32::MAX);
+    end_lines.push(end_line as i32);
 
     for (i, _) in summaries.iter().enumerate() {
         let query = diesel::update(summary)

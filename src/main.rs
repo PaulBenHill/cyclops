@@ -2,11 +2,13 @@ use chrono::DateTime;
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
 use models::Summary;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
 use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
+use tera::{Error, Result, Value};
 
 use diesel::SqliteConnection;
 
@@ -106,12 +108,12 @@ fn main() {
     create_dir(&output_path);
     println!("Output directory: {}", output_path.display());
 
-    let conn = &mut db_actions::establish_connection();
     let mut tera = setup_tera();
     tera.autoescape_on(vec![]);
+    tera.register_function("calc_percentage", calc_percentage);
 
     for file in log_file_names {
-        db_actions::initialize_db(conn);
+        let conn = &mut db_actions::establish_connection(); // In memory db, fresh db on each call
         let result = verify_file(&file);
         let file_name = result.0.file_name().unwrap().to_str().unwrap();
 
@@ -188,7 +190,7 @@ fn generate_top_level(
     top_level_context.insert("data_file_name", file_name);
     top_level_context.insert("summaries", &summaries);
     top_level_context.insert("renders", &renders);
-    let result = tera.render("summary.html", &top_level_context);
+    let result = tera.render(("summary.html", &top_level_context);
     match result {
         Ok(data) => {
             summary_file
@@ -253,11 +255,6 @@ fn generate_summary(
     }
     let mut report_context = Context::new();
     report_context.insert("summary", &summary);
-    if summary.last_line_number == i32::MAX {
-        report_context.insert("last_line_number", &line_count);
-    } else {
-        report_context.insert("last_line_number", &summary.last_line_number.to_owned());
-    }
     report_context.insert("rewards_defeats", &rewards_defeats);
     report_context.insert("total_damage", &total_damage);
     report_context.insert("powers", &damage_by_power);
@@ -431,4 +428,29 @@ fn process_lines(
     data_points.shrink_to_fit();
 
     data_points
+}
+
+pub fn calc_percentage(args: &HashMap<String, Value>) -> Result<Value> {
+    let numerator = match args.get("numerator") {
+        Some(value) => match value {
+            Value::Number(n) => n.as_f64().expect("Unable to convert numerator to float"),
+            _ => 0.0,
+        },
+        None => 0.0,
+    };
+
+    let denominator = match args.get("denominator") {
+        Some(value) => match value {
+            Value::Number(n) => n.as_f64().expect("Unable to convert denominator to float"),
+            _ => 0.0,
+        },
+        None => 0.0,
+    };
+
+    if numerator != 0.0 && denominator != 0.0 {
+        let result = ((numerator / denominator) * 100.0).round();
+        return Ok(Value::from(result as i64));
+    }
+
+    Ok(Value::Null)
 }

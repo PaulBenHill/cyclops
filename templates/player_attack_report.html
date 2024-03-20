@@ -1,7 +1,7 @@
     <h3>Name: {{summary.player_name}}</h3>
     <h3>Start Date: {{summary.log_date}}</h3>
     <h3>Starting Line Number: {{summary.first_line_number}}</h3>
-    <h3>Last Line Number: {{last_line_number}}</h3>
+    <h3>Last Line Number: {{summary.last_line_number}}</h3>
    <hr> 
     <h3>Rewards-Mobs Defeated</h3>
     <table title="Session details" style="width:50%">
@@ -36,106 +36,30 @@
             <td>{{ total_damage.dot_damage }}</td>
             <td>{{ total_damage.critical_damage }}</td>
             <td>{{ total_damage.critical_hits }}</td>
-            <td>{{total_damage.critical_hit_percentage}}% </td>
-            <td>{{total_damage.critical_damage_percentage}}% </td>
+            <td>{{total_damage.critical_hit_percentage}} </td>
+            <td>{{total_damage.critical_damage_percentage}} </td>
         </tr>
     </table>
    <hr> 
     <h2>Attack Summary By Power</h2>
-    <div class="table-wrap">
-        <table title="Summary By Power" class="sortable">
+        <table title="Summary By Power" class="sortable-table">
             <thead>
                 <tr>
-                    <th>
-                        <button>
-                            Power
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Activations
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Hits (Streakbreakers)
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Misses
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th>
-                        <button class="num">
-                            Hit %
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Total Damage
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th>
-                        <button>
-                            Total Damage %
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Damage Per Activation
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Average Targets Effected
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Direct Damage
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            DoT Damage
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Critical Damage
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th class="num">
-                        <button>
-                            Critical Hits
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th>
-                        <button>
-                            % hit critical
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
-                    <th>
-                        <button>
-                            % damage critical
-                            <span aria-hidden="true"></span>
-                        </button>
-                    </th>
+                    <th>Power</th>
+                    <th class="numeric-sort">Activations</th>
+                    <th class="numeric-sort">Hits (Streakbreakers)</th>
+                    <th class="numeric-sort">Misses</th>
+                    <th class="numeric-sort">Hit %</th>
+                    <th class="numeric-sort">Total Damage</th>
+                    <th class="numeric-sort">Total Damage %</th>
+                    <th class="numeric-sort">Damage Per Activation</th>
+                    <th class="numeric-sort">Average Targets Effected</th>
+                    <th class="numeric-sort">Direct Damage</th>
+                    <th class="numeric-sort">DoT Damage</th>
+                    <th class="numeric-sort">Critical Damage</th>
+                    <th class="numeric-sort">Critical Hits</th>
+                    <th class="numeric-sort">% hit critical</th>
+                    <th class="numeric-sort">% damage critical</th>
                 </tr>
             </thead>
             <tbody>
@@ -145,12 +69,10 @@
                     <td>{{ power.activations }}</td>
                     <td>{{ power.hits }} ({{power.streak_breakers}})</td>
                     <td>{{ power.misses }}</td>
-            <td>{{power.hit_percentage}} </td>
+                    <td>{{power.hit_percentage}} </td>
                     <td>{{ power.power_total_damage }}</td>
                     <td>
-                        <script>
-                            document.write(percent_as_string({{ power.power_total_damage }}, {{ total_damage.total_damage }}));
-                        </script>
+                   {{ calc_percentage(  numerator=power.power_total_damage, denominator=total_damage.total_damage) }}
                     </td>
                     <td>{{ power.dpa }}</td>
                     <td>{{ power.ate }}</td>
@@ -158,54 +80,22 @@
                     <td>{{ power.dot_damage }}</td>
                     <td>{{ power.critical_damage }}</td>
                     <td>{{ power.critical_hits}}</td>
-                    <td>{{ power.percent_hits_critical }}%</td>
-                    <td>{{ power.percent_damage_critical }}%</td>
+                    <td>{{ power.percent_hits_critical }}</td>
+                    <td>{{ power.percent_damage_critical }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </div>
    <hr> 
     <h2>DPS using an interval of {{ dps_interval}} </h2>
-    <div class="table-wrap">
-        <table title="DPS Report" style="width: 50%;" class="sortable">
+        <table title="DPS Report" style="width: 50%;" class="sortable-table">
             <thead>
-                <th class="num">
-                    <button>
-                        Starting Line
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Ending Line
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Total lines with damage
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Elapsed Seconds
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        Total Damage
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
-                <th class="num">
-                    <button>
-                        DPS
-                        <span aria-hidden="true"></span>
-                    </button>
-                </th>
+                <th class="numeric-sort">Starting Line</th>
+                <th class="numeric-sort">Ending Line</th>
+                <th class="numeric-sort">Total lines with damage</th>
+                <th class="numeric-sort">Elapsed Seconds</th>
+                <th class="numeric-sort">Total Damage</th>
+                <th class="numeric-sort">DPS</th>
             </thead>
             <tbody>
                 {% for row in dps_reports %}
@@ -217,4 +107,3 @@
                 {% endfor %}
             </tbody>
         </table>
-</div>
