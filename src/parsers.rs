@@ -13,7 +13,7 @@ lazy_static! {
     static ref SESSION_MARKER_MATCHER_2: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (?:Now entering the Rogue Isles|Welcome to City of Heroes), (.+)!").unwrap();
 
     //static ref EXP_INF_GAIN_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You gain ([0-9,]+) experience and ([0-9,]+) inf.+").unwrap();
-    static ref EXP_INF_GAIN_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You gain (?:(?P<exp>[0-9,]+) experience)?(?: and )?(?:(?:(?P<inf>[0-9,]+)) influence)?.").unwrap();
+    static ref EXP_INF_GAIN_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You gain (?:(?P<exp>[0-9,]+) experience)?(?: and )?(?:(?:(?P<inf>[0-9,]+)) (?:influence|infamy))?.").unwrap();
     static ref LOOT_DROP_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You received (.+)[.]").unwrap();
 
     static ref MOB_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! (.+) power had a (.+)% chance to hit and rolled a (.+)[.]").unwrap();

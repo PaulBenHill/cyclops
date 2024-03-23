@@ -69,29 +69,6 @@
     }
     </style>
     <script>
-    function percent_as_string(numerator, denominator) {
-      var percent = (numerator / denominator * 100).toFixed(0);
-      if (percent == 0 || isNaN(percent) || !isFinite(percent)) {
-        return "0%";
-      } else {
-        return percent + '%';
-      }
-    }
-    function parse_percent(value) {
-      if (value == 0 || isNaN(value) || !isFinite(value)) {
-        return "0%";
-      } else {
-        return value + '%';
-      }
-    }
-    function format_as_integer(numerator, denominator) {
-      var value = (numerator / denominator).toFixed(0);
-      if (value == 0 || isNaN(value) || !isFinite(value)) {
-        return "";
-      } else {
-        return value;
-      }
-    }
 
 function openSummary(evt, summaryName) {
   var i, tabcontent, tablinks;

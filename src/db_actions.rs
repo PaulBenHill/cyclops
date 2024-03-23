@@ -1,3 +1,4 @@
+use diesel::connection::SimpleConnection;
 use diesel::dsl::not;
 use diesel::prelude::*;
 use diesel_migrations::{FileBasedMigrations, MigrationHarness};
@@ -373,7 +374,6 @@ pub fn write_to_database(
         }
         let final_summaries = finalize_summaries(conn, data_points.len(), &summaries[..]);
         finalize_data(conn, &final_summaries[..]);
-
         cleanup_summaries(conn);
     }
 }
@@ -425,6 +425,7 @@ fn finalize_summaries(
     end_line: usize,
     summaries: &[Summary],
 ) -> Vec<Summary> {
+    use crate::schema::summary::dsl::*;
     let mut start_lines: Vec<i32> = Vec::new();
     for s in summaries {
         start_lines.push(s.first_line_number);
@@ -442,7 +443,9 @@ fn finalize_summaries(
         query.execute(conn).expect("Unable to update summary row");
     }
 
-    use crate::schema::summary::dsl::*;
+    let query_result = conn.batch_execute("update summary set log_date = (select pa.log_date from player_activation pa, summary s where s.summary_key = pa.summary_key AND s.log_date = 'PLACEHOLDER' group by s.summary_key)
+    where log_date = 'PLACEHOLDER'").expect("Unable to update date for placeholder summary");
+
     summary.select(Summary::as_select()).load(conn).unwrap()
 }
 

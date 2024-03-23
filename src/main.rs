@@ -8,7 +8,7 @@ use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
 use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
-use tera::{Error, Result, Value};
+use tera::{Result, Value};
 
 use diesel::SqliteConnection;
 
@@ -25,7 +25,6 @@ mod schema;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
-const PLAYER_ATTACK_REPORT_TEMPLATE: &str = "player_attack_report.html";
 
 #[derive(Parser)]
 #[command(name = "Cyclops")]
@@ -123,9 +122,15 @@ fn main() {
 
         let data_points: Vec<FileDataPoint> = process_lines(conn, &file, lines);
 
-        let report_dir = create_report_dir(&working_dir, &output_path, file_name, result.1);
-
         let summaries = db_actions::get_summaries(conn);
+
+        let report_dir = create_report_dir(
+            &working_dir,
+            &output_path,
+            file_name,
+            &summaries.first().unwrap().player_name,
+            result.1,
+        );
 
         let mut summary_renders: Vec<String> = Vec::new();
         write_data_files(conn, &report_dir, file_name, result.0, &data_points);
@@ -190,7 +195,7 @@ fn generate_top_level(
     top_level_context.insert("data_file_name", file_name);
     top_level_context.insert("summaries", &summaries);
     top_level_context.insert("renders", &renders);
-    let result = tera.render(("summary.html", &top_level_context);
+    let result = tera.render("summary.html", &top_level_context);
     match result {
         Ok(data) => {
             summary_file
@@ -303,9 +308,17 @@ fn create_report_dir(
     working_dir: &PathBuf,
     output_dir: &PathBuf,
     filename: &str,
+    player_name: &str,
     file_size: u64,
 ) -> PathBuf {
-    let mut report_dir_name = format!("{}_{}", filename.replace('-', "_"), file_size);
+    let mut report_dir_name = format!(
+        "{}_{}",
+        filename
+            .replace('-', "_")
+            .replace(".txt", "")
+            .replace("chatlog", player_name),
+        file_size
+    );
     report_dir_name = report_dir_name.replace(' ', "_");
 
     let report_dir: PathBuf = [

@@ -1,5 +1,5 @@
     <h3>Name: {{summary.player_name}}</h3>
-    <h3>Start Date: {{summary.log_date}}</h3>
+    <h3>Start Date: {{summary.log_date | date(format="%Y-%m-%d %H:%M:%S")}}</h3>
     <h3>Starting Line Number: {{summary.first_line_number}}</h3>
     <h3>Last Line Number: {{summary.last_line_number}}</h3>
    <hr> 
