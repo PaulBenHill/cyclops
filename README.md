@@ -67,7 +67,8 @@ Usage: cyclops.exe [OPTIONS]
         - You can have multiple characters in the same log. Or multiple sessions of the same character.  
         - Copy of the source chat log. Example: chatlog_2024_02_08.txt  
         - dps.csv - Raw dps data using for the dps report in CSV format.  
-        - parsed.txt - Log files parsed into internal format. Useful for finding missed log messages. Look for, Unparsed.  
+        - parsed.txt - Log files parsed into internal format. Useful for finding missed log messages. Look for, Unparsed.
+        - summary.db - An Sqlite version 3.2+ database of all the data currently collected. Everything is tied together by the summary_key field in the table, Summary.
 
 ### Summary.html  
         - Attack Summary - Global combat totals for this session  
