@@ -270,6 +270,18 @@ pub fn write_to_database(
                     source_type: String::from("PlayerPet"),
                     source_name: String::from(pet_name),
                 });
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    hit: 1,
+                    chance_to_hit: 100,
+                    source_type: String::from("PlayerPet"),
+                    source_name: String::from(pet_name),
+                    target_name: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    streakbreaker: 0,
+                });
             }
             FileDataPoint::PsuedoPetDamageDoT {
                 data_position,
@@ -443,7 +455,7 @@ fn finalize_summaries(
         query.execute(conn).expect("Unable to update summary row");
     }
 
-    let query_result = conn.batch_execute("update summary set log_date = (select pa.log_date from player_activation pa, summary s where s.summary_key = pa.summary_key AND s.log_date = 'PLACEHOLDER' group by s.summary_key)
+    conn.batch_execute("update summary set log_date = (select pa.log_date from player_activation pa, summary s where s.summary_key = pa.summary_key AND s.log_date = 'PLACEHOLDER' group by s.summary_key)
     where log_date = 'PLACEHOLDER'").expect("Unable to update date for placeholder summary");
 
     summary.select(Summary::as_select()).load(conn).unwrap()
