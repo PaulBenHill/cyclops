@@ -131,6 +131,7 @@ fn main() {
             &summaries.first().unwrap().player_name,
             result.1,
         );
+        db_actions::copy_db(conn, report_dir.join("summary.db"));
 
         let mut summary_renders: Vec<String> = Vec::new();
         write_data_files(conn, &report_dir, file_name, result.0, &data_points);
@@ -144,7 +145,6 @@ fn main() {
             ));
         }
 
-        db_actions::copy_db(conn, report_dir.join("summary.db"));
         generate_top_level(&tera, &report_dir, file_name, summaries, summary_renders);
     }
 

@@ -668,10 +668,19 @@ pub fn get_rewards_defeats(
     use diesel::sql_types::*;
 
     let reward_query = sql_query("select r.summary_key, sum(r.experience) as experience, sum( influence) as influence, mobs_defeated from reward r INNER JOIN (select count(dt.summary_key) as mobs_defeated from defeated_targets dt where dt.summary_key = ? AND dt.source_name = ?) where r.summary_key = ? group by summary_key");
-    reward_query
+    let result = reward_query
         .bind::<Integer, _>(key)
         .bind::<Text, _>(player_name)
         .bind::<Integer, _>(key)
-        .get_result::<RewardsDefeats>(conn)
-        .expect("Unable to load rewards and defeats")
+        .get_result::<RewardsDefeats>(conn);
+
+    match result {
+        Ok(data) => data,
+        Err(_) => RewardsDefeats {
+            influence: 0,
+            summary_key: 0,
+            experience: 0,
+            mobs_defeated: 0,
+        },
+    }
 }
