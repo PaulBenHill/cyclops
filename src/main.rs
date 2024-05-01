@@ -9,6 +9,7 @@ use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
 use tera::{Result, Value};
+use walkdir::{DirEntry, WalkDir};
 
 use diesel::SqliteConnection;
 
@@ -22,6 +23,7 @@ mod db_actions;
 mod models;
 mod parser_model;
 mod schema;
+mod web;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
@@ -29,7 +31,7 @@ const TEMPLATES: &str = "templates";
 #[derive(Parser)]
 #[command(name = "Cyclops")]
 #[command(author = "Ben Hill <benhill70@yahoo.com")]
-#[command(version = ".01")]
+#[command(version = ".03")]
 #[command(about = "Application to parse City Of Heroes log files", long_about = None)]
 struct Args {
     #[arg(
@@ -147,8 +149,37 @@ fn main() {
 
         generate_top_level(&tera, &report_dir, file_name, summaries, summary_renders);
     }
+    println!(
+        "File(s) processing time took: {} second.",
+        start.elapsed().as_secs()
+    );
+
+    find_all_summaries(&output_path);
+
+    if let Err(e) = web::start() {
+        panic!("Unable to start web server {:?}", e);
+    }
 
     println!("Total run time took: {} second.", start.elapsed().as_secs());
+}
+
+fn is_hidden(entry: &DirEntry) -> bool {
+    entry
+        .file_name()
+        .to_str()
+        .map(|s| s.starts_with("."))
+        .unwrap_or(false)
+}
+
+fn find_all_summaries(output_path: &Path) {
+    let walker = WalkDir::new(output_path).into_iter();
+    for entry in walker
+        .filter_entry(|e| !is_hidden(e))
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        println!("{}", entry.path().display());
+    }
 }
 
 fn write_data_files(

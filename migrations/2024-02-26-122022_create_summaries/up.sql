@@ -134,7 +134,12 @@ CREATE VIEW IF NOT EXISTS total_damage_report AS select s.summary_key,
 (select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 0 ) AS misses,
 (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND source_type IN ('Player', 'PlayerPet')) AS total_damage,
 (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Direct' AND source_type IN ('Player', 'PlayerPet')) AS direct_damage,
-(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'DoT' AND source_type IN ('Player', 'PlayerPet')) AS dot_damage,
+
+(CASE WHEN(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'DoT' AND source_type IN ('Player', 'PlayerPet')) IS NULL
+THEN 0
+ELSE
+(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'DoT' AND source_type IN ('Player', 'PlayerPet'))
+END) AS dot_damage,
 
 (CASE WHEN(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Critical' AND source_type IN ('Player', 'PlayerPet')) IS NULL
 THEN 0
