@@ -23,3 +23,5 @@ diesel = { version = "2.1.0", features = [
 ] }
 rusqlite = { version = "0.31.0", features = ["bundled"] }
 diesel_migrations = "2.1.0"
+actix-web = "4"
+walkdir = "2"
