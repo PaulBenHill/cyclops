@@ -1,109 +1,115 @@
-    <h3>Name: {{summary.player_name}}</h3>
-    <h3>Start Date: {{summary.log_date | date(format="%Y-%m-%d %H:%M:%S")}}</h3>
-    <h3>Starting Line Number: {{summary.first_line_number}}</h3>
-    <h3>Last Line Number: {{summary.last_line_number}}</h3>
-   <hr> 
-    <h3>Rewards-Mobs Defeated</h3>
-    <table title="Session details" style="width:50%">
-        <th>Experience</th>
-        <th>Influence</th>
-        <th>Mobs defeated</th>
-      <tr>
-            <td>{{ rewards_defeats.experience }}</td>
-            <td>{{ rewards_defeats.influence }}</td>
-            <td>{{ rewards_defeats.mobs_defeated }}</td>
-      </tr>
-    </table>
-   <hr> 
-    <h3>Attack Summary</h3>
-    <table title="Attack Summary">
-        <th>Total Attacks</th>
-        <th>Total Hits (Streakbreakers)</th>
-        <th>Total Misses</th>
-        <th>Total Damage</th>
-        <th>Direct Damage</th>
-        <th>DoT Damage</th>
-        <th>Critical Damage</th>
-        <th>Critical Hits</th>
-        <th>Critical Hit Percentage</th>
-        <th>Critical Damage Percentage</th>
+<h3>Name: {{summary.player_name}}</h3>
+<h3>Start Date: {{summary.log_date | date(format="%Y-%m-%d %H:%M:%S")}}</h3>
+<h3>Starting Line Number: {{summary.first_line_number}}</h3>
+<h3>Last Line Number: {{summary.last_line_number}}</h3>
+<hr>
+<h3>Rewards-Mobs Defeated</h3>
+<table title="Session details" style="width:50%">
+    <th>Experience</th>
+    <th>Influence</th>
+    <th>Mobs defeated</th>
+    <tr>
+        <td>{{ rewards_defeats.experience }}</td>
+        <td>{{ rewards_defeats.influence }}</td>
+        <td>{{ rewards_defeats.mobs_defeated }}</td>
+    </tr>
+</table>
+<hr>
+<h3>Attack Summary</h3>
+<table title="Attack Summary">
+    <th>Total Attacks</th>
+    <th>Total Hits (Streakbreakers)</th>
+    <th>Total Misses</th>
+    <th>Total Damage</th>
+    <th>Direct Damage</th>
+    <th>DoT Damage</th>
+    <th>Critical Damage</th>
+    <th>Critical Hits</th>
+    <th>Critical Hit Percentage</th>
+    <th>Critical Damage Percentage</th>
+    <tr>
+        <td>{{ total_damage.activations }}</td>
+        <td>{{ total_damage.hits }} ({{total_damage.streak_breakers}})</td>
+        <td>{{ total_damage.misses }}</td>
+        <td>{{ total_damage.total_damage }}</td>
+        <td>{{ total_damage.direct_damage }}</td>
+        <td>{{ total_damage.dot_damage }}</td>
+        <td>{{ total_damage.critical_damage }}</td>
+        <td>{{ total_damage.critical_hits }}</td>
+        <td>{{total_damage.critical_hit_percentage}} </td>
+        <td>{{total_damage.critical_damage_percentage}} </td>
+    </tr>
+</table>
+<hr>
+<h2>Attack Summary By Power</h2>
+<table title="Summary By Power" class="sortable-table">
+    <thead>
         <tr>
-            <td>{{ total_damage.activations }}</td>
-            <td>{{ total_damage.hits }} ({{total_damage.streak_breakers}})</td>
-            <td>{{ total_damage.misses }}</td>
-            <td>{{ total_damage.total_damage }}</td>
-            <td>{{ total_damage.direct_damage }}</td>
-            <td>{{ total_damage.dot_damage }}</td>
-            <td>{{ total_damage.critical_damage }}</td>
-            <td>{{ total_damage.critical_hits }}</td>
-            <td>{{total_damage.critical_hit_percentage}} </td>
-            <td>{{total_damage.critical_damage_percentage}} </td>
+            <th>Power</th>
+            <th class="numeric-sort">Activations</th>
+            <th class="numeric-sort">Hits (Streakbreakers)</th>
+            <th class="numeric-sort">Misses</th>
+            <th class="numeric-sort">Hit %</th>
+            <th class="numeric-sort">Total Damage</th>
+            <th class="numeric-sort">Total Damage %</th>
+            <th class="numeric-sort">Damage Per Activation</th>
+            <th class="numeric-sort">Average Targets Effected<a href="#ate1"><sup>1</sup></a><a
+                    href="#ate2"><sup>2</sup></a></th>
+            <th class="numeric-sort">Direct Damage</th>
+            <th class="numeric-sort">DoT Damage</th>
+            <th class="numeric-sort">Critical Damage</th>
+            <th class="numeric-sort">Critical Hits</th>
+            <th class="numeric-sort">% hit critical</th>
+            <th class="numeric-sort">% damage critical</th>
         </tr>
-    </table>
-   <hr> 
-    <h2>Attack Summary By Power</h2>
-        <table title="Summary By Power" class="sortable-table">
-            <thead>
-                <tr>
-                    <th>Power</th>
-                    <th class="numeric-sort">Activations</th>
-                    <th class="numeric-sort">Hits (Streakbreakers)</th>
-                    <th class="numeric-sort">Misses</th>
-                    <th class="numeric-sort">Hit %</th>
-                    <th class="numeric-sort">Total Damage</th>
-                    <th class="numeric-sort">Total Damage %</th>
-                    <th class="numeric-sort">Damage Per Activation</th>
-                    <th class="numeric-sort">Average Targets Effected</th>
-                    <th class="numeric-sort">Direct Damage</th>
-                    <th class="numeric-sort">DoT Damage</th>
-                    <th class="numeric-sort">Critical Damage</th>
-                    <th class="numeric-sort">Critical Hits</th>
-                    <th class="numeric-sort">% hit critical</th>
-                    <th class="numeric-sort">% damage critical</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for power in powers %}
-                <tr>
-                    <td>{{ power.power_name }}</td>
-                    <td>{{ power.activations }}</td>
-                    <td>{{ power.hits }} ({{power.streak_breakers}})</td>
-                    <td>{{ power.misses }}</td>
-                    <td>{{power.hit_percentage}} </td>
-                    <td>{{ power.power_total_damage }}</td>
-                    <td>
-                   {{ calc_percentage(  numerator=power.power_total_damage, denominator=total_damage.total_damage) }}
-                    </td>
-                    <td>{{ power.dpa }}</td>
-                    <td>{{ power.ate }}</td>
-                    <td>{{ power.direct_damage }}</td>
-                    <td>{{ power.dot_damage }}</td>
-                    <td>{{ power.critical_damage }}</td>
-                    <td>{{ power.critical_hits}}</td>
-                    <td>{{ power.percent_hits_critical }}</td>
-                    <td>{{ power.percent_damage_critical }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-   <hr> 
-    <h2>DPS using an interval of {{ dps_interval}} </h2>
-        <table title="DPS Report" style="width: 50%;" class="sortable-table">
-            <thead>
-                <th class="numeric-sort">Starting Line</th>
-                <th class="numeric-sort">Ending Line</th>
-                <th class="numeric-sort">Total lines with damage</th>
-                <th class="numeric-sort">Elapsed Seconds</th>
-                <th class="numeric-sort">Total Damage</th>
-                <th class="numeric-sort">DPS</th>
-            </thead>
-            <tbody>
-                {% for row in dps_reports %}
-                <tr>
-                    {% for data in row %}
-                    <td>{{ data }}</td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    </thead>
+    <tbody>
+        {% for power in powers %}
+        <tr>
+            <td>{{ power.power_name }}</td>
+            <td>{{ power.activations }}</td>
+            <td>{{ power.hits }} ({{power.streak_breakers}})</td>
+            <td>{{ power.misses }}</td>
+            <td>{{power.hit_percentage}} </td>
+            <td>{{ power.power_total_damage }}</td>
+            <td>
+                {{ calc_percentage( numerator=power.power_total_damage, denominator=total_damage.total_damage) }}
+            </td>
+            <td>{{ power.dpa }}</td>
+            <td>{{ power.ate }}</td>
+            <td>{{ power.direct_damage }}</td>
+            <td>{{ power.dot_damage }}</td>
+            <td>{{ power.critical_damage }}</td>
+            <td>{{ power.critical_hits}}</td>
+            <td>{{ power.percent_hits_critical }}</td>
+            <td>{{ power.percent_damage_critical }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<br>
+<a id="ate1"><sup>1</sup>For psuedo pets that do two types of damage. This value needs to be divided by two. Example:
+    Electrical Melee: Lightning Rod</a>
+<br>
+<a id="ate2"><sup>2</sup>Incarnate Judgements can exceed the target cap of 16</a>
+<hr>
+<h2>DPS using an interval of {{ dps_interval}} </h2>
+<table title="DPS Report" style="width: 50%;" class="sortable-table">
+    <thead>
+        <th class="numeric-sort">Starting Line</th>
+        <th class="numeric-sort">Ending Line</th>
+        <th class="numeric-sort">Total lines with damage</th>
+        <th class="numeric-sort">Elapsed Seconds</th>
+        <th class="numeric-sort">Total Damage</th>
+        <th class="numeric-sort">DPS</th>
+    </thead>
+    <tbody>
+        {% for row in dps_reports %}
+        <tr>
+            {% for data in row %}
+            <td>{{ data }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
