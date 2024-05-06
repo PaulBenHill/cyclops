@@ -57,6 +57,7 @@ pub enum DamageType {
     Unique,
     Unique2,
     Special,
+    Quantum,
 }
 
 impl DamageType {
@@ -75,6 +76,7 @@ impl DamageType {
             "Unique" => Self::Unique,
             "Unique2" => Self::Unique2,
             "Special" => Self::Special,
+            "Quantum" => Self::Quantum,
             _ => panic!("Unable to parse damage type {}", damage_type),
         }
     }

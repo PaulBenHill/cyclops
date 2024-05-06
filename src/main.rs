@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
+use diesel::dsl::sum;
 use models::Summary;
 use std::collections::HashMap;
 use std::fs::File;
@@ -31,7 +32,7 @@ const TEMPLATES: &str = "templates";
 #[derive(Parser)]
 #[command(name = "Cyclops")]
 #[command(author = "Ben Hill <benhill70@yahoo.com")]
-#[command(version = ".03")]
+#[command(version = ".04")]
 #[command(about = "Application to parse City Of Heroes log files", long_about = None)]
 struct Args {
     #[arg(
@@ -65,6 +66,10 @@ struct Args {
         value_name = "Directory where you want the reports written. Defaults to \"output\""
     )]
     outputdir: Option<PathBuf>,
+    #[arg(short, long, required = false, value_name = "Web server IP address")]
+    address: Option<String>,
+    #[arg(short, long, required = false, value_name = "Web server port")]
+    port: Option<usize>,
 }
 
 fn main() {
@@ -106,6 +111,18 @@ fn main() {
         dps_interval = interval_arg;
     }
 
+    let mut webserver_address: String = String::from("127.0.0.1");
+    if let Some(address_arg) = args.address {
+        println!("Value for web server address: {:?}", address_arg);
+        webserver_address = address_arg;
+    }
+
+    let mut webserver_port: usize = 11227;
+    if let Some(port_arg) = args.port {
+        println!("Value for web server address: {:?}", port_arg);
+        webserver_port = port_arg;
+    }
+
     create_dir(&output_path);
     println!("Output directory: {}", output_path.display());
 
@@ -122,32 +139,38 @@ fn main() {
 
         let lines = reader.lines();
 
-        let data_points: Vec<FileDataPoint> = process_lines(conn, &file, lines);
+        let processing_result = process_lines(conn, &file, lines);
 
-        let summaries = db_actions::get_summaries(conn);
+        if processing_result.0 {
+            let data_points = processing_result.1;
+            let summaries = db_actions::get_summaries(conn);
 
-        let report_dir = create_report_dir(
-            &working_dir,
-            &output_path,
-            file_name,
-            &summaries.first().unwrap().player_name,
-            result.1,
-        );
-        db_actions::copy_db(conn, report_dir.join("summary.db"));
+            let report_dir = create_report_dir(
+                &working_dir,
+                &output_path,
+                file_name,
+                &summaries.first().unwrap().player_name,
+                result.1,
+            );
+            db_actions::copy_db(conn, report_dir.join("summary.db"));
 
-        let mut summary_renders: Vec<String> = Vec::new();
-        write_data_files(conn, &report_dir, file_name, result.0, &data_points);
-        for s in &summaries[..] {
-            summary_renders.push(generate_summary(
-                conn,
-                &tera,
-                s,
-                data_points.len(),
-                dps_interval,
-            ));
+            let mut summary_renders: Vec<String> = Vec::new();
+            write_data_files(conn, &report_dir, file_name, result.0, &data_points);
+            for (i, s) in summaries.iter().enumerate() {
+                summary_renders.push(generate_summary(
+                    conn,
+                    &tera,
+                    i,
+                    s,
+                    data_points.len(),
+                    dps_interval,
+                ));
+            }
+
+            generate_top_level(&tera, &report_dir, file_name, summaries, summary_renders);
+        } else {
+            println!("No valid data found in {}.", file_name);
         }
-
-        generate_top_level(&tera, &report_dir, file_name, summaries, summary_renders);
     }
     println!(
         "File(s) processing time took: {} second.",
@@ -156,8 +179,12 @@ fn main() {
 
     find_all_summaries(&output_path);
 
+    println!(
+        "Starting web server at http://{}:{}",
+        webserver_address, webserver_port
+    );
     let output_dir: String = String::from(output_path.to_str().unwrap());
-    if let Err(e) = web::start(output_dir.to_owned()) {
+    if let Err(e) = web::start(webserver_address, webserver_port, output_dir.to_owned()) {
         panic!("Unable to start web server {:?}", e);
     }
 
@@ -231,6 +258,7 @@ fn generate_top_level(
 fn generate_summary(
     conn: &mut SqliteConnection,
     tera: &Tera,
+    index: usize,
     summary: &Summary,
     line_count: usize,
     dps_interval: usize,
@@ -281,6 +309,8 @@ fn generate_summary(
         ]);
     }
     let mut report_context = Context::new();
+
+    report_context.insert("index", &format!("player{}", index + 1));
     report_context.insert("summary", &summary);
     report_context.insert("rewards_defeats", &rewards_defeats);
     report_context.insert("total_damage", &total_damage);
@@ -417,7 +447,7 @@ fn process_lines(
     conn: &mut SqliteConnection,
     file: &str,
     lines: Lines<BufReader<File>>,
-) -> Vec<FileDataPoint> {
+) -> (bool, Vec<FileDataPoint>) {
     let mut line_count: u32 = 0;
     let parsers = initialize_matchers();
     let mut data_points: Vec<FileDataPoint> = Vec::with_capacity(50000);
@@ -451,18 +481,33 @@ fn process_lines(
         start.elapsed().as_secs()
     );
 
-    // write to database
+    let mut has_data = false;
+    for dp in &data_points {
+        match dp {
+            FileDataPoint::PlayerDirectDamage {
+                data_position: _,
+                damage_dealt: _,
+            } => {
+                has_data = true;
+                break;
+            }
+            _ => (),
+        }
+    }
 
-    let start = Instant::now();
-    db_actions::write_to_database(conn, file, &data_points);
-    println!(
-        "Generating summaries took: {} second.",
-        start.elapsed().as_secs()
-    );
+    if has_data {
+        // write to database
+        let start = Instant::now();
+        db_actions::write_to_database(conn, file, &data_points);
+        println!(
+            "Generating summaries took: {} second.",
+            start.elapsed().as_secs()
+        );
+    }
 
     data_points.shrink_to_fit();
 
-    data_points
+    (has_data, data_points)
 }
 
 pub fn calc_percentage(args: &HashMap<String, Value>) -> Result<Value> {

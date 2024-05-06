@@ -1,114 +1,167 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
+
+<head>
+  <link href="https://unpkg.com/tabulator-tables@5.2.1/dist/css/tabulator.min.css" rel="stylesheet">
+  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.2.1/dist/js/tabulator.min.js">
+  </script>
+  <style>
     body {
-    color: #e67e22;
-    background-color: #1b283b;
-    font-size: 100%;
-    font-weight: bold;
-    font-family: Arial;
+      color: #e67e22;
+      background-color: #1b283b;
+      font-size: 100%;
+      font-weight: bold;
+      font-family: Arial;
     }
 
 
+    .tabulator,
+    .tabulator .tabulator-header,
+    .tabulator .tabulator-header .tabulator-col,
+    .tabulator-row {
+      color: #e67e22;
+      background-color: #1b283b;
+      font-weight: bold !important;
+      font-family: Arial !important;
+    }
+
+    .tabulator-row-even {
+      color: black;
+    }
+
     /* Style the tab */
     .tab {
-    background-color: inherit;
-    overflow: hidden;
+      background-color: inherit;
+      overflow: hidden;
     }
 
     /* Style the buttons inside the tab */
     .tab button {
-    color: inherit;
-    background-color: inherit;
-    float: left;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    padding: 14px 16px;
-    transition: 0.3s;
-    font-size: 17px;
+      color: inherit;
+      background-color: inherit;
+      float: left;
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 14px 16px;
+      transition: 0.3s;
+      font-size: 17px;
     }
 
     /* Change background color of buttons on hover */
     .tab button:hover {
-    color: inherit;
-    background-color: #1b283b;
+      color: inherit;
+      background-color: #1b283b;
     }
 
     /* Create an active/current tablink class */
     .tab button.active {
-    color: inherit;
-    background-color: #ccc;
+      color: inherit;
+      background-color: #ccc;
     }
 
     /* Style the tab content */
     .tabcontent {
-    display: none;
-    padding: 6px 12px;
-    border: 1px solid #ccc;
-    border-top: none;
+      display: none;
+      padding: 6px 12px;
+      border: 1px solid #ccc;
+      border-top: none;
     }
+
     table {
-    border-spacing: 0;
-    width: 100%;
-    border: 1px solid #ddd;
+      border-spacing: 0;
+      width: 100%;
+      border: 1px solid #ddd;
     }
 
-.sortable-table thead th{cursor:pointer}.sortable-table thead th:after{padding-left:7px}.sortable-table thead th[data-sort-direction="0"]:after{content:"\21D5"}.sortable-table thead th[data-sort-direction="1"]:after{content:"\25B4"}.sortable-table thead th[data-sort-direction="-1"]:after{content:"\25BE"}.sortable-table.sortable-fa-icons thead th:after{font-family:FontAwesome}.sortable-table.sortable-fa-icons thead th[data-sort-direction="0"]:after{content:"\f0dc"}.sortable-table.sortable-fa-icons thead th[data-sort-direction="1"]:after{content:"\f0de"}.sortable-table.sortable-fa-icons thead th[data-sort-direction="-1"]:after{content:"\f0dd"}
+    .sortable-table thead th {
+      cursor: pointer
+    }
 
-     th,
+    .sortable-table thead th:after {
+      padding-left: 7px
+    }
+
+    .sortable-table thead th[data-sort-direction="0"]:after {
+      content: "\21D5"
+    }
+
+    .sortable-table thead th[data-sort-direction="1"]:after {
+      content: "\25B4"
+    }
+
+    .sortable-table thead th[data-sort-direction="-1"]:after {
+      content: "\25BE"
+    }
+
+    .sortable-table.sortable-fa-icons thead th:after {
+      font-family: FontAwesome
+    }
+
+    .sortable-table.sortable-fa-icons thead th[data-sort-direction="0"]:after {
+      content: "\f0dc"
+    }
+
+    .sortable-table.sortable-fa-icons thead th[data-sort-direction="1"]:after {
+      content: "\f0de"
+    }
+
+    .sortable-table.sortable-fa-icons thead th[data-sort-direction="-1"]:after {
+      content: "\f0dd"
+    }
+
+    th,
     td {
-    text-align: left;
-    padding: 5px;
-    border: 1px solid #ddd;
-    background-color: #1b283b;
-    font-size: 100%;
-    font-weight: bold;
+      text-align: left;
+      padding: 5px;
+      border: 1px solid #ddd;
+      background-color: #1b283b;
+      font-size: 100%;
+      font-weight: bold;
     }
-    </style>
-    <script>
-
-function openSummary(evt, summaryName) {
-  var i, tabcontent, tablinks;
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
-  tablinks = document.getElementsByClassName("tablinks");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(" active", "");
-  }
-  document.getElementById(summaryName).style.display = "block";
-  evt.currentTarget.className += " active";
-}
+  </style>
+  <script>
+    function openSummary(evt, summaryName) {
+      var i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(summaryName).style.display = "block";
+      evt.currentTarget.className += " active";
+    }
 
     function select_first_tab() {
       var tabs = document.getElementsByClassName("tablinks");
       tabs[0].click();
     }
 
-!function(){function t(t,e){for(;(t=t.parentElement)&&!t.classList.contains(e););return t}function e(t){return t=t.replace(/[^\d\.-]/g,""),Number(t)}function n(t){var e=document.createElement("span");return e.innerHTML=t,e.textContent||e.innerText}function r(t,e,n){for(var r=0;r<n.length;r++)r==e?n[e].setAttribute("data-sort-direction",t):n[r].setAttribute("data-sort-direction",0)}function a(t,e){for(var n=t.getElementsByTagName("tbody")[0].getElementsByTagName("tr"),r=0;r<n.length;r++)for(var a=n[r].getElementsByTagName("td"),i=0;i<a.length;i++)a[i].innerHTML=e[r][i]}window.addEventListener("load",function(){for(var i=document.getElementsByClassName("sortable-table"),o=[],s=0;s<i.length;s++)!function(){i[s].setAttribute("data-sort-index",s);for(var d=i[s].getElementsByTagName("tbody")[0].getElementsByTagName("tr"),l=0;l<d.length;l++)for(var g=d[l].getElementsByTagName("td"),c=0;c<g.length;c++)void 0===o[s]&&o.splice(s,0,[]),void 0===o[s][l]&&o[s].splice(l,0,[]),o[s][l].splice(c,0,g[c].innerHTML);for(var u=i[s].getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].getElementsByTagName("th"),m=0;m<u.length;m++)!function(){var s=u[m].classList.contains("numeric-sort");u[m].setAttribute("data-sort-direction",0),u[m].setAttribute("data-sort-index",m),u[m].addEventListener("click",function(){var d=this.getAttribute("data-sort-direction"),l=this.getAttribute("data-sort-index"),g=t(this,"sortable-table").getAttribute("data-sort-index");r(1==d?-1:1,l,u),o[g]=o[g].sort(function(t,r){var a=n(t[l]),i=n(r[l]);return s&&(a=e(a),i=e(i)),a===i?0:1==d?a>i?-1:1:a<i?-1:1}),a(i[g],o[g])})}()}()})}();
-    </script>
+    !function () { function t(t, e) { for (; (t = t.parentElement) && !t.classList.contains(e);); return t } function e(t) { return t = t.replace(/[^\d\.-]/g, ""), Number(t) } function n(t) { var e = document.createElement("span"); return e.innerHTML = t, e.textContent || e.innerText } function r(t, e, n) { for (var r = 0; r < n.length; r++)r == e ? n[e].setAttribute("data-sort-direction", t) : n[r].setAttribute("data-sort-direction", 0) } function a(t, e) { for (var n = t.getElementsByTagName("tbody")[0].getElementsByTagName("tr"), r = 0; r < n.length; r++)for (var a = n[r].getElementsByTagName("td"), i = 0; i < a.length; i++)a[i].innerHTML = e[r][i] } window.addEventListener("load", function () { for (var i = document.getElementsByClassName("sortable-table"), o = [], s = 0; s < i.length; s++)!function () { i[s].setAttribute("data-sort-index", s); for (var d = i[s].getElementsByTagName("tbody")[0].getElementsByTagName("tr"), l = 0; l < d.length; l++)for (var g = d[l].getElementsByTagName("td"), c = 0; c < g.length; c++)void 0 === o[s] && o.splice(s, 0, []), void 0 === o[s][l] && o[s].splice(l, 0, []), o[s][l].splice(c, 0, g[c].innerHTML); for (var u = i[s].getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].getElementsByTagName("th"), m = 0; m < u.length; m++)!function () { var s = u[m].classList.contains("numeric-sort"); u[m].setAttribute("data-sort-direction", 0), u[m].setAttribute("data-sort-index", m), u[m].addEventListener("click", function () { var d = this.getAttribute("data-sort-direction"), l = this.getAttribute("data-sort-index"), g = t(this, "sortable-table").getAttribute("data-sort-index"); r(1 == d ? -1 : 1, l, u), o[g] = o[g].sort(function (t, r) { var a = n(t[l]), i = n(r[l]); return s && (a = e(a), i = e(i)), a === i ? 0 : 1 == d ? a > i ? -1 : 1 : a < i ? -1 : 1 }), a(i[g], o[g]) }) }() }() }) }();
+  </script>
 
-  </head>
-  <body onLoad="select_first_tab()" >
+</head>
 
-    <h2>Summaries</h2>
-    <p>File name: {{data_file_name}}</p>
-    <div class="tab">
-                {% for s in summaries %}
-      <button class="tablinks" onclick="openSummary(event, '{{s.player_name}} {{loop.index}}')">{{s.player_name}} {{loop.index}}</button>
-                {% endfor %}
-    </div>
-  
+<body onLoad="select_first_tab()">
 
-                {% for s in summaries %}
-    <div id="{{s.player_name}} {{loop.index}}" class="tabcontent">
-      {{renders[loop.index0]}}
-    </div>
-                {% endfor %}
-  </body>
-</html> 
+  <h2>Summaries</h2>
+  <p>File name: {{data_file_name}}</p>
+  <div class="tab">
+    {% for s in summaries %}
+    <button class="tablinks" onclick="openSummary(event, '{{s.player_name}} {{loop.index}}')">{{s.player_name}}
+      {{loop.index}}</button>
+    {% endfor %}
+  </div>
 
+
+  {% for s in summaries %}
+  <div id="{{s.player_name}} {{loop.index}}" class="tabcontent">
+    {{renders[loop.index0]}}
+  </div>
+  {% endfor %}
+</body>
+
+</html>
