@@ -11,7 +11,11 @@ pub async fn hello() -> impl Responder {
 pub async fn start(address: String, port: usize, output_dir: String) -> std::io::Result<()> {
     //HttpServer::new(|| App::new().service(hello))
     HttpServer::new(move || {
-        App::new().service(fs::Files::new("/", output_dir.to_owned()).show_files_listing())
+        App::new().service(
+            fs::Files::new("/", output_dir.to_owned())
+                .index_file("index.html")
+                .show_files_listing(),
+        )
     })
     .bind((address, port as u16))?
     .run()

@@ -25,8 +25,14 @@
       font-family: Arial !important;
     }
 
-    .tabulator-row-even {
+    .tabulator-row.tabulator-row-even {
       color: black;
+      background: #9abcea;
+    }
+
+    .tabulator-row.tabulator-selected {
+      color: black;
+      background: #825382;
     }
 
     /* Style the tab */
@@ -72,6 +78,10 @@
       border-spacing: 0;
       width: 100%;
       border: 1px solid #ddd;
+    }
+
+    a:visited {
+      color: green;
     }
 
     .sortable-table thead th {

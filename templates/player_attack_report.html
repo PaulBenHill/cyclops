@@ -154,10 +154,12 @@
                 new_row.critical_hits += Number(r.getData().critical_hits);
                 new_row.percent_hits_critical += Number(r.getData().percent_hits_critical);
                 new_row.percent_damage_critical += Number(r.getData().percent_damage_critical);
-                console.log(r);
+                var index = tabledata_{{index}}.findIndex((element) => element.power === r.getData().power);
+                tabledata_{{index}}.splice(index, 1);
             }
-            new_row.power = new_row.power.substring(0, new_row.power.length - 4);
+
             table_{{index}}.deselectRow();
+            new_row.power = new_row.power.substring(0, new_row.power.length - 4);
             tabledata_{{index}}.unshift(new_row);
             row_selected_{{index}} = [];
         }

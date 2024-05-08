@@ -110,6 +110,26 @@ pub struct Summary {
     Serialize,
     Deserialize,
 )]
+#[diesel(primary_key(log_date))]
+#[diesel(table_name = index_details)]
+pub struct IndexDetails {
+    pub log_date: String,
+    pub players: String,
+    pub data_points: String,
+    pub file: String,
+}
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
 #[diesel(primary_key(summary_key))]
 #[diesel(table_name = total_damage_report)]
 pub struct TotalDamageReport {

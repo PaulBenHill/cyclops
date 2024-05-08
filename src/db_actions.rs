@@ -5,6 +5,7 @@ use diesel_migrations::{FileBasedMigrations, MigrationHarness};
 use std::fs;
 use std::path::*;
 
+use crate::models::IndexDetails;
 use crate::models::RewardsDefeats;
 use crate::models::{
     DamageAction, DamageIntervals, DamageReportByPower, DefeatedTarget, HitOrMiss,
@@ -14,6 +15,11 @@ use crate::parser_model::*;
 use crate::schema::{
     damage_action, defeated_targets, hit_or_miss, player_activation, reward, summary,
 };
+pub fn get_file_conn(path: PathBuf) -> SqliteConnection {
+    let mut conn = SqliteConnection::establish(path.to_str().unwrap())
+        .unwrap_or_else(|_| panic!("Unable to create in memory database"));
+    conn
+}
 
 pub fn establish_connection() -> SqliteConnection {
     //let database_url = "summary.db";
@@ -620,6 +626,14 @@ fn cleanup_summaries(conn: &mut SqliteConnection) {
     diesel::sql_query("delete from summary as s WHERE summary_key NOT IN (select summary_key from damage_action a where s.summary_key = a.summary_key)")
         .execute(conn)
         .expect("An error has occured");
+}
+
+pub fn index_details(conn: &mut SqliteConnection) -> Vec<IndexDetails> {
+    use crate::schema::index_details::dsl::*;
+    index_details
+        .select(IndexDetails::as_select())
+        .load(conn)
+        .expect("Unable to load index details")
 }
 
 fn select_total_damage_reports(conn: &mut SqliteConnection) -> Vec<TotalDamageReport> {

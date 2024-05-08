@@ -86,6 +86,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    index_details (log_date) {
+        log_date-> Text,
+        players -> Text,
+        data_points -> Text,
+        file -> Text,
+    }
+}
+
+diesel::table! {
     total_damage_report (summary_key) {
         summary_key -> Integer,
         activations -> Integer,
@@ -168,4 +177,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     summary,
     total_damage_report,
     damage_report_by_power,
+    index_details,
 );

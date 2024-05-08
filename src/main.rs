@@ -2,7 +2,10 @@ use chrono::DateTime;
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
 use diesel::dsl::sum;
-use models::Summary;
+use models::{IndexDetails, Summary};
+use schema::index_details;
+use serde::{Deserialize, Serialize};
+use serde_json::value::Index;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
@@ -132,10 +135,10 @@ fn main() {
 
     for file in log_file_names {
         let conn = &mut db_actions::establish_connection(); // In memory db, fresh db on each call
-        let result = verify_file(&file);
-        let file_name = result.0.file_name().unwrap().to_str().unwrap();
+        let file_path = verify_file(&file);
+        let file_name = file_path.file_name().unwrap().to_str().unwrap();
 
-        let reader = open_log_file(result.0);
+        let reader = open_log_file(file_path);
 
         let lines = reader.lines();
 
@@ -150,12 +153,11 @@ fn main() {
                 &output_path,
                 file_name,
                 &summaries.first().unwrap().player_name,
-                result.1,
             );
             db_actions::copy_db(conn, report_dir.join("summary.db"));
 
             let mut summary_renders: Vec<String> = Vec::new();
-            write_data_files(conn, &report_dir, file_name, result.0, &data_points);
+            write_data_files(conn, &report_dir, file_name, file_path, &data_points);
             for (i, s) in summaries.iter().enumerate() {
                 summary_renders.push(generate_summary(
                     conn,
@@ -177,7 +179,8 @@ fn main() {
         start.elapsed().as_secs()
     );
 
-    find_all_summaries(&output_path);
+    let indexes = find_all_summaries(&output_path);
+    generate_index(&tera, &output_path, &indexes);
 
     println!(
         "Starting web server at http://{}:{}",
@@ -191,13 +194,60 @@ fn main() {
     println!("Total run time took: {} second.", start.elapsed().as_secs());
 }
 
-fn find_all_summaries(output_path: &Path) {
+fn generate_index(tera: &Tera, output_dir: &PathBuf, indexes: &Vec<SummaryEntry>) {
+    let mut index_file = match File::create(output_dir.join("index.html")) {
+        Ok(f) => f,
+        Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
+    };
+
+    let mut index_content = Context::new();
+    index_content.insert("indexes", &indexes);
+    let result = tera.render("index.html", &index_content);
+    match result {
+        Ok(data) => {
+            index_file
+                .write_all(data.as_bytes())
+                .expect("Unable to write file.");
+        }
+        Err(e) => panic!("Could not render {}:{:?}", "index.html", e),
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SummaryEntry {
+    details: IndexDetails,
+    path: PathBuf,
+}
+
+fn find_all_summaries(output_path: &Path) -> Vec<SummaryEntry> {
+    let mut entries: Vec<SummaryEntry> = Vec::new();
     let walker = WalkDir::new(output_path).into_iter();
     for entry in walker.into_iter().filter_map(|e| e.ok()) {
-        if entry.path().ends_with("summary.html") {
-            //println!("{}", entry.path().display());
+        if entry.path().ends_with("summary.db") {
+            let mut conn =
+                db_actions::get_file_conn(fs::canonicalize(entry.path()).unwrap().to_path_buf());
+            let i = db_actions::index_details(&mut conn)
+                .get(0)
+                .unwrap()
+                .to_owned();
+
+            let mut html_file = entry
+                .path()
+                .strip_prefix(output_path)
+                .unwrap()
+                .to_path_buf();
+            html_file.set_file_name("summary.html");
+
+            let entry = SummaryEntry {
+                details: i,
+                path: html_file,
+            };
+            entries.push(entry);
         }
     }
+
+    entries.sort_by(|a, b| b.details.log_date.cmp(&a.details.log_date));
+    entries
 }
 
 fn write_data_files(
@@ -341,7 +391,14 @@ fn read_log_file_dir(dir: PathBuf) -> Vec<String> {
                     .filter(|r| r.is_ok())
                     .map(|r| r.unwrap().path())
                     .filter(|r| r.is_file())
-                    .map(|r| r.into_os_string().into_string().unwrap())
+                    .map(|r| {
+                        dunce::canonicalize(r)
+                            .unwrap()
+                            .into_os_string()
+                            .into_string()
+                            .unwrap()
+                    })
+                    .filter(|r| r.ends_with("txt"))
                     .collect();
 
                 file_list
@@ -361,15 +418,13 @@ fn create_report_dir(
     output_dir: &PathBuf,
     filename: &str,
     player_name: &str,
-    file_size: u64,
 ) -> PathBuf {
     let mut report_dir_name = format!(
-        "{}_{}",
+        "{}",
         filename
             .replace('-', "_")
             .replace(".txt", "")
             .replace("chatlog", player_name),
-        file_size
     );
     report_dir_name = report_dir_name.replace(' ', "_");
 
@@ -409,12 +464,12 @@ fn create_dir(dir_path: &PathBuf) {
     }
 }
 
-fn verify_file(filename: &String) -> (&Path, u64) {
+fn verify_file(filename: &String) -> &Path {
     let path = Path::new(filename);
 
     if path.exists() {
         match fs::metadata(path) {
-            Ok(meta) => (path, meta.len()),
+            Ok(meta) => path,
             Err(e) => panic!(
                 "Cannot retrieve metadata. Probably permissions issue: {:?}",
                 e

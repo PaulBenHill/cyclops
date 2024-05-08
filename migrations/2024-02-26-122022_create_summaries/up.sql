@@ -54,6 +54,14 @@ as delta
 from damage_action da1
 order by da1.summary_key;
 
+-- View: index_details
+DROP VIEW IF EXISTS index_details;
+CREATE VIEW IF NOT EXISTS index_details AS select
+date(log_date) as log_date,
+group_concat(player_name) players,
+group_concat(last_line_number-first_line_number) as data_points,
+log_file_name as file
+from summary;
 
 -- View: damage_report_by_power
 DROP VIEW IF EXISTS damage_report_by_power;
