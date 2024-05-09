@@ -224,7 +224,9 @@ pub fn write_to_database(
                     source_name: String::from("Player"),
                 });
 
-                if damage_dealt.power_name.contains(": Chance for") {
+                if damage_dealt.power_name.contains(": Chance for")
+                    || damage_dealt.power_name.contains("Spider's Bite")
+                {
                     hits_misses.push(crate::models::HitOrMiss {
                         summary_key: key,
                         line_number: data_position.line_number as i32,

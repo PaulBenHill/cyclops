@@ -45,8 +45,9 @@
 <h2>Attack Summary By Power</h2>
 <div>
     <button id="reactivity_merge_{{index}}">Merge Rows</button>
-    <button id="reactivity_revert_{{index}}">Revert
-        Changes</button>
+    <button id="reactivity_delete_{{index}}">Delete Rows</button>
+    <button id="reactivity_remove_non_{{index}}">Remove Non Damage Powers</button>
+    <button id="reactivity_revert_{{index}}">Revert Changes</button>
 </div>
 
 <div id="{{index}}_div"></div>
@@ -106,9 +107,17 @@
             { title: "%<br>Damage<br>Critical", field: "percent_damage_critical", sorter: "number" },
         ],
     });
-    var row_selected_{{index}} = [];
-    table_{{index}}.on("rowSelectionChanged", function (data, rows) {
-        row_selected_{{index}} = rows;
+
+    document.getElementById("reactivity_remove_non_{{index}}").addEventListener("click", function () {
+        console.log("remove non damaging powers fired");
+        var temp = Array.from(tabledata_{{index}});
+        for (r in tabledata_{{index}}) {
+                var index = tabledata_{{index}}.findIndex((element) => element.total_damage === "0");
+                console.log(index);
+                temp.splice(index, 1);
+        }
+        tabledata_{{index}} = Array.from(temp);
+        table_{{index}}.setData(tabledata_{{index}});
     });
 
     document.getElementById("reactivity_revert_{{index}}").addEventListener("click", function () {
@@ -116,10 +125,30 @@
         tabledata_{{index}} = Array.from(tabledata_base_{{index}});
         table_{{index}}.setData(tabledata_{{index}});
     });
+
+    //delete selected rows
+    document.getElementById("reactivity_delete_{{index}}").addEventListener("click", function () {
+        console.log("delete fired");
+        console.log(table_{{index}}.getSelectedData());
+        var selected = table_{{index}}.getSelectedData();
+        if (selected.length > 1) {
+            var temp = Array.from(tabledata_{{index}});
+            for (r of selected) {
+                var index = temp.findIndex((element) => element.power === r.power);
+                temp.splice(index, 1);
+            }
+            tabledata_{{index}} = temp;
+            table_{{index}}.setData(temp);
+        }
+    });
+
     //merge selected rows into a new row, add to the top
     document.getElementById("reactivity_merge_{{index}}").addEventListener("click", function () {
         console.log("merge fired");
-        if (row_selected_{{index}}.length > 1) {
+        console.log(table_{{index}}.getSelectedData());
+        var selected = table_{{index}}.getSelectedData();
+        if (selected.length > 1) {
+            var temp = Array.from(tabledata_{{index}});
             var new_row = {
                 power: "",
                 activations: 0,
@@ -138,30 +167,33 @@
                 percent_damage_critical: 0,
             };
 
-            for (r of row_selected_{{index}}) {
-                new_row.power += r.getData().power + '<br>';
-                new_row.activations += Number(r.getData().activations);
-                new_row.hits += r.getData().hits + '<br>';
-                new_row.misses += Number(r.getData().misses);
-                new_row.hit_percentage += r.getData().hit_percentage + '<br>';
-                new_row.total_damage += Number(r.getData().total_damage);
-                new_row.total_damage_percent += Number(r.getData().total_damage_percent);
-                new_row.dpa += r.getData().dpa + '<br>';
-                new_row.ate += r.getData().ate + '<br>';
-                new_row.direct_damage += Number(r.getData().direct_damage);
-                new_row.dot_damage += Number(r.getData().dot_damage);
-                new_row.critical_damage += Number(r.getData().critical_damage);
-                new_row.critical_hits += Number(r.getData().critical_hits);
-                new_row.percent_hits_critical += Number(r.getData().percent_hits_critical);
-                new_row.percent_damage_critical += Number(r.getData().percent_damage_critical);
-                var index = tabledata_{{index}}.findIndex((element) => element.power === r.getData().power);
-                tabledata_{{index}}.splice(index, 1);
+            for (r of selected) {
+                new_row.power += r.power + '<br>';
+                new_row.activations += Number(r.activations);
+                new_row.hits += r.hits + '<br>';
+                new_row.misses += Number(r.misses);
+                new_row.hit_percentage += r.hit_percentage + '<br>';
+                new_row.total_damage += Number(r.total_damage);
+                new_row.total_damage_percent += Number(r.total_damage_percent);
+                new_row.dpa += r.dpa + '<br>';
+                new_row.ate += r.ate + '<br>';
+                new_row.direct_damage += Number(r.direct_damage);
+                new_row.dot_damage += Number(r.dot_damage);
+                new_row.critical_damage += Number(r.critical_damage);
+                new_row.critical_hits += Number(r.critical_hits);
+                new_row.percent_hits_critical += Number(r.percent_hits_critical);
+                new_row.percent_damage_critical += Number(r.percent_damage_critical);
+                var index = temp.findIndex((element) => element.power === r.power);
+                temp.splice(index, 1);
             }
-
-            table_{{index}}.deselectRow();
             new_row.power = new_row.power.substring(0, new_row.power.length - 4);
-            tabledata_{{index}}.unshift(new_row);
-            row_selected_{{index}} = [];
+            new_row.hits = new_row.hits.substring(0, new_row.hits.length - 4);
+            new_row.hit_percentage = new_row.hit_percentage.substring(0, new_row.hit_percentage.length - 4);
+            new_row.dpa = new_row.dpa.substring(0, new_row.dpa.length - 4);
+            new_row.ate = new_row.ate.substring(0, new_row.ate.length - 4);
+            temp.unshift(new_row);
+            tabledata_{{index}} = temp;
+            table_{{index}}.setData(temp);
         }
     });
 
