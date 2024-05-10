@@ -60,9 +60,9 @@ Usage: cyclops.exe [OPTIONS]
 
   After log processing the application will start a HTTP web server on 127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name.
 
-  Click on the date of the log to go to the details page. The summary page has each play session separated by tabs.
+  Click on the date of the log to go to the details page. The summary page has each play session separated by tabs for a selected log file.
 
-
+## Report Directory
 
   If you want at the files directly look in the, Report Directory, printed during the application run. Default location is the "output" directory where you ran the application. Example: Report directory: "D:\\cyclops\\output\\beta.data.staff.ice.stalker.1.29.txt"  
 
