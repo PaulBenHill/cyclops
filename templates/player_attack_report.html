@@ -131,7 +131,7 @@
         console.log("delete fired");
         console.log(table_{{index}}.getSelectedData());
         var selected = table_{{index}}.getSelectedData();
-        if (selected.length > 1) {
+        if (selected.length > 0) {
             var temp = Array.from(tabledata_{{index}});
             for (r of selected) {
                 var index = temp.findIndex((element) => element.power === r.power);
