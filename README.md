@@ -62,6 +62,8 @@ Usage: cyclops.exe [OPTIONS]
 
   Click on the date of the log to go to the details page. The summary page has each play session separated by tabs for the selected log file.
 
+  When you are done look at the data. Press Control-C in the command window to terminate the application. I plan to make this more user friendly in the future.
+
 ## Report Directory
 
   If you want at the files directly look in the, Report Directory, printed during the application run. Default location is the "output" directory where you ran the application. Example: Report directory: "D:\\cyclops\\output\\beta.data.staff.ice.stalker.1.29.txt"  
