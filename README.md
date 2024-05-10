@@ -42,6 +42,8 @@ Usage: cyclops.exe [OPTIONS]
   -f, --files \<List of game log files comma separated.\>  
   -i, --interval \<Time in seconds between combat sessions for DPS reports\>  
   -o, --outputdir \<Directory where you want the reports written. Defaults to "output"\>  
+  -a, --address \<IP address the web server should use. Defaults to 127.0.0.1\>  
+  -p, --outputdir \<Port number the web server should use. Defaults to 11227\>  
   -h, --help Print help  
   -V, --version   
 
@@ -51,14 +53,23 @@ Usage: cyclops.exe [OPTIONS]
       cyclops --files d:\coh\accounts\fake\Logs\'chatlog 2024-02-10.txt'  
       cyclops --interval=42 --files d:\coh\accounts\fake\Logs\'chatlog 2024-02-10.txt'  
       cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere  
+      cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere -a 192.111.222.1 -p 8080
 
 
-  The look in the, Report Directory, printed during the application run. Default location is the "output" directory where you ran the application. Example: Report directory: "D:\\cyclops\\output\\beta.data.staff.ice.stalker.1.29.txt_290681"  
+## Web server
+
+  After log processing the application will start a HTTP web server on 127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name.
+
+  Click on the date of the log to go to the details page. The summary page has each play session separated by tabs.
+
+
+
+  If you want at the files directly look in the, Report Directory, printed during the application run. Default location is the "output" directory where you ran the application. Example: Report directory: "D:\\cyclops\\output\\beta.data.staff.ice.stalker.1.29.txt"  
 
 ## Report directory structure:  
     Directory name is designed to limit the chance of you overwriting log files when the chat file name is the same from different accounts.  
-      \<player name\>\_\<log file date\>\_\<file size in bytes\>  
-      Example: night_pixie_2024_02_08_1260281  
+      \<player name\>\_\<log file date\>
+      Example: night_pixie_2024_02_08
 
 ## Inside the report directory  
       Summary of the report session.   
