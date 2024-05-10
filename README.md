@@ -43,7 +43,7 @@ Usage: cyclops.exe [OPTIONS]
   -i, --interval \<Time in seconds between combat sessions for DPS reports\>  
   -o, --outputdir \<Directory where you want the reports written. Defaults to "output"\>  
   -a, --address \<IP address the web server should use. Defaults to 127.0.0.1\>  
-  -p, --outputdir \<Port number the web server should use. Defaults to 11227\>  
+  -p, --port \<Port number the web server should use. Defaults to 11227\>  
   -h, --help Print help  
   -V, --version   
 
@@ -60,7 +60,7 @@ Usage: cyclops.exe [OPTIONS]
 
   After log processing the application will start a HTTP web server on 127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name.
 
-  Click on the date of the log to go to the details page. The summary page has each play session separated by tabs for a selected log file.
+  Click on the date of the log to go to the details page. The summary page has each play session separated by tabs for the selected log file.
 
 ## Report Directory
 
