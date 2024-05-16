@@ -306,6 +306,9 @@ pub enum FileDataPoint {
         target: String,
         power_name: String,
     },
+    PlayerFulcrumShift {
+        data_position: DataPosition,
+    },
     PlayerTerrifyProc {
         data_position: DataPosition,
         target: String,

@@ -102,6 +102,21 @@ pub fn write_to_database(
                 log_date: data_position.date.to_rfc3339(),
                 power_name: power_name.clone(),
             }),
+            FileDataPoint::AutohitPower {
+                data_position,
+                source: _,
+                target: _,
+                power_name,
+            } => {
+                if power_name.contains("Force Feedback") {
+                    activations.push(PlayerActivation {
+                        summary_key: key,
+                        line_number: data_position.line_number as i32,
+                        log_date: data_position.date.to_rfc3339(),
+                        power_name: power_name.clone(),
+                    })
+                }
+            }
             FileDataPoint::PlayerHit {
                 data_position,
                 action_result,
@@ -224,20 +239,14 @@ pub fn write_to_database(
                     source_name: String::from("Player"),
                 });
 
-                if damage_dealt.power_name.contains(": Chance for")
+                if damage_dealt.power_name.contains("Chance for")
                     || damage_dealt.power_name.contains("Spider's Bite")
                 {
-                    hits_misses.push(crate::models::HitOrMiss {
+                    activations.push(PlayerActivation {
                         summary_key: key,
                         line_number: data_position.line_number as i32,
                         log_date: data_position.date.to_rfc3339(),
-                        hit: 1,
-                        chance_to_hit: 100,
-                        source_type: String::from("Player"),
-                        source_name: String::from("Player"),
-                        target_name: damage_dealt.target.clone(),
                         power_name: damage_dealt.power_name.clone(),
-                        streakbreaker: 0,
                     });
                 }
             }
@@ -319,6 +328,16 @@ pub fn write_to_database(
                     power_name: damage_dealt.power_name.clone(),
                     streakbreaker: 0,
                 });
+                if damage_dealt.power_name.contains("Chance for")
+                    || damage_dealt.power_name.contains("Spider's Bite")
+                {
+                    activations.push(PlayerActivation {
+                        summary_key: key,
+                        line_number: data_position.line_number as i32,
+                        log_date: data_position.date.to_rfc3339(),
+                        power_name: damage_dealt.power_name.clone(),
+                    });
+                }
             }
             FileDataPoint::PsuedoPetDamageDoT {
                 data_position,
@@ -367,6 +386,20 @@ pub fn write_to_database(
                     damage_mode: String::from("Critical"),
                     source_type: String::from("PlayerPet"),
                     source_name: String::from(pet_name),
+                });
+            }
+            FileDataPoint::PlayerFulcrumShift { data_position } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    hit: 1,
+                    chance_to_hit: 0,
+                    source_type: String::from("Player"),
+                    source_name: String::from("Player"),
+                    target_name: String::from("NA"),
+                    power_name: String::from("Fulcrum Shift"),
+                    streakbreaker: 0,
                 });
             }
             FileDataPoint::PlayerVictory {

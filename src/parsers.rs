@@ -32,6 +32,7 @@ lazy_static! {
     static ref PLAYER_BLIND_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You blind (.+) with your (.+), reducing their perception and chance to hit!$").unwrap();
     static ref PLAYER_TERRIFY_PROC_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You terrify (.+) with your (.+) causing them to have reduced damage.$").unwrap();
     static ref PLAYER_READYING_POWER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) Readying (.+)\.").unwrap();
+    static ref FULCRUM_SHIFT_POWER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) The Fulcrum Shift has increased .+!").unwrap();
 
     static ref ACTIVATION_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You activated the (.+) power.$").unwrap();
 
@@ -110,6 +111,7 @@ pub fn initialize_matchers() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_mob_pseudopet_hit,
         extract_mob_pseudopet_miss,
         extract_player_terrify_proc,
+        extract_fulcrum_shift,
         extract_player_hit,
         extract_player_endurance,
         extract_player_endurance_other,
@@ -373,6 +375,17 @@ pub fn extract_player_miss(line_number: u32, line: &String) -> Option<FileDataPo
         Some(data) => Some(FileDataPoint::PlayerMiss {
             data_position: DataPosition::new(line_number, &data[1]),
             action_result: HitOrMiss::new(&data[2], &data[3], &data[4]),
+        }),
+        None => None,
+    }
+}
+
+fn extract_fulcrum_shift(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = FULCRUM_SHIFT_POWER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::PlayerFulcrumShift {
+            data_position: DataPosition::new(line_number, &data[1]),
         }),
         None => None,
     }

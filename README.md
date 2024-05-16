@@ -1,6 +1,5 @@
 # ALPHA RELEASE - Cyclops - City of Heroes log parser
 ## I am open to suggestions for data you want to see. 
-## All the HTML style is embedded in ./templates/player_attack_report.html. Feel free to suggest better styling.
 
 
 ## Description
@@ -38,7 +37,7 @@ Once, you log into a character, log files should start appearing in \<coh instal
 Usage: cyclops.exe [OPTIONS]
 
   Options:  
-  -l, --logdir \<Directory where you game chat files are stored. All files in the directory will be processed.\>  
+  -l, --logdir \<Directories where your game chat files are stored. All files in the directory will be processed.\>  
   -f, --files \<List of game log files comma separated.\>  
   -i, --interval \<Time in seconds between combat sessions for DPS reports\>  
   -o, --outputdir \<Directory where you want the reports written. Defaults to "output"\>  
@@ -50,7 +49,9 @@ Usage: cyclops.exe [OPTIONS]
   You must have at least --files or --logdir on your command line. The rest are optional.  
     Examples:  
       cyclops --logdir d:\coh\accounts\fake\Logs  
+      cyclops --logdir='d:\coh\accounts\fake\Logs','d:\coh\accounts\fake2\Logs'
       cyclops --files d:\coh\accounts\fake\Logs\'chatlog 2024-02-10.txt'  
+      cyclops --files='d:\coh\accounts\fake\Logs\'chatlog 2024-02-10.txt','cyclops --files d:\coh\accounts\fake\Logs\'chatlog 2024-02-10.txt'  
       cyclops --interval=42 --files d:\coh\accounts\fake\Logs\'chatlog 2024-02-10.txt'  
       cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere  
       cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere -a 192.111.222.1 -p 8080
