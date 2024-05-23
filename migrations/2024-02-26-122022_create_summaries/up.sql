@@ -52,6 +52,7 @@ ELSE
 END)
 as delta
 from damage_action da1
+where da1.source_type IN ('Player', 'PlayerPet')
 order by da1.summary_key;
 
 -- View: index_details
@@ -113,6 +114,7 @@ sum(CASE WHEN hit = 0 THEN 1 ELSE 0 END) AS misses,
 0 as critical_hits
 from
 hit_or_miss hm
+where hm.source_type IN ('Player', 'PlayerPet')
 group by summary_key, power_name
 UNION ALL
 select
@@ -129,6 +131,7 @@ SUM(CASE WHEN da.damage_mode = 'Critical' AND da.source_type IN ('Player', 'Play
 SUM(CASE WHEN da.damage_mode = 'Critical' AND da.source_type IN ('Player', 'PlayerPet') THEN 1 ELSE 0 END) AS critical_hits
 from
 damage_action da
+where da.source_type IN ('Player', 'PlayerPet')
 group by summary_key, power_name)
 group by summary_key, power_name
 order by power_total_damage desc;
@@ -137,9 +140,9 @@ order by power_total_damage desc;
 DROP VIEW IF EXISTS total_damage_report;
 CREATE VIEW IF NOT EXISTS total_damage_report AS select s.summary_key, 
 (select count(*) from player_activation pa where s.summary_key = pa.summary_key) as activations,
-(select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 1 ) AS hits,
-(select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.streakbreaker = 1 ) AS streak_breakers,
-(select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 0 ) AS misses,
+(select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 1 AND source_type IN ('Player', 'PlayerPet')) AS hits,
+(select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.streakbreaker = 1 AND source_type IN ('Player', 'PlayerPet')) AS streak_breakers,
+(select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 0 AND source_type IN ('Player', 'PlayerPet')) AS misses,
 (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND source_type IN ('Player', 'PlayerPet')) AS total_damage,
 (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Direct' AND source_type IN ('Player', 'PlayerPet')) AS direct_damage,
 
@@ -177,3 +180,51 @@ END) AS critical_damage_percentage
  
 from summary s
 order by total_damage desc;
+
+
+-- View: damage_taken
+DROP VIEW IF EXISTS damage_taken;
+CREATE VIEW IF NOT EXISTS damage_taken AS
+select 
+summary_key,
+sum(hits) as hits,
+sum(misses) misses,
+ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100) as hit_percentage,
+total_damage_taken,
+(CASE WHEN
+ROUND(1.0 * sum(total_damage_taken) / sum(hits)) IS NULL
+THEN
+0
+ELSE
+ROUND(1.0 * sum(total_damage_taken) / sum(hits))
+END
+) as damage_per_hit
+from (
+select 
+da.summary_key,
+0 as hits,
+0 as misses,
+sum(da.damage) as total_damage_taken
+from 
+summary s,
+damage_action da
+where 
+s.summary_key = da.summary_key
+AND
+da.source_type IN ('Mob', 'MobPet')
+group by da.summary_key
+UNION ALL
+select 
+hm.summary_key,
+sum(hm.hit) AS hits,
+sum(CASE WHEN hit = 0 THEN 1 ELSE 0 END) AS misses,
+0 as total_damage_taken
+from
+summary s,
+hit_or_miss hm
+where 
+s.summary_key = hm.summary_key
+AND
+hm.source_type IN ('Mob', 'MobPet')
+group by s.summary_key)
+group by summary_key 

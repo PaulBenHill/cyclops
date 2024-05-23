@@ -222,6 +222,74 @@ pub fn write_to_database(
                     streakbreaker: 0,
                 });
             }
+                data_position,
+                action_result,
+                name,
+            } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    hit: 1,
+                    chance_to_hit: action_result.chance_to_hit.round() as i32,
+                    source_type: String::from("Mob"),
+                    source_name: String::from(name),
+                    target_name: action_result.target.clone(),
+                    power_name: action_result.power_name.clone(),
+                    streakbreaker: 0,
+            }
+            FileDataPoint::MobMiss {
+                data_position,
+                action_result,
+                name,
+            } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    hit: 0,
+                    chance_to_hit: action_result.chance_to_hit.round() as i32,
+                    source_type: String::from("Mob"),
+                    source_name: String::from(name),
+                    target_name: action_result.target.clone(),
+                    power_name: action_result.power_name.clone(),
+                    streakbreaker: 0,
+                });
+            }
+            FileDataPoint::MobPseudoPetHit {
+                data_position,
+                action_result,
+                name,
+            } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    hit: 1,
+                    chance_to_hit: action_result.chance_to_hit.round() as i32,
+                    source_type: String::from("Mob"),
+                    source_name: String::from(name),
+                    target_name: action_result.target.clone(),
+                    power_name: action_result.power_name.clone(),
+                    streakbreaker: 0,
+                });
+            }
+            FileDataPoint::MobPseudoPetMiss {
+                data_position,
+                action_result,
+                name,
+            } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    hit: 0,
+                    chance_to_hit: action_result.chance_to_hit.round() as i32,
+                    source_type: String::from("Mob"),
+                    source_name: String::from(name),
+                    target_name: action_result.target.clone(),
+                    power_name: action_result.power_name.clone(),
+                    streakbreaker: 0,
+                });
+            }
             FileDataPoint::PlayerDirectDamage {
                 data_position,
                 damage_dealt,
@@ -386,6 +454,78 @@ pub fn write_to_database(
                     damage_mode: String::from("Critical"),
                     source_type: String::from("PlayerPet"),
                     source_name: String::from(pet_name),
+                });
+            }
+            FileDataPoint::MobDamage {
+                data_position,
+                damage_dealt,
+                name,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("Direct"),
+                    source_type: String::from("Mob"),
+                    source_name: String::from(name),
+                });
+            }
+            FileDataPoint::MobDamageDoT {
+                data_position,
+                damage_dealt,
+                name,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("DoT"),
+                    source_type: String::from("Mob"),
+                    source_name: String::from(name),
+                });
+            }
+            FileDataPoint::MobPseudoPetDamage {
+                data_position,
+                damage_dealt,
+                name,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("Direct"),
+                    source_type: String::from("MobPet"),
+                    source_name: String::from(name),
+                });
+            }
+            FileDataPoint::MobPseudoPetDamageDoT {
+                data_position,
+                damage_dealt,
+                name,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("DoT"),
+                    source_type: String::from("MobPet"),
+                    source_name: String::from(name),
                 });
             }
             FileDataPoint::PlayerFulcrumShift { data_position } => {
@@ -681,6 +821,24 @@ fn select_total_damage_reports(conn: &mut SqliteConnection) -> Vec<TotalDamageRe
 
 pub fn get_total_damage_report(conn: &mut SqliteConnection, key: i32) -> Option<TotalDamageReport> {
     for r in select_total_damage_reports(conn) {
+        if r.summary_key == key {
+            return Some(r);
+        }
+    }
+
+    None
+}
+
+fn select_damage_taken_report(conn: &mut SqliteConnection) -> Vec<DamageTaken> {
+    use crate::schema::damage_taken::dsl::*;
+damage_taken
+        .select(DamageTaken::as_select())
+        .load(conn)
+        .expect("Unable to load damage taken report")
+}
+
+pub fn get_damage_taken_report(conn: &mut SqliteConnection, key: i32) -> Option<DamageTaken> {
+    for r in select_damage_taken_report(conn) {
         if r.summary_key == key {
             return Some(r);
         }

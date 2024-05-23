@@ -14,7 +14,6 @@
         <td>{{ rewards_defeats.mobs_defeated }}</td>
     </tr>
 </table>
-<hr>
 
 <h3>Attack Summary</h3>
 <table title="Attack Summary">
@@ -41,6 +40,23 @@
         <td>{{total_damage.critical_damage_percentage}} </td>
     </tr>
 </table>
+{% if damage_taken is defined %}
+<h3>Damage Taken</h3>
+<table title="Attack Summary">
+    <th>Hits</th>
+    <th>Misses</th>
+    <th>Percent Hit</th>
+    <th>Total Damage Taken</th>
+    <th>Average Damage Per Hit</th>
+    <tr>
+        <td>{{ damage_taken.hits }}</td>
+        <td>{{ damage_taken.misses }}</td>
+        <td>{{ damage_taken.hit_percentage }}</td>
+        <td>{{ damage_taken.total_damage_taken }}</td>
+        <td>{{ damage_taken.damage_per_hit }}</td>
+    </tr>
+</table>
+{% endif %}
 <hr>
 <h2>Attack Summary By Power</h2>
 <div>

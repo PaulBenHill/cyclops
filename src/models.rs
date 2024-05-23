@@ -233,3 +233,25 @@ pub struct RewardsDefeats {
     pub influence: i32,
     pub mobs_defeated: i32,
 }
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = damage_taken)]
+pub struct DamageTaken {
+    pub summary_key: i32,
+    pub hits: i32,
+    pub misses: i32,
+    pub hit_percentage: i32,
+    pub total_damage_taken: i32,
+    pub damage_per_hit: i32,
+}

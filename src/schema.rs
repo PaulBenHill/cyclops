@@ -159,6 +159,17 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    damage_taken (summary_key) {
+        summary_key -> Integer,
+        hits -> Integer,
+        misses -> Integer,
+        hit_percentage -> Integer,
+        total_damage_taken -> Integer,
+        damage_per_hit -> Integer,
+    }
+}
+
 diesel::joinable!(damage_action -> summary (summary_key));
 diesel::joinable!(debuff_action -> summary (summary_key));
 diesel::joinable!(defeated_targets -> summary (summary_key));
@@ -166,6 +177,7 @@ diesel::joinable!(hit_or_miss -> summary (summary_key));
 diesel::joinable!(player_activation -> summary (summary_key));
 diesel::joinable!(reward -> summary (summary_key));
 diesel::joinable!(total_damage_report -> summary (summary_key));
+diesel::joinable!(damage_taken -> summary (summary_key));
 
 diesel::allow_tables_to_appear_in_same_query!(
     damage_action,
@@ -178,4 +190,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     total_damage_report,
     damage_report_by_power,
     index_details,
+    damage_taken,
 );

@@ -9,15 +9,9 @@ use chrono::DateTime;
 use diesel::SqliteConnection;
 use tera::{Context, Tera};
 
-use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers};
+use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, AppContext};
 
-pub fn process_logs(
-    tera: &Tera,
-    working_dir: &PathBuf,
-    output_path: &PathBuf,
-    dps_interval: usize,
-    files: Vec<String>,
-) {
+pub fn process_logs(context: &AppContext, files: Vec<String>) {
     for file in files {
         let conn = &mut db_actions::establish_connection(); // In memory db, fresh db on each call
         let file_path = verify_file(&file);
@@ -34,8 +28,8 @@ pub fn process_logs(
             let summaries = db_actions::get_summaries(conn);
 
             let report_dir = create_report_dir(
-                &working_dir,
-                &output_path,
+                &context.working_dir,
+                &context.output_dir,
                 file_name,
                 &summaries.first().unwrap().player_name,
             );
@@ -46,15 +40,21 @@ pub fn process_logs(
             for (i, s) in summaries.iter().enumerate() {
                 summary_renders.push(generate_summary(
                     conn,
-                    &tera,
+                    &context.tera,
                     i,
                     s,
                     data_points.len(),
-                    dps_interval,
+                    context.dps_interval,
                 ));
             }
 
-            generate_top_level(&tera, &report_dir, file_name, summaries, summary_renders);
+            generate_top_level(
+                &context.tera,
+                &report_dir,
+                file_name,
+                summaries,
+                summary_renders,
+            );
         } else {
             println!("No valid data found in {}.", file_name);
         }
@@ -91,7 +91,7 @@ fn create_report_dir(
     report_dir.clone()
 }
 
-fn verify_file(filename: &String) -> &Path {
+pub fn verify_file(filename: &String) -> &Path {
     let path = Path::new(filename);
 
     if path.exists() {
@@ -284,6 +284,9 @@ fn generate_summary(
     report_context.insert("summary", &summary);
     report_context.insert("rewards_defeats", &rewards_defeats);
     report_context.insert("total_damage", &total_damage);
+    if let Some(damage_taken) = db_actions::get_damage_taken_report(conn, summary.summary_key) {
+        report_context.insert("damage_taken", &damage_taken);
+    }
     report_context.insert("powers", &damage_by_power);
     report_context.insert("dps_interval", &dps_interval);
     report_context.insert("dps_reports", &dps_reports);

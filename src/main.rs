@@ -1,24 +1,18 @@
-use chrono::DateTime;
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
-use models::{IndexDetails, Summary};
+use models::IndexDetails;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{BufRead, BufReader, BufWriter, Lines, Write};
+use std::io::Write;
 use std::path::*;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use std::{env, fs};
 use tera::{Result, Value};
 use walkdir::WalkDir;
 
-use diesel::SqliteConnection;
-
 mod parsers;
 use tera::{Context, Tera};
-
-use crate::parser_model::FileDataPoint;
-use crate::parsers::*;
 
 mod args;
 mod db_actions;
@@ -30,6 +24,14 @@ mod web;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
+
+#[derive(Clone)]
+struct AppContext {
+    working_dir: PathBuf,
+    output_dir: PathBuf,
+    dps_interval: usize,
+    tera: Tera,
+}
 
 // Todos
 // File processing in index page
@@ -63,14 +65,15 @@ fn main() {
     }
 
     if log_file_names.is_empty() {
-        println!("No chat logs found. Exiting");
-        std::process::exit(1);
+        println!("No chat logs found. Continuing to web server.");
+    } else {
+        println!("Processing {} log files", log_file_names.len());
     }
 
-    let mut output_path = PathBuf::new().join(OUTPUT_DIR);
+    let mut output_dir = PathBuf::new().join(OUTPUT_DIR);
     if let Some(outputdir) = args.outputdir {
         println!("Value for output dir: {:?}", outputdir);
-        output_path = outputdir.to_path_buf();
+        output_dir = outputdir.to_path_buf();
     }
 
     let mut dps_interval = 60;
@@ -91,48 +94,59 @@ fn main() {
         webserver_port = port_arg;
     }
 
-    log_processing::create_dir(&output_path);
-    println!("Output directory: {}", output_path.display());
+    log_processing::create_dir(&output_dir);
+    println!("Output directory: {}", output_dir.display());
 
     let tera = setup_tera();
 
-    log_processing::process_logs(
-        &tera,
-        &working_dir,
-        &output_path,
+    let app_context = AppContext {
+        working_dir,
+        output_dir,
         dps_interval,
-        log_file_names,
-    );
+        tera,
+    };
+
+    log_processing::process_logs(&app_context, log_file_names);
 
     println!(
         "File(s) processing time took: {} second.",
         start.elapsed().as_secs()
     );
 
-    let indexes = find_all_summaries(&output_path);
-    generate_index(&tera, &output_path, &indexes);
+    let indexes = find_all_summaries(&app_context.output_dir);
+    generate_index(&app_context, &indexes);
 
     println!(
         "Starting web server at http://{}:{}",
         webserver_address, webserver_port
     );
-    let output_dir: String = String::from(output_path.to_str().unwrap());
-    if let Err(e) = web::start(webserver_address, webserver_port, output_dir.to_owned()) {
+    if let Err(e) = web::start(app_context, webserver_address, webserver_port) {
         panic!("Unable to start web server {:?}", e);
     }
 
     println!("Total run time took: {} second.", start.elapsed().as_secs());
 }
 
-fn generate_index(tera: &Tera, output_dir: &PathBuf, indexes: &Vec<SummaryEntry>) {
-    let mut index_file = match File::create(output_dir.join("index.html")) {
+fn generate_index(context: &AppContext, indexes: &Vec<SummaryEntry>) {
+    let mut index_file = match File::create(context.output_dir.join("index.html")) {
         Ok(f) => f,
         Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
     };
 
+    let mut log_dirs: HashSet<PathBuf> = HashSet::new();
+    for i in indexes {
+        let f = Path::new(&i.details.file);
+        if f.is_dir() {
+            log_dirs.insert(f.to_path_buf());
+        } else {
+            log_dirs.insert(f.parent().unwrap().to_path_buf());
+        }
+    }
+
     let mut index_content = Context::new();
     index_content.insert("indexes", &indexes);
-    let result = tera.render("index.html", &index_content);
+    index_content.insert("log_dirs", &log_dirs);
+    let result = context.tera.render("index.html", &index_content);
     match result {
         Ok(data) => {
             index_file
@@ -189,6 +203,21 @@ fn setup_tera() -> Tera {
         }
         Err(e) => panic!("Unable to load templates: {:?}", e),
     }
+}
+
+fn get_last_modified_file_in_dir(dir: PathBuf) -> String {
+    std::fs::read_dir(dir)
+        .expect("Couldn't access local directory")
+        .flatten() // Remove failed
+        .filter(|f| f.metadata().unwrap().is_file()) // Filter out directories (only consider files)
+        .max_by_key(|x| x.metadata().unwrap().modified().unwrap())
+        .map(|r| {
+            dunce::canonicalize(r.path())
+                .unwrap()
+                .into_os_string()
+                .into_string()
+                .unwrap()
+        }).unwrap()
 }
 
 fn read_log_file_dir(dir: PathBuf) -> Vec<String> {
