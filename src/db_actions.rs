@@ -5,6 +5,7 @@ use diesel_migrations::{FileBasedMigrations, MigrationHarness};
 use std::fs;
 use std::path::*;
 
+use crate::models::DamageTaken;
 use crate::models::IndexDetails;
 use crate::models::RewardsDefeats;
 use crate::models::{
@@ -222,6 +223,7 @@ pub fn write_to_database(
                     streakbreaker: 0,
                 });
             }
+            FileDataPoint::MobHit {
                 data_position,
                 action_result,
                 name,
@@ -229,6 +231,7 @@ pub fn write_to_database(
                 hits_misses.push(crate::models::HitOrMiss {
                     summary_key: key,
                     line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
                     hit: 1,
                     chance_to_hit: action_result.chance_to_hit.round() as i32,
                     source_type: String::from("Mob"),
@@ -236,6 +239,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                });
             }
             FileDataPoint::MobMiss {
                 data_position,
@@ -243,6 +247,7 @@ pub fn write_to_database(
                 name,
             } => {
                 hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
                     hit: 0,
