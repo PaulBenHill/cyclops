@@ -4,3 +4,5 @@ testdata/*
 out.txt
 /testdb
 *.un~
+/testdata
+summary.db
