@@ -1,9 +1,8 @@
 use actix_files as fs;
 use actix_web::{
-    get, post, web, App, FromRequest, HttpRequest, HttpResponse, HttpServer, Responder,
+    get, web, App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use serde::Deserialize;
-use std::path::*;
 
 use crate::{
     find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing,
@@ -15,10 +14,23 @@ struct FileFormData {
     log_path: String,
 }
 
+
 #[get("/process_file")]
 async fn process_file(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let form: web::Query<FileFormData> = web::Query::from_query(req.query_string()).unwrap();
     println!("Latest Request: {:?}", form.log_path);
+
+    let stripped_file = form.log_path.replace("\"", "");
+    let path = log_processing::verify_file(&stripped_file);
+    let mut files: Vec<String> = Vec::new();
+    files.push(path.to_path_buf().into_os_string().into_string().unwrap());
+
+    println!("Process file {:?}", files);
+    log_processing::process_logs(&context, files);
+
+    let indexes = find_all_summaries(&context.output_dir);
+    generate_index(&context, &indexes);
+
 
     HttpResponse::Ok()
         .insert_header(("refresh", "1;url=http://localhost:11227"))
@@ -35,7 +47,7 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
     let mut files: Vec<String> = Vec::new();
     files.push(get_last_modified_file_in_dir(path.to_path_buf()));
 
-    println!("File count found in directory {:?}: {}", path, files.len());
+    println!("Lastest file {:?}", files);
     log_processing::process_logs(&context, files);
 
     let indexes = find_all_summaries(&context.output_dir);
@@ -49,10 +61,21 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
 
 #[get("/process_dir")]
 async fn process_dir(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    process_all_files(req, context)
+}
+
+#[get("/parse_dir")]
+async fn parse_dir(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    process_all_files(req, context)
+}
+
+fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let form: web::Query<FileFormData> = web::Query::from_query(req.query_string()).unwrap();
     println!("Request: {:?}", form.log_path);
 
-    let path = log_processing::verify_file(&form.log_path);
+    
+    let stripped_file = form.log_path.replace("\"", "");
+    let path = log_processing::verify_file(&stripped_file);
     let files = read_log_file_dir(path.to_path_buf());
 
     println!("File count found in directory {:?}: {}", path, files.len());
@@ -72,6 +95,8 @@ pub async fn start(context: AppContext, address: String, port: usize) -> std::io
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(context.clone()))
+            .service(process_file)
+            .service(parse_dir)
             .service(process_dir)
             .service(process_latest)
             .service(

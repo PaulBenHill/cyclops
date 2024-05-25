@@ -14,7 +14,8 @@ use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, A
 pub fn process_logs(context: &AppContext, files: Vec<String>) {
     for file in files {
         let conn = &mut db_actions::establish_connection(); // In memory db, fresh db on each call
-        let file_path = verify_file(&file);
+        let stripped_file = file.replace("\"", "");
+        let file_path = verify_file(&stripped_file);
         let file_name = file_path.file_name().unwrap().to_str().unwrap();
 
         let reader = open_log_file(file_path);
@@ -107,7 +108,7 @@ pub fn verify_file(filename: &String) -> &Path {
     }
 }
 
-fn open_log_file(path: &Path) -> BufReader<File> {
+pub fn open_log_file(path: &Path) -> BufReader<File> {
     if path.exists() && path.is_file() {
         let file = match File::open(path) {
             Ok(file) => file,

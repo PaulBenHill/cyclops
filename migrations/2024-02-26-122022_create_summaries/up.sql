@@ -227,4 +227,70 @@ s.summary_key = hm.summary_key
 AND
 hm.source_type IN ('Mob', 'MobPet')
 group by s.summary_key)
-group by summary_key 
+group by summary_key;
+
+
+-- View: damage_dealt_by_type
+DROP VIEW IF EXISTS damage_dealt_by_type;
+CREATE VIEW IF NOT EXISTS damage_dealt_by_type AS
+select
+s.summary_key,
+da.damage_type,
+sum(da.damage) as damage,
+(CASE
+WHEN (select sum(da2.damage) from damage_action da2 where s.summary_key = da2.summary_key AND da2.source_type IN ('Player', 'PlayerPet')) IS NULL
+THEN
+0
+ELSE
+ROUND(1.0 * sum(damage) / (select sum(da2.damage) from damage_action da2 where s.summary_key = da2.summary_key AND da2.source_type IN ('Player', 'PlayerPet')) * 100)
+END) as damage_percent
+from
+summary s,
+damage_action da
+where
+s.summary_key = da.summary_key
+AND
+da.source_type IN ('Player', 'PlayerPet')
+group by s.summary_key, da.damage_type
+order by s.summary_key, da.damage_type;
+
+-- View: damage_taken_by_type
+DROP VIEW IF EXISTS damage_taken_by_type;
+CREATE VIEW IF NOT EXISTS damage_taken_by_type AS
+select
+s.summary_key,
+da.damage_type,
+sum(da.damage) as damage,
+(CASE
+WHEN (select sum(da2.damage) from damage_action da2 where s.summary_key = da2.summary_key AND da2.source_type IN ('Mob', 'MobPet')) IS NULL
+THEN
+0
+ELSE
+ROUND(1.0 * sum(damage) / (select sum(da2.damage) from damage_action da2 where s.summary_key = da2.summary_key AND da2.source_type IN ('Mob', 'MobPet')) * 100)
+END) as damage_percent
+from
+summary s,
+damage_action da
+where
+s.summary_key = da.summary_key
+AND
+da.source_type IN ('Mob', 'MobPet')
+group by s.summary_key, da.damage_type
+order by s.summary_key, damage desc;
+
+-- View: damage_taken_by_mob
+DROP VIEW IF EXISTS damage_taken_by_mob;
+CREATE VIEW IF NOT EXISTS damage_taken_by_mob AS
+select
+summary_key,
+source_name,
+power_name,
+damage_type,
+sum(damage)
+from damage_action
+where
+source_type IN ('Mob', 'MobPet')
+AND
+damage > 100
+group by summary_key, source_name, damage_type
+order by summary_key, power_name, damage_type;

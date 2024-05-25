@@ -142,10 +142,12 @@ fn generate_index(context: &AppContext, indexes: &Vec<SummaryEntry>) {
             log_dirs.insert(f.parent().unwrap().to_path_buf());
         }
     }
+    let mut dir_list: Vec<PathBuf> = log_dirs.into_iter().collect();
+    dir_list.sort();
 
     let mut index_content = Context::new();
     index_content.insert("indexes", &indexes);
-    index_content.insert("log_dirs", &log_dirs);
+    index_content.insert("log_dirs", &dir_list);
     let result = context.tera.render("index.html", &index_content);
     match result {
         Ok(data) => {
