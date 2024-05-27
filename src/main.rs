@@ -47,7 +47,6 @@ struct AppContext {
 fn main() {
     let start = Instant::now();
 
-        output_dir = outputdir.to_path_buf();
     let (app_context, log_file_names) = initialize(); 
     
     log_processing::process_logs(&app_context, log_file_names);
