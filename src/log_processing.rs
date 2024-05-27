@@ -64,8 +64,8 @@ pub fn process_logs(context: &AppContext, files: Vec<String>) {
 }
 
 fn create_report_dir(
-    working_dir: &PathBuf,
-    output_dir: &PathBuf,
+    working_dir: &Path,
+    output_dir: &Path,
     filename: &str,
     player_name: &str,
 ) -> PathBuf {
@@ -97,7 +97,7 @@ pub fn verify_file(filename: &String) -> &Path {
 
     if path.exists() {
         match fs::metadata(path) {
-            Ok(meta) => path,
+            Ok(_) => path,
             Err(e) => panic!(
                 "Cannot retrieve metadata. Probably permissions issue: {:?}",
                 e

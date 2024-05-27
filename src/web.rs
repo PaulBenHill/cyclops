@@ -91,7 +91,9 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
 }
 
 #[actix_web::main]
-pub async fn start(context: AppContext, address: String, port: usize) -> std::io::Result<()> {
+pub async fn start(context: AppContext) -> std::io::Result<()> {
+    let address = context.web_address.to_string();
+    let port = context.web_port;
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(context.clone()))
@@ -105,5 +107,5 @@ pub async fn start(context: AppContext, address: String, port: usize) -> std::io
                     .show_files_listing(),
             )
     });
-    server.bind((address, port as u16))?.run().await
+    server.bind((address, port))?.run().await
 }

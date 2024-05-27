@@ -14,6 +14,8 @@ use walkdir::WalkDir;
 mod parsers;
 use tera::{Context, Tera};
 
+use crate::schema::summary::log_file_name;
+
 mod args;
 mod db_actions;
 mod log_processing;
@@ -30,6 +32,8 @@ struct AppContext {
     working_dir: PathBuf,
     output_dir: PathBuf,
     dps_interval: usize,
+    web_address: String,
+    web_port: u16,
     tera: Tera,
 }
 
@@ -43,69 +47,9 @@ struct AppContext {
 fn main() {
     let start = Instant::now();
 
-    let working_dir = env::current_dir().unwrap().clone();
-    println!(
-        "Cyclops was compiled on {}:{}.",
-        CURRENT_PLATFORM, COMPILED_ON
-    );
-    println!("The current directory is {}", working_dir.display());
-
-    let args = args::Args::parse();
-
-    let mut log_file_names: Vec<String> = Vec::new();
-    if let Some(log_dirs) = args.logdir {
-        println!("Value for log dir: {:?}", log_dirs);
-        for dir in log_dirs {
-            log_file_names.append(&mut read_log_file_dir(dir.to_path_buf()));
-        }
-    } else if let Some(files) = args.files {
-        for path in files {
-            log_file_names.push(path.into_os_string().into_string().unwrap());
-        }
-    }
-
-    if log_file_names.is_empty() {
-        println!("No chat logs found. Continuing to web server.");
-    } else {
-        println!("Processing {} log files", log_file_names.len());
-    }
-
-    let mut output_dir = PathBuf::new().join(OUTPUT_DIR);
-    if let Some(outputdir) = args.outputdir {
-        println!("Value for output dir: {:?}", outputdir);
         output_dir = outputdir.to_path_buf();
-    }
-
-    let mut dps_interval = 60;
-    if let Some(interval_arg) = args.interval {
-        println!("Value for interval: {:?}", interval_arg);
-        dps_interval = interval_arg;
-    }
-
-    let mut webserver_address: String = String::from("127.0.0.1");
-    if let Some(address_arg) = args.address {
-        println!("Value for web server address: {:?}", address_arg);
-        webserver_address = address_arg;
-    }
-
-    let mut webserver_port: usize = 11227;
-    if let Some(port_arg) = args.port {
-        println!("Value for web server address: {:?}", port_arg);
-        webserver_port = port_arg;
-    }
-
-    log_processing::create_dir(&output_dir);
-    println!("Output directory: {}", output_dir.display());
-
-    let tera = setup_tera();
-
-    let app_context = AppContext {
-        working_dir,
-        output_dir,
-        dps_interval,
-        tera,
-    };
-
+    let (app_context, log_file_names) = initialize(); 
+    
     log_processing::process_logs(&app_context, log_file_names);
 
     println!(
@@ -118,9 +62,9 @@ fn main() {
 
     println!(
         "Starting web server at http://{}:{}",
-        webserver_address, webserver_port
+        app_context.web_address, app_context.web_port
     );
-    if let Err(e) = web::start(app_context, webserver_address, webserver_port) {
+    if let Err(e) = web::start(app_context) {
         panic!("Unable to start web server {:?}", e);
     }
 
@@ -219,14 +163,15 @@ fn get_last_modified_file_in_dir(dir: PathBuf) -> String {
                 .into_os_string()
                 .into_string()
                 .unwrap()
-        }).unwrap()
+        })
+        .unwrap()
 }
 
 fn read_log_file_dir(dir: PathBuf) -> Vec<String> {
     match fs::canonicalize(&dir) {
         Ok(path) => {
             if path.exists() && path.is_dir() {
-                let mut file_list: Vec<String> = fs::read_dir(path)
+                let file_list: Vec<String> = fs::read_dir(path)
                     .unwrap()
                     .filter(|r| r.is_ok())
                     .map(|r| r.unwrap().path())
@@ -276,4 +221,72 @@ pub fn calc_percentage(args: &HashMap<String, Value>) -> Result<Value> {
     }
 
     Ok(Value::Null)
+}
+
+fn initialize() -> (AppContext, Vec<String>) {
+    let working_dir = env::current_dir().unwrap().clone();
+    println!(
+        "Cyclops was compiled on {}:{}.",
+        CURRENT_PLATFORM, COMPILED_ON
+    );
+    println!("The current directory is {}", working_dir.display());
+
+    let args = args::Args::parse();
+
+    let mut log_file_names: Vec<String> = Vec::new();
+    if let Some(log_dirs) = args.logdir {
+        println!("Value for log dir: {:?}", log_dirs);
+        for dir in log_dirs {
+            log_file_names.append(&mut read_log_file_dir(dir.to_path_buf()));
+        }
+    } else if let Some(files) = args.files {
+        for path in files {
+            log_file_names.push(path.into_os_string().into_string().unwrap());
+        }
+    }
+
+    if log_file_names.is_empty() {
+        println!("No chat logs found. Continuing to web server.");
+    } else {
+        println!("Processing {} log files", log_file_names.len());
+    }
+
+    let mut output_dir = PathBuf::new().join(OUTPUT_DIR);
+    if let Some(outputdir) = args.outputdir {
+        println!("Value for output dir: {:?}", outputdir);
+        output_dir = outputdir.to_path_buf();
+    }
+
+    let mut dps_interval = 60;
+    if let Some(interval_arg) = args.interval {
+        println!("Value for interval: {:?}", interval_arg);
+        dps_interval = interval_arg;
+    }
+
+    let mut webserver_address: String = String::from("127.0.0.1");
+    if let Some(address_arg) = args.address {
+        println!("Value for web server address: {:?}", address_arg);
+        webserver_address = address_arg;
+    }
+
+    let mut webserver_port: usize = 11227;
+    if let Some(port_arg) = args.port {
+        println!("Value for web server address: {:?}", port_arg);
+        webserver_port = port_arg;
+    }
+
+    log_processing::create_dir(&output_dir);
+    println!("Output directory: {}", output_dir.display());
+
+    let tera = setup_tera();
+
+    (AppContext {
+        working_dir,
+        output_dir,
+        dps_interval,
+        web_address: String::from(webserver_address),
+        web_port: webserver_port as u16,
+        tera,
+    },
+    log_file_names)
 }
