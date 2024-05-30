@@ -189,10 +189,17 @@ select
 summary_key,
 sum(hits) as hits,
 sum(misses) misses,
-ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100) as hit_percentage,
+(CASE WHEN
+(hits = 0 OR misses = 0)
+THEN
+0
+ELSE
+ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100)
+END
+) as hit_percentage,
 total_damage_taken,
 (CASE WHEN
-ROUND(1.0 * sum(total_damage_taken) / sum(hits)) IS NULL
+(total_damage_taken = 0 OR hits = 0)
 THEN
 0
 ELSE
