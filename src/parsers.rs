@@ -1,5 +1,3 @@
-use std::{str::FromStr, time::Instant};
-
 use lazy_static::lazy_static;
 use regex::Regex;
 
@@ -17,6 +15,7 @@ lazy_static! {
     static ref LOOT_DROP_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You received (.+)[.]").unwrap();
 
     static ref MOB_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! (.+) power had a (.+)% chance to hit and rolled a (.+)[.]").unwrap();
+    static ref MOB_AUTO_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! (.+) power was autohit\.").unwrap();
     static ref MOB_MISS_MATCHER: Regex 	= Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) MISSES! (.+) power had a (.+)% chance to hit, but rolled a (.+)[.]").unwrap();
     static ref MOB_PSEDUOPET_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) HITS you! (.+) power had a (.+)% chance to hit and rolled a (.+)[.]").unwrap();
     static ref MOB_PSEDUOPET_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) MISSES! (.+) power had a (.+)% chance to hit, but rolled a (.+)[.]").unwrap();
@@ -131,6 +130,7 @@ pub fn initialize_matchers() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_player_miss,
         extract_loot_drop,
         extract_mob_hit,
+        //extract_mob_auto_hit,
         extract_mob_miss,
         extract_player_victory,
         extract_mob_pseudo_pet_control,
@@ -288,7 +288,20 @@ pub fn extract_mob_hit(line_number: u32, line: &String) -> Option<FileDataPoint>
         Some(data) => Some(FileDataPoint::MobHit {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
-            action_result: HitOrMiss::new("player", &data[3], &data[4]),
+            action_result: HitOrMiss::new("Player", &data[3], &data[4]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_mob_auto_hit(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = MOB_AUTO_HIT_MATCHER.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::MobAutoHit {
+            data_position: DataPosition::new(line_number, &data[1]),
+            name: String::from(&data[2]),
+            action_result: HitOrMiss::new("Player", &data[3], "100"),
         }),
         None => None,
     }
@@ -301,7 +314,7 @@ pub fn extract_mob_miss(line_number: u32, line: &String) -> Option<FileDataPoint
         Some(data) => Some(FileDataPoint::MobMiss {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
-            action_result: HitOrMiss::new("player", &data[3], &data[4]),
+            action_result: HitOrMiss::new("Player", &data[3], &data[4]),
         }),
         None => None,
     }
@@ -435,7 +448,7 @@ pub fn extract_player_healed(line_number: u32, line: &String) -> Option<FileData
     match caps {
         Some(data) => Some(FileDataPoint::PlayerHealed {
             data_position: DataPosition::new(line_number, &data[1]),
-            heal_action: HealEnduranceAction::new(&data[2], "player", &data[3], &data[4]),
+            heal_action: HealEnduranceAction::new(&data[2], "Player", &data[3], &data[4]),
         }),
         None => None,
     }
@@ -447,7 +460,7 @@ pub fn extract_player_heal_other(line_number: u32, line: &String) -> Option<File
     match caps {
         Some(data) => Some(FileDataPoint::PlayerHealOther {
             data_position: DataPosition::new(line_number, &data[1]),
-            heal_action: HealEnduranceAction::new("player", &data[2], &data[3], &data[4]),
+            heal_action: HealEnduranceAction::new("Player", &data[2], &data[3], &data[4]),
         }),
         None => None,
     }
@@ -459,7 +472,7 @@ pub fn extract_player_endurance(line_number: u32, line: &String) -> Option<FileD
     match caps {
         Some(data) => Some(FileDataPoint::PlayerEndurance {
             data_position: DataPosition::new(line_number, &data[1]),
-            heal_action: HealEnduranceAction::new(&data[2], "player", &data[3], &data[4]),
+            heal_action: HealEnduranceAction::new(&data[2], "Player", &data[3], &data[4]),
         }),
         None => None,
     }
@@ -471,7 +484,7 @@ pub fn extract_player_endurance_other(line_number: u32, line: &String) -> Option
     match caps {
         Some(data) => Some(FileDataPoint::PlayerEnduranceOther {
             data_position: DataPosition::new(line_number, &data[1]),
-            heal_action: HealEnduranceAction::new("player", &data[2], &data[3], &data[4]),
+            heal_action: HealEnduranceAction::new("Player", &data[2], &data[3], &data[4]),
         }),
         None => None,
     }
@@ -631,7 +644,7 @@ pub fn extract_mob_control(line_number: u32, line: &String) -> Option<FileDataPo
         Some(data) => Some(FileDataPoint::MobControl {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
-            control_type: ControlPower::new(&data[3], "player", &data[4]),
+            control_type: ControlPower::new(&data[3], "Player", &data[4]),
         }),
         None => None,
     }
@@ -695,7 +708,7 @@ pub fn extract_mob_damage(line_number: u32, line: &String) -> Option<FileDataPoi
         Some(data) => Some(FileDataPoint::MobDamage {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
-            damage_dealt: DamageDealt::new("player", &data[3], &data[4], &data[5]),
+            damage_dealt: DamageDealt::new("Player", &data[3], &data[4], &data[5]),
         }),
         None => None,
     }
@@ -708,7 +721,7 @@ pub fn extract_mob_damage_dot(line_number: u32, line: &String) -> Option<FileDat
         Some(data) => Some(FileDataPoint::MobDamageDoT {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
-            damage_dealt: DamageDealt::new("player", &data[3], &data[4], &data[5]),
+            damage_dealt: DamageDealt::new("Player", &data[3], &data[4], &data[5]),
         }),
         None => None,
     }
@@ -720,7 +733,7 @@ pub fn extract_autohit_pseudo_pet_one(line_number: u32, line: &String) -> Option
     match caps {
         Some(data) => Some(FileDataPoint::AutohitPower {
             data_position: DataPosition::new(line_number, &data[1]),
-            source: String::from("player"),
+            source: String::from("Player"),
             target: String::from(&data[2]),
             power_name: String::from(&data[3]),
         }),
@@ -748,7 +761,7 @@ pub fn extract_autohit_one(line_number: u32, line: &String) -> Option<FileDataPo
     match caps {
         Some(data) => Some(FileDataPoint::AutohitPower {
             data_position: DataPosition::new(line_number, &data[1]),
-            source: String::from("player"),
+            source: String::from("Player"),
             target: String::from(&data[2]),
             power_name: String::from(&data[3]),
         }),
@@ -762,7 +775,7 @@ pub fn extract_autohit_two(line_number: u32, line: &String) -> Option<FileDataPo
     match caps {
         Some(data) => Some(FileDataPoint::AutohitPower {
             data_position: DataPosition::new(line_number, &data[1]),
-            source: String::from("player"),
+            source: String::from("Player"),
             target: String::from(&data[2]),
             power_name: String::from(&data[3]),
         }),

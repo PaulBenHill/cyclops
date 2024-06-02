@@ -228,6 +228,11 @@ pub enum FileDataPoint {
         name: String,
         action_result: HitOrMiss,
     },
+    MobAutoHit {
+        data_position: DataPosition,
+        name: String,
+        action_result: HitOrMiss,
+    },
     MobMiss {
         data_position: DataPosition,
         name: String,

@@ -241,6 +241,24 @@ pub fn write_to_database(
                     streakbreaker: 0,
                 });
             }
+            FileDataPoint::MobAutoHit {
+                data_position,
+                action_result,
+                name,
+            } => {
+                hits_misses.push(crate::models::HitOrMiss {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    hit: 1,
+                    chance_to_hit: 100,
+                    source_type: String::from("Mob"),
+                    source_name: String::from(name),
+                    target_name: action_result.target.clone(),
+                    power_name: action_result.power_name.clone(),
+                    streakbreaker: 0,
+                });
+            }
             FileDataPoint::MobMiss {
                 data_position,
                 action_result,

@@ -144,7 +144,11 @@ CREATE VIEW IF NOT EXISTS total_damage_report AS select s.summary_key,
 (select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.streakbreaker = 1 AND source_type IN ('Player', 'PlayerPet')) AS streak_breakers,
 (select count(*) from hit_or_miss hm where s.summary_key = hm.summary_key AND hm.hit = 0 AND source_type IN ('Player', 'PlayerPet')) AS misses,
 (select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND source_type IN ('Player', 'PlayerPet')) AS total_damage,
-(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Direct' AND source_type IN ('Player', 'PlayerPet')) AS direct_damage,
+(CASE WHEN(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Direct' AND source_type IN ('Player', 'PlayerPet')) IS NULL
+THEN 0
+ELSE
+(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'Direct' AND source_type IN ('Player', 'PlayerPet'))
+END) AS direct_damage,
 
 (CASE WHEN(select sum(da.damage) from damage_action da where s.summary_key = da.summary_key AND damage_mode = 'DoT' AND source_type IN ('Player', 'PlayerPet')) IS NULL
 THEN 0
@@ -185,55 +189,54 @@ order by total_damage desc;
 -- View: damage_taken
 DROP VIEW IF EXISTS damage_taken;
 CREATE VIEW IF NOT EXISTS damage_taken AS
-select 
+select
 summary_key,
-sum(hits) as hits,
-sum(misses) misses,
+hits,
+misses,
 (CASE WHEN
-(hits = 0 OR misses = 0)
+hits = 0 or misses = 0
 THEN
 0
 ELSE
-ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100)
-END
-) as hit_percentage,
+ROUND( 1.0 * hits / (hits + misses) * 100)
+END) as hit_percentage,
 total_damage_taken,
 (CASE WHEN
-(total_damage_taken = 0 OR hits = 0)
+total_damage_taken = 0 OR hits = 0
 THEN
 0
 ELSE
-ROUND(1.0 * sum(total_damage_taken) / sum(hits))
-END
-) as damage_per_hit
+ROUND( 1.0 * total_damage_taken / hits)
+END) as damage_per_hit
 from (
-select 
-da.summary_key,
-0 as hits,
-0 as misses,
-sum(da.damage) as total_damage_taken
+select
+summary_key,
+(select count(hit) 
 from 
-summary s,
-damage_action da
-where 
-s.summary_key = da.summary_key
+hit_or_miss hm1
+where
+da1.summary_key = hm1.summary_key
 AND
-da.source_type IN ('Mob', 'MobPet')
-group by da.summary_key
-UNION ALL
-select 
-hm.summary_key,
-sum(hm.hit) AS hits,
-sum(CASE WHEN hit = 0 THEN 1 ELSE 0 END) AS misses,
-0 as total_damage_taken
+hm1.hit = 1
+AND
+hm1.target_name = 'Player') as hits,
+(select count(hit) 
+from 
+hit_or_miss hm1
+where
+da1.summary_key = hm1.summary_key
+AND
+hm1.hit = 0
+AND
+hm1.target_name = 'Player') as misses,
+sum(damage) as total_damage_taken
 from
-summary s,
-hit_or_miss hm
-where 
-s.summary_key = hm.summary_key
+damage_action da1
+where
+da1.source_type IN ('Mob', 'MobPet')
 AND
-hm.source_type IN ('Mob', 'MobPet')
-group by s.summary_key)
+da1.target = 'Player'
+group by da1.summary_key)
 group by summary_key;
 
 
@@ -282,6 +285,8 @@ where
 s.summary_key = da.summary_key
 AND
 da.source_type IN ('Mob', 'MobPet')
+AND
+da.target = 'Player'
 group by s.summary_key, da.damage_type
 order by s.summary_key, damage desc;
 
@@ -291,13 +296,117 @@ CREATE VIEW IF NOT EXISTS damage_taken_by_mob AS
 select
 summary_key,
 source_name,
-power_name,
-damage_type,
-sum(damage)
-from damage_action
+hits,
+CASE WHEN
+avg_hit_chance IS NULL
+THEN
+0
+ELSE
+avg_hit_chance
+END as avg_hit_chance,
+total_damage,
+(CASE 
+WHEN hits = 0
+THEN
+0
+ELSE
+ROUND(1.0 * total_damage / hits) 
+END) as damage_per_hit
+from 
+(select
+summary_key,
+source_name,
+(select count(hit) 
+from
+hit_or_miss hm1 
+where 
+da1.summary_key = hm1.summary_key
+AND
+hm1.hit = 1
+AND
+da1.source_name = hm1.source_name
+AND
+hm1.target_name = 'Player') as hits,
+(select ROUND(avg(hm1.chance_to_hit)) 
+from 
+hit_or_miss hm1
+where
+da1.summary_key = hm1.summary_key
+AND
+da1.source_name = hm1.source_name
+AND
+da1.power_name = hm1.power_name
+AND
+hm1.target_name = 'Player') as avg_hit_chance,
+sum(damage) as total_damage,
+ROUND( 1.0 * sum(damage) / count(power_name)) as damage_per_hit
+from damage_action da1
 where
 source_type IN ('Mob', 'MobPet')
 AND
-damage > 100
-group by summary_key, source_name, damage_type
-order by summary_key, power_name, damage_type;
+target = 'Player'
+group by summary_key, source_name
+order by summary_key, source_name);
+
+DROP VIEW IF EXISTS damage_taken_by_mob_power;
+CREATE VIEW IF NOT EXISTS damage_taken_by_mob_power AS
+select 
+summary_key,
+source_name,
+power_name,
+damage_type,
+hits,
+CASE WHEN
+avg_hit_chance IS NULL
+THEN
+0
+ELSE
+avg_hit_chance
+END as avg_hit_chance,
+total_damage,
+(CASE 
+WHEN hits = 0
+THEN
+0
+ELSE
+ROUND(1.0 * total_damage / hits) 
+END) as damage_per_hit
+from (
+select
+da1.summary_key,
+da1.source_name,
+da1.source_type,
+da1.power_name,
+da1.damage_type,
+(select count(hit) 
+from 
+hit_or_miss hm1
+where
+da1.summary_key = hm1.summary_key
+AND
+hm1.hit = 1
+AND
+da1.source_name = hm1.source_name
+AND
+da1.power_name = hm1.power_name
+AND
+hm1.target_name = 'Player') as hits,
+(select ROUND(avg(hm1.chance_to_hit)) 
+from 
+hit_or_miss hm1
+where
+da1.summary_key = hm1.summary_key
+AND
+da1.source_name = hm1.source_name
+AND
+da1.power_name = hm1.power_name
+AND
+hm1.target_name = 'Player') as avg_hit_chance,
+sum(damage) as total_damage
+from damage_action da1
+where
+da1.source_type IN ('Mob', 'MobPet')
+AND
+da1.target = 'Player'
+group by da1.summary_key, da1.source_name, da1.source_type, da1.power_name, da1.damage_type
+order by da1.summary_key, da1.source_name, da1.power_name, da1.damage_type);
