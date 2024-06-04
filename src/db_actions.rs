@@ -19,6 +19,7 @@ use crate::schema::{
 pub fn get_file_conn(path: PathBuf) -> SqliteConnection {
     let mut conn = SqliteConnection::establish(path.to_str().unwrap())
         .unwrap_or_else(|_| panic!("Unable to create in memory database"));
+
     conn
 }
 

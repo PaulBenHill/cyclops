@@ -58,19 +58,22 @@
 </table>
 {% endif %}
 <hr>
+<details>
+    <summary>
 <h2>Attack Summary By Power</h2>
+    </summary>
 <div>
     <button id="reactivity_merge_{{index}}">Merge Rows</button>
     <button id="reactivity_delete_{{index}}">Delete Rows</button>
     <button id="reactivity_remove_non_{{index}}">Remove Non Damage Powers</button>
     <button id="reactivity_revert_{{index}}">Revert Changes</button>
 </div>
-
 <div id="{{index}}_div"></div>
 <a id="ate1"><sup>1</sup>For psuedo pets that do two types of damage. This value needs to be divided by two. Example:
     Electrical Melee: Lightning Rod</a>
 <br>
 <a id="ate2"><sup>2</sup>Incarnate Judgements can exceed the target cap of 16</a>
+</details>
 <script>
     //define data
     var tabledata_base_{{index}} = [
@@ -215,7 +218,10 @@
 
 </script>
 <hr>
-<h2>DPS using an interval of {{ dps_interval}} </h2>
+<details>
+    <summary>
+        <h2>DPS using an interval of {{ dps_interval}} </h2>
+    </summary>
 <table title="DPS Report" style="width: 50%;" class="sortable-table">
     <thead>
         <th class="numeric-sort">Starting Line</th>
@@ -236,3 +242,4 @@
         {% endfor %}
     </tbody>
 </table>
+</details>
