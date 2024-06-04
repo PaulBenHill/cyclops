@@ -57,7 +57,7 @@ pub fn copy_db(conn: &mut SqliteConnection, path: PathBuf) {
 
 pub fn write_to_database(
     conn: &mut SqliteConnection,
-    file_name: &str,
+    file_name: String,
     data_points: &Vec<FileDataPoint>,
 ) {
     let key = (chrono::offset::Local::now().timestamp() % 1000) as i32;
@@ -75,7 +75,7 @@ pub fn write_to_database(
         log_date: String::from("PLACEHOLDER"),
         first_line_number: 1,
         last_line_number: data_points.len() as i32,
-        log_file_name: String::from(file_name),
+        log_file_name: String::from(&file_name),
     };
     summaries.push(placeholder);
 
@@ -91,7 +91,7 @@ pub fn write_to_database(
                     log_date: data_position.date.to_rfc3339(),
                     first_line_number: data_position.line_number as i32,
                     last_line_number: data_points.len() as i32,
-                    log_file_name: String::from(file_name),
+                    log_file_name: String::from(&file_name),
                 });
             }
             FileDataPoint::PlayerPowerActivation {

@@ -1,42 +1,76 @@
 use std::{
-    error::Error, fs::{self, File}, io::{BufRead, BufReader, BufWriter, Lines, Write}, path::{Path, PathBuf}, time::Duration
+    fmt, fs::{self, File}, io::{BufRead, BufReader, BufWriter, Lines, Write}, path::{Path, PathBuf}, time::{Duration, Instant}
 };
 
 use chrono::DateTime;
 use diesel::SqliteConnection;
+use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 
 use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, AppContext};
 
-pub fn process_logs(context: &AppContext, files: Vec<String>) {
-    for file in files {
-        let conn = &mut db_actions::establish_connection(); // In memory db, fresh db on each call
-        let stripped_file = file.replace("\"", "");
-        let file_path = verify_file(&stripped_file);
-        let file_name = file_path.file_name().unwrap().to_str().unwrap();
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessingError {
+   pub file_name: PathBuf,
+   pub message: String,
+}
 
-        let reader = open_log_file(file_path);
+impl fmt::Display for ProcessingError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Processing failed for file: {:?}", self.file_name)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ParserJob {
+    pub files: Vec<PathBuf>,
+    pub processed: usize,
+    pub run_time: u64,
+    pub errors: Vec<ProcessingError>,
+}
+
+impl ParserJob {
+
+pub fn process_logs(mut self, context: &AppContext) -> Self {
+    let start = Instant::now();
+
+    for file in &self.files[..] {
+        let conn = &mut db_actions::establish_connection(); // In memory db, fresh db on each call
+        let file_path = match verify_file(file.to_path_buf()) {
+            Ok(f) => f, 
+            Err(e) => { 
+                self.errors.push(e);
+                continue;
+            }
+        };
+        
+        let reader = match Self::open_log_file(file_path.to_path_buf()) {
+            Ok(r) => r,
+            Err(e) => { 
+                self.errors.push(e);
+                continue;
+            }
+        };
+
 
         let lines = reader.lines();
 
-        let processing_result = process_lines(conn, &file, lines);
-
+        let processing_result = Self::process_lines(conn, file.to_path_buf(), lines);
         if processing_result.0 {
             let data_points = processing_result.1;
             let summaries = db_actions::get_summaries(conn);
 
-            let report_dir = create_report_dir(
+            let report_dir = Self::create_report_dir(
                 &context.working_dir,
                 &context.output_dir,
-                file_name,
+                file.to_path_buf(),
                 &summaries.first().unwrap().player_name,
             );
             db_actions::copy_db(conn, report_dir.join("summary.db"));
-
             let mut summary_renders: Vec<String> = Vec::new();
-            write_data_files(conn, &report_dir, file_name, file_path, &data_points);
+            Self::write_data_files(conn, &report_dir, file.to_path_buf(), file_path.to_path_buf(), &data_points);
             for (i, s) in summaries.iter().enumerate() {
-                summary_renders.push(generate_summary(
+                summary_renders.push(Self::generate_summary(
                     conn,
                     &context.tera,
                     i,
@@ -46,33 +80,53 @@ pub fn process_logs(context: &AppContext, files: Vec<String>) {
                 ));
             }
 
-            generate_top_level(
+            Self::generate_top_level(
                 &context.tera,
                 &report_dir,
-                file_name,
+                file_path.to_path_buf(),
                 summaries,
                 summary_renders,
             );
         } else {
-            println!("No valid data found in {}.", file_name);
+            println!("No valid data found in {}.", file_path.to_path_buf().into_os_string().into_string().unwrap());
+        }
+        self.processed += 1;
+    }
+    self.run_time = start.elapsed().as_secs();
+    println!(
+        "File(s) processing time took: {} second.",
+        self.run_time
+    );
+
+    println!("Starting file count: {}", self.files.len());
+    println!("Processed file count: {}", self.processed);
+    println!("Processing time: {}", self.run_time);
+
+    if !self.errors.is_empty() {
+        println!("ERROR(S):");
+        for e in &self.errors[..] {
+            println!("{}:{}", &e.message, &e.file_name.to_path_buf().into_os_string().into_string().unwrap());
         }
     }
-    println!("File(s) processing done.");
+
+    self
 }
 
 fn create_report_dir(
     working_dir: &Path,
     output_dir: &Path,
-    filename: &str,
+    file_name: PathBuf,
     player_name: &str,
 ) -> PathBuf {
+    let fn_as_str = file_name.file_name().unwrap().to_ascii_lowercase().into_string().unwrap();
     let mut report_dir_name = format!(
         "{}",
-        filename
+        fn_as_str
             .replace('-', "_")
             .replace(".txt", "")
             .replace("chatlog", player_name),
     );
+
     report_dir_name = report_dir_name.replace(' ', "_");
 
     let report_dir: PathBuf = [
@@ -89,43 +143,36 @@ fn create_report_dir(
     report_dir.clone()
 }
 
-pub fn verify_file(filename: &String) -> &Path {
-    let path = Path::new(filename);
 
-    if path.exists() {
-        match fs::metadata(path) {
-            Ok(_) => path,
-            Err(e) => panic!(
-                "Cannot retrieve metadata. Probably permissions issue: {:?}",
-                e
-            ),
-        }
-    } else {
-        panic!("Cannot find file: {}", filename);
-    }
-}
+pub fn open_log_file(path_buf: PathBuf) -> Result<BufReader<File>, ProcessingError> {
+    let file_name = path_buf.to_path_buf().into_os_string().into_string().expect("Could not create a file name from os string.");
+    if path_buf.is_file() {
+        let result = File::open(path_buf.to_path_buf());
 
-pub fn open_log_file(path: &Path) -> BufReader<File> {
-    if path.exists() && path.is_file() {
-        let file = match File::open(path) {
-            Ok(file) => file,
-            Err(e) => panic!("Unable to open file {:?}:{:?}", e, path),
-        };
+        match result {
+        Ok(file) => { 
         println!(
             "File opened for processing: {}",
-            path.as_os_str()
-                .to_str()
-                .expect("Could not create a file name from os string.")
+            file_name,
         );
-        BufReader::new(file)
+            Ok(BufReader::new(file))
+        },
+        Err(e) => Err(ProcessingError {
+                file_name: path_buf,
+                message: "Unable to open file might not readble.".to_string(),
+            })
+        }
     } else {
-        panic!("Path provided is not a file: {:?}", path);
+        Err(ProcessingError {
+                file_name: path_buf,
+                message: "File is not file, might be a directory".to_string(),
+            })
     }
 }
 
 fn process_lines(
     conn: &mut SqliteConnection,
-    file: &str,
+    file: PathBuf,
     lines: Lines<BufReader<File>>,
 ) -> (bool, Vec<FileDataPoint>) {
     let mut line_count: u32 = 0;
@@ -165,7 +212,7 @@ fn process_lines(
 
     if has_data {
         // write to database
-        db_actions::write_to_database(conn, file, &data_points);
+        db_actions::write_to_database(conn, file.into_os_string().into_string().unwrap(), &data_points);
         println!("Generating summaries done.");
     }
 
@@ -177,16 +224,16 @@ fn process_lines(
 fn write_data_files(
     conn: &mut SqliteConnection,
     report_dir: &Path,
-    file_name: &str,
-    data_file: &Path,
+    file_name: PathBuf,
+    data_file: PathBuf,
     parsed_lines: &Vec<FileDataPoint>,
 ) {
-    if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name)) {
+    if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name.file_name().unwrap())) {
         println!("Copying data file return zero bytes: {}", e);
     }
 
     // write parsed logs for troubleshooting
-    write_parsed_files(report_dir, parsed_lines);
+    Self::write_parsed_files(report_dir, parsed_lines);
 
     let dps_file = match File::create(report_dir.join("dps.csv")) {
         Ok(f) => f,
@@ -299,7 +346,7 @@ fn generate_summary(
 fn generate_top_level(
     tera: &Tera,
     report_dir: &Path,
-    file_name: &str,
+    file_name: PathBuf, 
     summaries: Vec<Summary>,
     renders: Vec<String>,
 ) {
@@ -309,7 +356,7 @@ fn generate_top_level(
     };
 
     let mut top_level_context = Context::new();
-    top_level_context.insert("data_file_name", file_name);
+    top_level_context.insert("data_file_name", &file_name);
     top_level_context.insert("summaries", &summaries);
     top_level_context.insert("renders", &renders);
     let result = tera.render("summary.html", &top_level_context);
@@ -323,11 +370,24 @@ fn generate_top_level(
     }
 }
 
+}
+
 pub fn create_dir(dir_path: &PathBuf) {
     if !dir_path.exists() {
         match fs::create_dir_all(dir_path) {
             Ok(_) => (),
             Err(err) => panic!("Unable to create directory: {:?}", err),
         }
+    }
+}
+
+pub fn verify_file(path_buf: PathBuf) -> Result<PathBuf, ProcessingError> {
+    if path_buf.is_file() || path_buf.is_dir() {
+        Ok(path_buf)
+    } else {
+        Err(ProcessingError {
+            file_name: path_buf,
+            message: "Unable to verify file existence. Might be invalid file name or permissions".to_owned(),
+        })
     }
 }

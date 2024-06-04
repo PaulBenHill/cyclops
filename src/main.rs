@@ -14,7 +14,7 @@ use walkdir::WalkDir;
 mod parsers;
 use tera::{Context, Tera};
 
-use crate::schema::summary::log_file_name;
+use crate::log_processing::ParserJob;
 
 mod args;
 mod db_actions;
@@ -27,7 +27,7 @@ mod web;
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct AppContext {
     working_dir: PathBuf,
     output_dir: PathBuf,
@@ -49,13 +49,14 @@ fn main() {
 
     let (app_context, log_file_names) = initialize(); 
     
-    log_processing::process_logs(&app_context, log_file_names);
-
-    println!(
-        "File(s) processing time took: {} second.",
-        start.elapsed().as_secs()
-    );
-
+    let parser_job = ParserJob {
+        files: log_file_names,
+        processed: 0,
+        run_time: 0,
+        errors: Vec::new(),
+    };
+    parser_job.process_logs(&app_context);
+    
     let indexes = find_all_summaries(&app_context.output_dir);
     generate_index(&app_context, &indexes);
 
@@ -150,7 +151,7 @@ fn setup_tera() -> Tera {
     }
 }
 
-fn get_last_modified_file_in_dir(dir: PathBuf) -> String {
+fn get_last_modified_file_in_dir(dir: PathBuf) -> PathBuf {
     std::fs::read_dir(dir)
         .expect("Couldn't access local directory")
         .flatten() // Remove failed
@@ -159,18 +160,15 @@ fn get_last_modified_file_in_dir(dir: PathBuf) -> String {
         .map(|r| {
             dunce::canonicalize(r.path())
                 .unwrap()
-                .into_os_string()
-                .into_string()
-                .unwrap()
         })
         .unwrap()
 }
 
-fn read_log_file_dir(dir: PathBuf) -> Vec<String> {
+fn read_log_file_dir(dir: PathBuf) -> Vec<PathBuf> {
     match fs::canonicalize(&dir) {
         Ok(path) => {
             if path.exists() && path.is_dir() {
-                let file_list: Vec<String> = fs::read_dir(path)
+                let file_list: Vec<PathBuf> = fs::read_dir(path)
                     .unwrap()
                     .filter(|r| r.is_ok())
                     .map(|r| r.unwrap().path())
@@ -178,11 +176,8 @@ fn read_log_file_dir(dir: PathBuf) -> Vec<String> {
                     .map(|r| {
                         dunce::canonicalize(r)
                             .unwrap()
-                            .into_os_string()
-                            .into_string()
-                            .unwrap()
                     })
-                    .filter(|r| r.ends_with("txt"))
+                    .filter(|r| r.extension().unwrap() == "txt")
                     .collect();
 
                 file_list
@@ -222,7 +217,7 @@ pub fn calc_percentage(args: &HashMap<String, Value>) -> Result<Value> {
     Ok(Value::Null)
 }
 
-fn initialize() -> (AppContext, Vec<String>) {
+fn initialize() -> (AppContext, Vec<PathBuf>) {
     let working_dir = env::current_dir().unwrap().clone();
     println!(
         "Cyclops was compiled on {}:{}.",
@@ -232,23 +227,21 @@ fn initialize() -> (AppContext, Vec<String>) {
 
     let args = args::Args::parse();
 
-    let mut log_file_names: Vec<String> = Vec::new();
+    let mut log_file_names: Vec<PathBuf> = Vec::new();
     if let Some(log_dirs) = args.logdir {
         println!("Value for log dir: {:?}", log_dirs);
         for dir in log_dirs {
             log_file_names.append(&mut read_log_file_dir(dir.to_path_buf()));
         }
     } else if let Some(files) = args.files {
-        for path in files {
-            log_file_names.push(path.into_os_string().into_string().unwrap());
+        for path_buf in files {
+            log_file_names.push(path_buf);
         }
     }
 
     if log_file_names.is_empty() {
-        println!("No chat logs found. Continuing to web server.");
-    } else {
-        println!("Processing {} log files", log_file_names.len());
-    }
+        println!("No logs found. Continuing to web server.");
+    } 
 
     let mut output_dir = PathBuf::new().join(OUTPUT_DIR);
     if let Some(outputdir) = args.outputdir {
