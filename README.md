@@ -1,4 +1,4 @@
-# ALPHA RELEASE - Cyclops - City of Heroes log parser
+# BETA RELEASE - Cyclops - City of Heroes log parser
 ## I am open to suggestions for data you want to see. 
 
 
