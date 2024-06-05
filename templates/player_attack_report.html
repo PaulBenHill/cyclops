@@ -184,7 +184,7 @@ NO DATA
                 hit_percentage: "",
                 total_damage: 0,
                 total_damage_percent: 0,
-                dpa: "",
+                dpa: 0,
                 ate: "",
                 direct_damage: 0,
                 dot_damage: 0,
@@ -216,7 +216,6 @@ NO DATA
             new_row.power = new_row.power.substring(0, new_row.power.length - 4);
             new_row.hits = new_row.hits.substring(0, new_row.hits.length - 4);
             new_row.hit_percentage = new_row.hit_percentage.substring(0, new_row.hit_percentage.length - 4);
-            new_row.dpa = new_row.dpa.substring(0, new_row.dpa.length - 4);
             new_row.ate = new_row.ate.substring(0, new_row.ate.length - 4);
             temp.unshift(new_row);
             tabledata_{{index}} = temp;

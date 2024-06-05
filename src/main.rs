@@ -58,7 +58,9 @@ fn main() {
         run_time: 0,
         errors: Vec::new(),
     };
-    parser_job.process_logs(&app_context);
+    if !parser_job.files.is_empty() {
+        parser_job.process_logs(&app_context);
+    }
     
     let indexes = find_all_summaries(&app_context.output_dir);
     generate_index(&app_context, &indexes);
