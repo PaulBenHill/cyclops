@@ -45,6 +45,9 @@ struct AppContext {
 // logdir multiple
 // file or log dir not required
 fn main() {
+    println!("################################");
+    println!("Cyclops CoX Log Parsing tool 1.0");
+    println!("################################");
     let start = Instant::now();
 
     let (app_context, log_file_names) = initialize(); 

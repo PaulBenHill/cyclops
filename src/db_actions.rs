@@ -5,7 +5,11 @@ use diesel_migrations::{FileBasedMigrations, MigrationHarness};
 use std::fs;
 use std::path::*;
 
+use crate::models::DamageDealtByType;
 use crate::models::DamageTaken;
+use crate::models::DamageTakenByMob;
+use crate::models::DamageTakenByMobPower;
+use crate::models::DamageTakenByType;
 use crate::models::IndexDetails;
 use crate::models::RewardsDefeats;
 use crate::models::{
@@ -855,7 +859,7 @@ pub fn get_total_damage_report(conn: &mut SqliteConnection, key: i32) -> Option<
 
 fn select_damage_taken_report(conn: &mut SqliteConnection) -> Vec<DamageTaken> {
     use crate::schema::damage_taken::dsl::*;
-damage_taken
+    damage_taken
         .select(DamageTaken::as_select())
         .load(conn)
         .expect("Unable to load damage taken report")
@@ -866,6 +870,112 @@ pub fn get_damage_taken_report(conn: &mut SqliteConnection, key: i32) -> Option<
         if r.summary_key == key {
             return Some(r);
         }
+    }
+
+    None
+}
+
+fn select_damage_dealt_by_type_report(conn: &mut SqliteConnection) -> Vec<DamageDealtByType> {
+    use crate::schema::damage_dealt_by_type::dsl::*;
+    damage_dealt_by_type
+        .select(DamageDealtByType::as_select())
+        .load(conn)
+        .expect("Unable to load damage taken report")
+}
+
+pub fn get_damage_dealt_by_type_report(
+    conn: &mut SqliteConnection,
+    key: i32,
+) -> Option<Vec<DamageDealtByType>> {
+    let mut result: Vec<DamageDealtByType> = Vec::new();
+    for r in select_damage_dealt_by_type_report(conn) {
+        if r.summary_key == key {
+            result.push(r);
+        }
+    }
+
+    if result.len() > 0 {
+        return Some(result);
+    }
+
+    None
+}
+
+fn select_damage_taken_by_type_report(conn: &mut SqliteConnection) -> Vec<DamageTakenByType> {
+    use crate::schema::damage_taken_by_type::dsl::*;
+    damage_taken_by_type
+        .select(DamageTakenByType::as_select())
+        .load(conn)
+        .expect("Unable to load damage taken report")
+}
+
+pub fn get_damage_taken_by_type_report(
+    conn: &mut SqliteConnection,
+    key: i32,
+) -> Option<Vec<DamageTakenByType>> {
+    let mut result: Vec<DamageTakenByType> = Vec::new();
+    for r in select_damage_taken_by_type_report(conn) {
+        if r.summary_key == key {
+            result.push(r);
+        }
+    }
+
+    if result.len() > 0 {
+        return Some(result);
+    }
+
+    None
+}
+
+fn select_damage_taken_by_mob_report(conn: &mut SqliteConnection) -> Vec<DamageTakenByMob> {
+    use crate::schema::damage_taken_by_mob::dsl::*;
+    damage_taken_by_mob
+        .select(DamageTakenByMob::as_select())
+        .load(conn)
+        .expect("Unable to load damage taken report")
+}
+
+pub fn get_damage_taken_by_mob_report(
+    conn: &mut SqliteConnection,
+    key: i32,
+) -> Option<Vec<DamageTakenByMob>> {
+    let mut result: Vec<DamageTakenByMob> = Vec::new();
+    for r in select_damage_taken_by_mob_report(conn) {
+        if r.summary_key == key {
+            result.push(r);
+        }
+    }
+
+    if result.len() > 0 {
+        return Some(result);
+    }
+
+    None
+}
+
+fn select_damage_taken_by_mob_power_report(
+    conn: &mut SqliteConnection,
+) -> Vec<DamageTakenByMobPower> {
+    use crate::schema::damage_taken_by_mob_power::dsl::*;
+    damage_taken_by_mob_power
+        .select(DamageTakenByMobPower::as_select())
+        .load(conn)
+        .expect("Unable to load damage taken report")
+}
+
+pub fn get_damage_taken_by_mob_power_report(
+    conn: &mut SqliteConnection,
+    key: i32,
+) -> Option<Vec<DamageTakenByMobPower>> {
+    let mut result: Vec<DamageTakenByMobPower> = Vec::new();
+    for r in select_damage_taken_by_mob_power_report(conn) {
+        if r.summary_key == key {
+            result.push(r);
+        }
+    }
+
+    if result.len() > 0 {
+        return Some(result);
     }
 
     None

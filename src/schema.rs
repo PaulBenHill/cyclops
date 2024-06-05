@@ -170,6 +170,48 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    damage_dealt_by_type (summary_key) {
+        summary_key -> Integer,
+        damage_type -> Text,
+        total_damage -> Integer,
+        damage_percent -> Integer,
+    }
+}
+
+diesel::table! {
+    damage_taken_by_type (summary_key) {
+        summary_key -> Integer,
+        damage_type -> Text,
+        total_damage -> Integer,
+        damage_percent -> Integer,
+    }
+}
+
+diesel::table! {
+    damage_taken_by_mob (summary_key) {
+        summary_key -> Integer,
+        source_name -> Text,
+        hits -> Integer,
+        avg_hit_chance -> Integer,
+        total_damage -> Integer,
+        damage_per_hit -> Integer,
+    }
+}
+
+diesel::table! {
+    damage_taken_by_mob_power (summary_key) {
+        summary_key -> Integer,
+        source_name -> Text,
+        power_name -> Text,
+        damage_type -> Text,
+        hits -> Integer,
+        avg_hit_chance -> Integer,
+        total_damage -> Integer,
+        damage_per_hit -> Integer,
+    }
+}
+
 diesel::joinable!(damage_action -> summary (summary_key));
 diesel::joinable!(debuff_action -> summary (summary_key));
 diesel::joinable!(defeated_targets -> summary (summary_key));
@@ -178,6 +220,10 @@ diesel::joinable!(player_activation -> summary (summary_key));
 diesel::joinable!(reward -> summary (summary_key));
 diesel::joinable!(total_damage_report -> summary (summary_key));
 diesel::joinable!(damage_taken -> summary (summary_key));
+diesel::joinable!(damage_dealt_by_type -> summary (summary_key));
+diesel::joinable!(damage_taken_by_type -> summary (summary_key));
+diesel::joinable!(damage_taken_by_mob -> summary (summary_key));
+diesel::joinable!(damage_taken_by_mob_power -> summary (summary_key));
 
 diesel::allow_tables_to_appear_in_same_query!(
     damage_action,
@@ -191,4 +237,8 @@ diesel::allow_tables_to_appear_in_same_query!(
     damage_report_by_power,
     index_details,
     damage_taken,
+    damage_dealt_by_type,
+    damage_taken_by_type,
+    damage_taken_by_mob,
+    damage_taken_by_mob_power
 );

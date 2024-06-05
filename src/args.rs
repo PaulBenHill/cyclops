@@ -4,7 +4,7 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(name = "Cyclops")]
 #[command(author = "Ben Hill <benhill70@yahoo.com")]
-#[command(version = ".04")]
+#[command(version = "1.0")]
 #[command(about = "Application to parse City Of Heroes log files", long_about = None)]
 pub struct Args {
     #[arg(

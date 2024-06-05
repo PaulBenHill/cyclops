@@ -14,8 +14,8 @@
       font-weight: bold;
       font-family: Arial;
     }
-
-
+  
+  
     .tabulator,
     .tabulator .tabulator-header,
     .tabulator .tabulator-header .tabulator-col,
@@ -25,27 +25,27 @@
       font-weight: bold !important;
       font-family: Arial !important;
     }
-
+  
     .tabulator-row.tabulator-row-even {
       color: black;
       background: #659ce8;
     }
-
+  
     .tabulator-row.tabulator-selected {
       color: black;
       background: #825382;
     }
-
+  
     .tabulator-row.tabulator-selectable:hover {
       background-color: #858484;
     }
-
+  
     /* Style the tab */
     .tab {
       background-color: inherit;
       overflow: hidden;
     }
-
+  
     /* Style the buttons inside the tab */
     .tab button {
       color: inherit;
@@ -58,19 +58,19 @@
       transition: 0.3s;
       font-size: 17px;
     }
-
+  
     /* Change background color of buttons on hover */
     .tab button:hover {
       color: inherit;
       background-color: #1b283b;
     }
-
+  
     /* Create an active/current tablink class */
     .tab button.active {
       color: inherit;
       background-color: #ccc;
     }
-
+  
     /* Style the tab content */
     .tabcontent {
       display: none;
@@ -78,53 +78,53 @@
       border: 1px solid #ccc;
       border-top: none;
     }
-
+  
     table {
       border-spacing: 0;
       width: 100%;
       border: 1px solid #ddd;
     }
-
+  
     a:visited {
       color: green;
     }
-
+  
     .sortable-table thead th {
       cursor: pointer
     }
-
+  
     .sortable-table thead th:after {
       padding-left: 7px
     }
-
+  
     .sortable-table thead th[data-sort-direction="0"]:after {
       content: "\21D5"
     }
-
+  
     .sortable-table thead th[data-sort-direction="1"]:after {
       content: "\25B4"
     }
-
+  
     .sortable-table thead th[data-sort-direction="-1"]:after {
       content: "\25BE"
     }
-
+  
     .sortable-table.sortable-fa-icons thead th:after {
       font-family: FontAwesome
     }
-
+  
     .sortable-table.sortable-fa-icons thead th[data-sort-direction="0"]:after {
       content: "\f0dc"
     }
-
+  
     .sortable-table.sortable-fa-icons thead th[data-sort-direction="1"]:after {
       content: "\f0de"
     }
-
+  
     .sortable-table.sortable-fa-icons thead th[data-sort-direction="-1"]:after {
       content: "\f0dd"
     }
-
+  
     th,
     td {
       text-align: left;
@@ -134,29 +134,44 @@
       font-size: 100%;
       font-weight: bold;
     }
+  
     details {
-  user-select: none;
-}
-
-details>summary span.icon {
-  width: 24px;
-  height: 24px;
-  transition: all 0.3s;
-  margin-left: auto;
-}
-
-details[open] summary span.icon {
-  transform: rotate(180deg);
-}
-
-summary {
-  display: flex;
-  cursor: pointer;
-}
-
-summary::-webkit-details-marker {
-  display: none;
-}
+      user-select: none;
+    }
+  
+    details>summary span.icon {
+      width: 24px;
+      height: 24px;
+      transition: all 0.3s;
+      margin-left: auto;
+    }
+  
+    details[open] summary span.icon {
+      transform: rotate(180deg);
+    }
+  
+    summary {
+      display: flex;
+      cursor: pointer;
+    }
+  
+    summary::-webkit-details-marker {
+      display: none;
+    }
+  
+    .container {
+      height: 100%;
+      padding-bottom: 10px;
+      display: flex;
+    }
+  
+    .div-left {
+      width: 50%;
+    }
+  
+    .div-right {
+      width: 50%;
+    }
   </style>
   <script>
     function openSummary(evt, summaryName) {
@@ -180,7 +195,6 @@ summary::-webkit-details-marker {
 
     !function () { function t(t, e) { for (; (t = t.parentElement) && !t.classList.contains(e);); return t } function e(t) { return t = t.replace(/[^\d\.-]/g, ""), Number(t) } function n(t) { var e = document.createElement("span"); return e.innerHTML = t, e.textContent || e.innerText } function r(t, e, n) { for (var r = 0; r < n.length; r++)r == e ? n[e].setAttribute("data-sort-direction", t) : n[r].setAttribute("data-sort-direction", 0) } function a(t, e) { for (var n = t.getElementsByTagName("tbody")[0].getElementsByTagName("tr"), r = 0; r < n.length; r++)for (var a = n[r].getElementsByTagName("td"), i = 0; i < a.length; i++)a[i].innerHTML = e[r][i] } window.addEventListener("load", function () { for (var i = document.getElementsByClassName("sortable-table"), o = [], s = 0; s < i.length; s++)!function () { i[s].setAttribute("data-sort-index", s); for (var d = i[s].getElementsByTagName("tbody")[0].getElementsByTagName("tr"), l = 0; l < d.length; l++)for (var g = d[l].getElementsByTagName("td"), c = 0; c < g.length; c++)void 0 === o[s] && o.splice(s, 0, []), void 0 === o[s][l] && o[s].splice(l, 0, []), o[s][l].splice(c, 0, g[c].innerHTML); for (var u = i[s].getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].getElementsByTagName("th"), m = 0; m < u.length; m++)!function () { var s = u[m].classList.contains("numeric-sort"); u[m].setAttribute("data-sort-direction", 0), u[m].setAttribute("data-sort-index", m), u[m].addEventListener("click", function () { var d = this.getAttribute("data-sort-direction"), l = this.getAttribute("data-sort-index"), g = t(this, "sortable-table").getAttribute("data-sort-index"); r(1 == d ? -1 : 1, l, u), o[g] = o[g].sort(function (t, r) { var a = n(t[l]), i = n(r[l]); return s && (a = e(a), i = e(i)), a === i ? 0 : 1 == d ? a > i ? -1 : 1 : a < i ? -1 : 1 }), a(i[g], o[g]) }) }() }() }) }();
   </script>
-
 </head>
 
 <body onLoad="select_first_tab()">

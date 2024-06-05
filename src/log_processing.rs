@@ -7,7 +7,7 @@ use diesel::SqliteConnection;
 use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 
-use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, AppContext};
+use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, schema::damage_dealt_by_type, AppContext};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessingError {
@@ -335,6 +335,18 @@ fn generate_summary(
     report_context.insert("powers", &damage_by_power);
     report_context.insert("dps_interval", &dps_interval);
     report_context.insert("dps_reports", &dps_reports);
+    if let Some(damage_dealt_by_type) = db_actions::get_damage_dealt_by_type_report(conn, summary.summary_key) {
+        report_context.insert("damage_dealt_by_type", &damage_dealt_by_type);
+    }
+    if let Some(damage_taken_by_type) = db_actions::get_damage_taken_by_type_report(conn, summary.summary_key) {
+        report_context.insert("damage_taken_by_type", &damage_taken_by_type);
+    }
+    if let Some(damage_taken_by_mob) = db_actions::get_damage_taken_by_mob_report(conn, summary.summary_key) {
+        report_context.insert("damage_taken_by_mob", &damage_taken_by_mob);
+    }
+    if let Some(damage_taken_by_mob_power) = db_actions::get_damage_taken_by_mob_power_report(conn, summary.summary_key) {
+        report_context.insert("damage_taken_by_mob_power", &damage_taken_by_mob_power);
+    }
 
     let result = tera.render("player_attack_report.html", &report_context);
     match result {

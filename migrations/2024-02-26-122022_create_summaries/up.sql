@@ -246,7 +246,7 @@ CREATE VIEW IF NOT EXISTS damage_dealt_by_type AS
 select
 s.summary_key,
 da.damage_type,
-sum(da.damage) as damage,
+sum(da.damage) as total_damage,
 (CASE
 WHEN (select sum(da2.damage) from damage_action da2 where s.summary_key = da2.summary_key AND da2.source_type IN ('Player', 'PlayerPet')) IS NULL
 THEN
@@ -262,7 +262,7 @@ s.summary_key = da.summary_key
 AND
 da.source_type IN ('Player', 'PlayerPet')
 group by s.summary_key, da.damage_type
-order by s.summary_key, da.damage_type;
+order by s.summary_key, total_damage desc;
 
 -- View: damage_taken_by_type
 DROP VIEW IF EXISTS damage_taken_by_type;
@@ -270,7 +270,7 @@ CREATE VIEW IF NOT EXISTS damage_taken_by_type AS
 select
 s.summary_key,
 da.damage_type,
-sum(da.damage) as damage,
+sum(da.damage) as total_damage,
 (CASE
 WHEN (select sum(da2.damage) from damage_action da2 where s.summary_key = da2.summary_key AND da2.source_type IN ('Mob', 'MobPet')) IS NULL
 THEN
@@ -288,7 +288,7 @@ da.source_type IN ('Mob', 'MobPet')
 AND
 da.target = 'Player'
 group by s.summary_key, da.damage_type
-order by s.summary_key, damage desc;
+order by s.summary_key, total_damage desc;
 
 -- View: damage_taken_by_mob
 DROP VIEW IF EXISTS damage_taken_by_mob;
@@ -346,8 +346,9 @@ source_type IN ('Mob', 'MobPet')
 AND
 target = 'Player'
 group by summary_key, source_name
-order by summary_key, source_name);
+order by summary_key, total_damage desc);
 
+-- View: damage_taken_by_mob_power
 DROP VIEW IF EXISTS damage_taken_by_mob_power;
 CREATE VIEW IF NOT EXISTS damage_taken_by_mob_power AS
 select 
@@ -409,4 +410,4 @@ da1.source_type IN ('Mob', 'MobPet')
 AND
 da1.target = 'Player'
 group by da1.summary_key, da1.source_name, da1.source_type, da1.power_name, da1.damage_type
-order by da1.summary_key, da1.source_name, da1.power_name, da1.damage_type);
+order by da1.summary_key, total_damage desc, da1.power_name, da1.damage_type);

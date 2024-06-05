@@ -255,3 +255,88 @@ pub struct DamageTaken {
     pub total_damage_taken: i32,
     pub damage_per_hit: i32,
 }
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = damage_dealt_by_type)]
+pub struct DamageDealtByType {
+    pub summary_key: i32,
+    pub damage_type: String,
+    pub total_damage: i32,
+    pub damage_percent: i32,
+}
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = damage_taken_by_type)]
+pub struct DamageTakenByType {
+    pub summary_key: i32,
+    pub damage_type: String,
+    pub total_damage: i32,
+    pub damage_percent: i32,
+}
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = damage_taken_by_mob)]
+pub struct DamageTakenByMob {
+    pub summary_key: i32,
+    pub source_name: String,
+    pub hits: i32,
+    pub avg_hit_chance: i32,
+    pub total_damage: i32,
+    pub damage_per_hit: i32,
+}
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = damage_taken_by_mob_power)]
+pub struct DamageTakenByMobPower {
+    pub summary_key: i32,
+    pub source_name: String,
+    pub power_name: String,
+    pub damage_type: String,
+    pub hits: i32,
+    pub avg_hit_chance: i32,
+    pub total_damage: i32,
+    pub damage_per_hit: i32,
+}
