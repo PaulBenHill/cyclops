@@ -83,14 +83,14 @@
             </optgroup>
         </select>
         <br>
-        <input type="submit" formaction="/process_dir" value="Process Directory">
+        <input type="submit" formaction="/process_dir" value="Parse Directory">
         <input type="submit" formaction="/process_latest" value="Parse Newest File In Directory"><br>
     </form>
     <form>
-        <label>Input a log file path or directory:</label><br>
+        <label>Input the full path for a log file or directory (Use Control+Shift+C for full path):</label><br>
         <input type="text" name="log_path" id="log_path" size="50"><br>
         <input type="submit" formaction="/process_file" value="Parse File">
-        <input type="submit" formaction="/parse_dir" value="Process Directory">
+        <input type="submit" formaction="/parse_dir" value="Parse Directory">
     </form>
     <table title="summaries" style="width: 100%;" class="sortable-table">
         <thead>

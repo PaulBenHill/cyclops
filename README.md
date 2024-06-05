@@ -6,7 +6,7 @@
 Application for parsing game chat logs into analysis reports.
 
 ## Preparation
-Please, follow setup instructions otherwiase you will log incomplete or no data at all.
+Please, follow setup instructions otherwiase you will log incomplete or no data at all. You will have to this once for any character you want to parsing log.
 
 Under Option->Windows->Chat, Set "Log Chat" to Enabled, hit, Apply Now.
 ![window chat log settings](chat_log_settings.png)
@@ -30,6 +30,8 @@ Make sure these categories are in the left column:
 
 ![combat tab settings](combat_chat_settings.png)
 
+At this point, I strongly suggest you log back to the character selection screen. It will make sure a clean session start occurs after all the changes.
+
 Once, you log into a character, log files should start appearing in \<coh install dir\>/accounts/\<account name\>/Logs
 
 ## Cyclops instructions
@@ -46,7 +48,7 @@ Usage: cyclops.exe [OPTIONS]
   -h, --help Print help  
   -V, --version   
 
-  You must have at least --files or --logdir on your command line. The rest are optional.  
+  Everything below is optional. The defeault behavior is to start the web server.
     Examples:  
       cyclops --logdir d:\coh\accounts\fake\Logs  
       cyclops --logdir='d:\coh\accounts\fake\Logs','d:\coh\accounts\fake2\Logs'
@@ -83,11 +85,35 @@ Usage: cyclops.exe [OPTIONS]
         - dps.csv - Raw dps data using for the dps report in CSV format.  
         - parsed.txt - Log files parsed into internal format. Useful for finding missed log messages. Look for, Unparsed.
         - summary.db - An Sqlite version 3.2+ database of all the data currently collected. Everything is tied together by the summary_key field in the table, Summary.
+      
+### Index.html
+      Default landing page of the web server. Default: http://127.0.0.1:11227
+      - Lists all summaries in your "output" directory
+      - You can upload new logs for processing
+      - Actions:
+        - Drop down will list any directory you have previous uploaded files.
+        - Parse Directory - Parse every file in the select directory.
+        - Parse Newest File In Directory - Parse the last file modified. Usually this is the last played session.
+        - Text field is for copying the full path of the file or directory for uploading. You MUST provide the full path.
+          - Use Control+Shift+C in the File Explorer to get the full path.
+        Parse File - Parse a single file
+        Parse Directory - Parse all files in a directory. Afterwards, the directory will appear in the drop down list.
+
+          
 
 ### Summary.html  
-        - Attack Summary - Global combat totals for this session  
+        - Attack Summary - Global totals for this session
         - Attack Summary By Power - Combat totals per power  
-        - DPS using an interval of \<interval\> - DPS (Damage per second) when the gap between damage log messages is less than the interval. Example, you attack a spawn, defeat them, wait 60 seconds, then attack another spawn. That would be considered two DPS sessions with an interval of 60.  
+        - DPS using an interval of \<interval\> - DPS (Damage per second) when the gap between damage log messages is less than the interval. Example, you attack a spawn, defeat them, wait 60 seconds, then attack another spawn. That would be considered two DPS sessions with an interval of 60.
+        - Damage Dealt By Type - Damage done to mobs sorted by damage type.
+        - Damage Taken By Type - Damage dealt to the player by damage type.
+        - Damage Taken By Mob - General summary of damage dealt to the player by each mob.
+        - Damage Taken By Mob Power - Detailed break down of damage dealt to the player by each mob's power.
+
+
+### Notes
+        - I round all numbers to the nearest whole number. Using rounding functions, not truncation. This does introduce small difference between the tool values and what you would get if you added the log values up manually. Around +/- 2%.
+        - If you want to investigate the database directly. A good tool is https://www.sqlitestudio.pl/
 
 
 

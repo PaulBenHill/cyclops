@@ -53,7 +53,7 @@ fn create_job_response(context: &AppContext, job: ParserJob) -> impl Responder {
     match result {
         Ok(data) => {
             HttpResponse::Ok()
-        .insert_header(("refresh", "5;url=http://localhost:11227"))
+        .insert_header(("refresh", format!("5;url=http://{}:{}", context.web_address, context.web_port)))
         .insert_header(("no-cache", "no-cache"))
         .body(data)
         }
