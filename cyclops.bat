@@ -1,1 +1,1 @@
-start cmd /k .\target\release\cyclops.exe
+start cmd /k .\cyclops.exe

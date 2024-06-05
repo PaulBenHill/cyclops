@@ -36,6 +36,7 @@ Once, you log into a character, log files should start appearing in \<coh instal
 
 ## Cyclops instructions
 
+For Windows users: You can use cyclops.bat to start the program.
 Usage: cyclops.exe [OPTIONS]
 
   Options:  
