@@ -6,7 +6,7 @@
 Application for parsing game chat logs into analysis reports.
 
 ## Preparation
-Please, follow setup instructions otherwiase you will log incomplete or no data at all. You will have to this once for any character you want to parsing log.
+Please, follow setup instructions otherwiase you will log incomplete or no data at all. You will have to this once for any character you want to parse.
 
 Under Option->Windows->Chat, Set "Log Chat" to Enabled, hit, Apply Now.
 ![window chat log settings](chat_log_settings.png)
@@ -61,11 +61,11 @@ Usage: cyclops.exe [OPTIONS]
 
 ## Web server
 
-  After log processing the application will start a HTTP web server on 127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name.
+  After log processing the application will start a HTTP web server on http://127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name. See below: Index.html
 
-  Click on the date of the log to go to the details page. The summary page has each play session separated by tabs for the selected log file.
+  Click on the date of the log to go to the details page. The summary page has each play session separated by tabs for the selected log file. See below: Summary.html
 
-  When you are done look at the data. Press Control-C in the command window to terminate the application. I plan to make this more user friendly in the future.
+  When you are done using the tool. Press Control-C in the command window to terminate the application. I plan to make this more user friendly in the future.
 
 ## Report Directory
 
@@ -88,22 +88,26 @@ Usage: cyclops.exe [OPTIONS]
       
 ### Index.html
       Default landing page of the web server. Default: http://127.0.0.1:11227
-      - Lists all summaries in your "output" directory
-      - You can upload new logs for processing
+      - Lists all summaries in your "output" directory.
+      - You can upload new logs for processing.
       - Actions:
         - Drop down will list any directory you have previous uploaded files.
         - Parse Directory - Parse every file in the select directory.
         - Parse Newest File In Directory - Parse the last file modified. Usually this is the last played session.
         - Text field is for copying the full path of the file or directory for uploading. You MUST provide the full path.
           - Use Control+Shift+C in the File Explorer to get the full path.
-        Parse File - Parse a single file
+        Parse File - Parse a single file.
         Parse Directory - Parse all files in a directory. Afterwards, the directory will appear in the drop down list.
 
           
 
 ### Summary.html  
         - Attack Summary - Global totals for this session
-        - Attack Summary By Power - Combat totals per power  
+        - Attack Summary By Power - Combat totals per power
+          - Merge rows together that you think are related. Like procs.
+          - Delete row
+          - Remove Non Damage Power - Removes powers like Hasten, Placate, and Build Up.
+          - Revert Changes - Revert all table changes.
         - DPS using an interval of \<interval\> - DPS (Damage per second) when the gap between damage log messages is less than the interval. Example, you attack a spawn, defeat them, wait 60 seconds, then attack another spawn. That would be considered two DPS sessions with an interval of 60.
         - Damage Dealt By Type - Damage done to mobs sorted by damage type.
         - Damage Taken By Type - Damage dealt to the player by damage type.
