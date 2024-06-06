@@ -1,4 +1,4 @@
-use std::{borrow::Borrow, path::PathBuf};
+use std::path::PathBuf;
 
 use actix_files as fs;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
@@ -30,8 +30,8 @@ fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
             if path.is_file() {
                 parser_job.files.push(path);
             } else if path.is_dir() {
-               let mut files = read_log_file_dir(path);
-               parser_job.files.append(&mut files);
+                let mut files = read_log_file_dir(path);
+                parser_job.files.append(&mut files);
             }
         }
         Err(e) => {
@@ -51,12 +51,13 @@ fn create_job_response(context: &AppContext, job: ParserJob) -> impl Responder {
     result_context.insert("error_count", &job.errors.len());
     let result = context.tera.render("job_result.html", &result_context);
     match result {
-        Ok(data) => {
-            HttpResponse::Ok()
-        .insert_header(("refresh", format!("5;url=http://{}:{}", context.web_address, context.web_port)))
-        .insert_header(("no-cache", "no-cache"))
-        .body(data)
-        }
+        Ok(data) => HttpResponse::Ok()
+            .insert_header((
+                "refresh",
+                format!("5;url=http://{}:{}", context.web_address, context.web_port),
+            ))
+            .insert_header(("no-cache", "no-cache"))
+            .body(data),
         Err(e) => panic!("Could not render {}:{:?}", "index.html", e),
     }
 }
@@ -75,9 +76,7 @@ async fn process_file(req: HttpRequest, context: web::Data<AppContext>) -> impl 
             generate_index(&context, &indexes);
             create_job_response(&context, result)
         }
-        Err(job) => {
-            create_job_response(&context, job)
-        },
+        Err(job) => create_job_response(&context, job),
     }
 }
 
@@ -95,11 +94,8 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
             generate_index(&context, &indexes);
             create_job_response(&context, result)
         }
-        Err(job) => {
-            create_job_response(&context, job)
-        },
+        Err(job) => create_job_response(&context, job),
     }
-
 }
 
 #[get("/process_dir")]
@@ -125,9 +121,7 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
             generate_index(&context, &indexes);
             create_job_response(&context, result)
         }
-        Err(job) => {
-            create_job_response(&context, job)
-        },
+        Err(job) => create_job_response(&context, job),
     }
 }
 

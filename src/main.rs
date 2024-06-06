@@ -26,6 +26,7 @@ mod web;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
+const VERSION: &str = "1.0";
 
 #[derive(Clone, Debug)]
 struct AppContext {
@@ -46,7 +47,7 @@ struct AppContext {
 // file or log dir not required
 fn main() {
     println!("################################");
-    println!("Cyclops CoX Log Parsing tool 1.0");
+    println!("Cyclops CoX Log Parsing tool {}", VERSION);
     println!("################################");
     let start = Instant::now();
 
