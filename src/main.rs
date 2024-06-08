@@ -60,7 +60,7 @@ fn main() {
         errors: Vec::new(),
     };
     if !parser_job.files.is_empty() {
-        parser_job.process_logs(&app_context);
+       parser_job.process_logs(&app_context);
     }
     
     let indexes = find_all_summaries(&app_context.output_dir);
@@ -157,7 +157,7 @@ fn setup_tera() -> Tera {
     }
 }
 
-fn get_last_modified_file_in_dir(dir: PathBuf) -> PathBuf {
+fn get_last_modified_file_in_dir(dir: &PathBuf) -> PathBuf {
     std::fs::read_dir(dir)
         .expect("Couldn't access local directory")
         .flatten() // Remove failed
@@ -170,7 +170,7 @@ fn get_last_modified_file_in_dir(dir: PathBuf) -> PathBuf {
         .unwrap()
 }
 
-fn read_log_file_dir(dir: PathBuf) -> Vec<PathBuf> {
+fn read_log_file_dir(dir: &PathBuf) -> Vec<PathBuf> {
     match fs::canonicalize(&dir) {
         Ok(path) => {
             if path.exists() && path.is_dir() {
@@ -237,7 +237,7 @@ fn initialize() -> (AppContext, Vec<PathBuf>) {
     if let Some(log_dirs) = args.logdir {
         println!("Value for log dir: {:?}", log_dirs);
         for dir in log_dirs {
-            log_file_names.append(&mut read_log_file_dir(dir.to_path_buf()));
+            log_file_names.append(&mut read_log_file_dir(&dir));
         }
     } else if let Some(files) = args.files {
         for path_buf in files {
@@ -252,7 +252,7 @@ fn initialize() -> (AppContext, Vec<PathBuf>) {
     let mut output_dir = PathBuf::new().join(OUTPUT_DIR);
     if let Some(outputdir) = args.outputdir {
         println!("Value for output dir: {:?}", outputdir);
-        output_dir = outputdir.to_path_buf();
+        output_dir = outputdir.clone();
     }
 
     let mut dps_interval = 60;

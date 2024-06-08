@@ -6,6 +6,7 @@ use std::fs;
 use std::path::*;
 
 use crate::models::DamageDealtByType;
+use crate::models::DamageDealtToMobByPower;
 use crate::models::DamageTaken;
 use crate::models::DamageTakenByMob;
 use crate::models::DamageTakenByMobPower;
@@ -326,7 +327,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -354,7 +355,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -386,7 +387,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -404,7 +405,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -444,7 +445,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -475,7 +476,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -493,7 +494,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -511,7 +512,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -529,7 +530,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -547,7 +548,7 @@ pub fn write_to_database(
                     summary_key: key,
                     line_number: data_position.line_number as i32,
                     log_date: data_position.date.to_rfc3339(),
-                    target: damage_dealt.target.clone(),
+                    target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     damage: damage_dealt.damage.round() as i32,
                     damage_type: damage_dealt.damage_type.to_string(),
@@ -969,6 +970,34 @@ pub fn get_damage_taken_by_mob_power_report(
 ) -> Option<Vec<DamageTakenByMobPower>> {
     let mut result: Vec<DamageTakenByMobPower> = Vec::new();
     for r in select_damage_taken_by_mob_power_report(conn) {
+        if r.summary_key == key {
+            result.push(r);
+        }
+    }
+
+    if result.len() > 0 {
+        return Some(result);
+    }
+
+    None
+}
+
+fn select_damage_dealt_to_mob_by_power_report (
+    conn: &mut SqliteConnection,
+) -> Vec<DamageDealtToMobByPower> {
+    use crate::schema::damage_dealt_to_mob_by_power::dsl::*;
+    damage_dealt_to_mob_by_power
+        .select(DamageDealtToMobByPower::as_select())
+        .load(conn)
+        .expect("Unable to load damage taken report")
+}
+
+pub fn get_damage_dealt_to_mob_by_power_report(
+    conn: &mut SqliteConnection,
+    key: i32,
+) -> Option<Vec<DamageDealtToMobByPower>> {
+    let mut result: Vec<DamageDealtToMobByPower> = Vec::new();
+    for r in select_damage_dealt_to_mob_by_power_report(conn) {
         if r.summary_key == key {
             result.push(r);
         }

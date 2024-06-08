@@ -39,7 +39,7 @@ impl ParserJob {
 
         for file in &self.files[..] {
             let conn = &mut db_actions::establish_connection(); // In memory db, fresh db on each call
-            let file_path = match verify_file(file.to_path_buf()) {
+            let file_path = match verify_file(&file) {
                 Ok(f) => f,
                 Err(e) => {
                     self.errors.push(e);
@@ -65,18 +65,12 @@ impl ParserJob {
                 let report_dir = Self::create_report_dir(
                     &context.working_dir,
                     &context.output_dir,
-                    file.to_path_buf(),
-                    &summaries.first().unwrap().player_name,
+                    &file,
+                    &summaries.first().unwrap().player_name.replace(" ", "_"),
                 );
                 db_actions::copy_db(conn, report_dir.join("summary.db"));
                 let mut summary_renders: Vec<String> = Vec::new();
-                Self::write_data_files(
-                    conn,
-                    report_dir.to_path_buf(),
-                    file.to_path_buf(),
-                    file_path.to_path_buf(),
-                    &data_points,
-                );
+                Self::write_data_files(conn, &report_dir, &file, &file_path, &data_points);
                 for (i, s) in summaries.iter().enumerate() {
                     summary_renders.push(Self::generate_summary(
                         conn,
@@ -90,8 +84,8 @@ impl ParserJob {
 
                 Self::generate_top_level(
                     &context.tera,
-                    report_dir.to_path_buf(),
-                    file_path.to_path_buf(),
+                    &report_dir,
+                    &file_path,
                     summaries,
                     summary_renders,
                 );
@@ -135,7 +129,7 @@ impl ParserJob {
     fn create_report_dir(
         working_dir: &PathBuf,
         output_dir: &PathBuf,
-        file_name: PathBuf,
+        file_name: &PathBuf,
         player_name: &str,
     ) -> PathBuf {
         let fn_as_str = file_name
@@ -164,7 +158,7 @@ impl ParserJob {
 
     pub fn open_log_file(path_buf: PathBuf) -> Result<BufReader<File>, ProcessingError> {
         let file_name = path_buf
-            .to_path_buf()
+            .clone()
             .into_os_string()
             .into_string()
             .expect("Could not create a file name from os string.");
@@ -246,9 +240,9 @@ impl ParserJob {
 
     fn write_data_files(
         conn: &mut SqliteConnection,
-        report_dir: PathBuf,
-        file_name: PathBuf,
-        data_file: PathBuf,
+        report_dir: &PathBuf,
+        file_name: &PathBuf,
+        data_file: &PathBuf,
         parsed_lines: &Vec<FileDataPoint>,
     ) {
         if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name.file_name().unwrap())) {
@@ -256,7 +250,7 @@ impl ParserJob {
         }
 
         // write parsed logs for troubleshooting
-        Self::write_parsed_files(report_dir.to_path_buf(), parsed_lines);
+        Self::write_parsed_files(&report_dir, parsed_lines);
 
         let dps_file = match File::create(report_dir.join("dps.csv")) {
             Ok(f) => f,
@@ -272,7 +266,7 @@ impl ParserJob {
         }
     }
 
-    fn write_parsed_files(report_dir: PathBuf, parsed_lines: &Vec<FileDataPoint>) {
+    fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
         let parsed_text_file = match File::create(report_dir.join("parsed.txt")) {
             Ok(f) => f,
             Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
@@ -378,6 +372,11 @@ impl ParserJob {
         {
             report_context.insert("damage_taken_by_mob_power", &damage_taken_by_mob_power);
         }
+        // if let Some(damage_dealt_to_mob_by_power) =
+        //     db_actions::get_damage_dealt_to_mob_by_power_report(conn, summary.summary_key)
+        // {
+        //     //report_context.insert("damage_dealt_to_mob_by_power", &damage_dealt_to_mob_by_power);
+        // }
 
         let result = tera.render("player_attack_report.html", &report_context);
         match result {
@@ -388,8 +387,8 @@ impl ParserJob {
 
     fn generate_top_level(
         tera: &Tera,
-        report_dir: PathBuf,
-        file_name: PathBuf,
+        report_dir: &PathBuf,
+        file_name: &PathBuf,
         summaries: Vec<Summary>,
         renders: Vec<String>,
     ) {
@@ -423,12 +422,12 @@ pub fn create_dir(dir_path: &PathBuf) {
     }
 }
 
-pub fn verify_file(path_buf: PathBuf) -> Result<PathBuf, ProcessingError> {
+pub fn verify_file(path_buf: &PathBuf) -> Result<&PathBuf, ProcessingError> {
     if path_buf.is_file() || path_buf.is_dir() {
         Ok(path_buf)
     } else {
         Err(ProcessingError {
-            file_name: path_buf,
+            file_name: path_buf.clone(),
             message: "Unable to verify file existence. Might be invalid file name or permissions"
                 .to_owned(),
         })

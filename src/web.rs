@@ -25,12 +25,12 @@ fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
     };
 
     let local_path = path_buf.to_owned();
-    match log_processing::verify_file(local_path) {
+    match log_processing::verify_file(&local_path) {
         Ok(path) => {
             if path.is_file() {
-                parser_job.files.push(path);
+                parser_job.files.push(path.to_owned());
             } else if path.is_dir() {
-                let mut files = read_log_file_dir(path);
+                let mut files = read_log_file_dir(&path);
                 parser_job.files.append(&mut files);
             }
         }
@@ -86,7 +86,7 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
     println!("Latest Request: {:?}", form.log_path);
 
     let stripped_file = form.log_path.replace("\"", "");
-    match create_parser_job(get_last_modified_file_in_dir(stripped_file.into())) {
+    match create_parser_job(get_last_modified_file_in_dir(&stripped_file.into())) {
         Ok(job) => {
             let result = job.process_logs(&context);
 

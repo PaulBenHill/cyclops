@@ -14,7 +14,7 @@ pub struct DamageAction {
     pub summary_key: i32,
     pub line_number: i32,
     pub log_date: String,
-    pub target: String,
+    pub target_name: String,
     pub power_name: String,
     pub damage: i32,
     pub damage_type: String,
@@ -337,6 +337,30 @@ pub struct DamageTakenByMobPower {
     pub damage_type: String,
     pub hits: i32,
     pub avg_hit_chance: i32,
+    pub total_damage: i32,
+    pub damage_per_hit: i32,
+}
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = damage_dealt_to_mob_by_power)]
+pub struct DamageDealtToMobByPower {
+    pub summary_key: i32,
+    pub target_name: String,
+    pub power_name: String,
+    pub hits: i32,
+    pub misses: i32,
+    pub hit_percent: i32,
     pub total_damage: i32,
     pub damage_per_hit: i32,
 }

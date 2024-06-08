@@ -1,7 +1,7 @@
 -- Your SQL goes here
 --
 DROP TABLE IF EXISTS damage_action;
-CREATE TABLE IF NOT EXISTS damage_action (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, target TEXT NOT NULL, power_name TEXT NOT NULL, damage INTEGER NOT NULL, damage_type TEXT NOT NULL, damage_mode TEXT CHECK (damage_mode IN ('Direct', 'DoT', 'Critical')) NOT NULL, source_type TEXT CHECK (source_type IN ('Player', 'PlayerPet', 'Mob', 'MobPet')) NOT NULL, source_name TEXT NOT NULL, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key) ON DELETE CASCADE) STRICT;
+CREATE TABLE IF NOT EXISTS damage_action (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, target_name TEXT NOT NULL, power_name TEXT NOT NULL, damage INTEGER NOT NULL, damage_type TEXT NOT NULL, damage_mode TEXT CHECK (damage_mode IN ('Direct', 'DoT', 'Critical')) NOT NULL, source_type TEXT CHECK (source_type IN ('Player', 'PlayerPet', 'Mob', 'MobPet')) NOT NULL, source_name TEXT NOT NULL, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key) ON DELETE CASCADE) STRICT;
 
 -- Table: debuff_action
 DROP TABLE IF EXISTS debuff_action;
@@ -235,7 +235,7 @@ damage_action da1
 where
 da1.source_type IN ('Mob', 'MobPet')
 AND
-da1.target = 'Player'
+da1.target_name = 'Player'
 group by da1.summary_key)
 group by summary_key;
 
@@ -286,7 +286,7 @@ s.summary_key = da.summary_key
 AND
 da.source_type IN ('Mob', 'MobPet')
 AND
-da.target = 'Player'
+da.target_name = 'Player'
 group by s.summary_key, da.damage_type
 order by s.summary_key, total_damage desc;
 
@@ -344,7 +344,7 @@ from damage_action da1
 where
 source_type IN ('Mob', 'MobPet')
 AND
-target = 'Player'
+target_name = 'Player'
 group by summary_key, source_name
 order by summary_key, total_damage desc);
 
@@ -408,6 +408,163 @@ from damage_action da1
 where
 da1.source_type IN ('Mob', 'MobPet')
 AND
-da1.target = 'Player'
+da1.target_name = 'Player'
 group by da1.summary_key, da1.source_name, da1.source_type, da1.power_name, da1.damage_type
 order by da1.summary_key, total_damage desc, da1.power_name, da1.damage_type);
+
+DROP VIEW IF EXISTS damage_dealt_to_mob_by_power;
+CREATE VIEW IF NOT EXISTS damage_dealt_to_mob_by_power AS
+select
+summary_key,
+target_name,
+power_name,
+hits,
+misses,
+chance_to_hit,
+(CASE WHEN
+misses = 0
+THEN
+100
+ELSE
+ROUND(1.0 * hits / (hits + misses)* 100)
+END) as hit_percent,
+total_damage,
+(CASE WHEN
+total_damage = 0 OR hits = 0
+THEN
+0
+ELSE
+ROUND(1.0 * total_damage / hits)
+END) as damage_per_hit
+from
+(select
+da1.summary_key,
+da1.target_name,
+da1.power_name,
+(CASE
+WHEN
+(select 
+sum(hit)
+from
+hit_or_miss hm1
+where
+hm1.hit = 1
+AND
+da1.summary_key = hm1.summary_key
+AND
+hm1.source_type IN ('Player', 'PlayerPet')
+AND
+da1.source_type = hm1.source_type
+AND
+da1.target_name = hm1.target_name
+AND
+da1.power_name = hm1.power_name
+) IS NULL
+THEN
+0
+ELSE
+(select 
+count(hit)
+from
+hit_or_miss hm1
+where
+hm1.hit = 1
+AND
+da1.summary_key = hm1.summary_key
+AND
+hm1.source_type IN ('Player', 'PlayerPet')
+AND
+da1.source_type = hm1.source_type
+AND
+da1.target_name = hm1.target_name
+AND
+da1.power_name = hm1.power_name
+)
+END) as hits,
+(CASE
+WHEN
+(select 
+count(hit)
+from
+hit_or_miss hm1
+where
+hm1.hit = 0
+AND
+da1.summary_key = hm1.summary_key
+AND
+hm1.source_type IN ('Player', 'PlayerPet')
+AND
+da1.source_type = hm1.source_type
+AND
+da1.target_name = hm1.target_name
+AND
+da1.power_name = hm1.power_name
+) IS NULL
+THEN
+0
+ELSE
+(select 
+count(hit)
+from
+hit_or_miss hm1
+where
+hm1.hit = 0
+AND
+da1.summary_key = hm1.summary_key
+AND
+hm1.source_type IN ('Player', 'PlayerPet')
+AND
+da1.source_type = hm1.source_type
+AND
+da1.target_name = hm1.target_name
+AND
+da1.power_name = hm1.power_name
+)
+END) as misses,
+ROUND((CASE
+WHEN
+(select 
+avg(chance_to_hit)
+from
+hit_or_miss hm1
+where
+hm1.hit = 1
+AND
+da1.summary_key = hm1.summary_key
+AND
+hm1.source_type IN ('Player', 'PlayerPet')
+AND
+da1.source_type = hm1.source_type
+AND
+da1.target_name = hm1.target_name
+AND
+da1.power_name = hm1.power_name
+) IS NULL
+THEN
+0
+ELSE
+(select 
+avg(chance_to_hit)
+from
+hit_or_miss hm1
+where
+hm1.hit = 1
+AND
+da1.summary_key = hm1.summary_key
+AND
+hm1.source_type IN ('Player', 'PlayerPet')
+AND
+da1.source_type = hm1.source_type
+AND
+da1.target_name = hm1.target_name
+AND
+da1.power_name = hm1.power_name
+)
+END)) as chance_to_hit,
+sum(da1.damage) as total_damage
+from
+damage_action da1
+where
+da1.source_type IN ('Player', 'PlayerPet')
+group by da1.summary_key, da1.target_name, da1.power_name
+order by da1.target_name, da1.power_name);
