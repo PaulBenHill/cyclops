@@ -289,7 +289,7 @@ impl ParserJob {
     ) -> String {
         let rewards_defeats =
             db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
-        let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key).unwrap();
+        let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key);
         let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
 
         let mut dps_reports: Vec<Vec<String>> = Vec::new();
@@ -375,6 +375,7 @@ impl ParserJob {
         // if let Some(damage_dealt_to_mob_by_power) =
         //     db_actions::get_damage_dealt_to_mob_by_power_report(conn, summary.summary_key)
         // {
+        //     println!("DDTMBP count: {}", damage_dealt_to_mob_by_power.len());
         //     //report_context.insert("damage_dealt_to_mob_by_power", &damage_dealt_to_mob_by_power);
         // }
 

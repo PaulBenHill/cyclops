@@ -272,7 +272,7 @@ s.summary_key,
 da.damage_type,
 sum(da.damage) as total_damage,
 (CASE
-WHEN (select sum(da2.damage) from damage_action da2 where s.summary_key = da2.summary_key AND da2.source_type IN ('Mob', 'MobPet')) IS NULL
+WHEN (select sum(da2.damage) from damage_action da2 where s.summary_key = da2.summary_key AND da2.source_type IN ('Mob', 'MobPet') AND target_name = 'Player') IS NULL
 THEN
 0
 ELSE
@@ -418,6 +418,7 @@ select
 summary_key,
 target_name,
 power_name,
+activations,
 hits,
 misses,
 chance_to_hit,
@@ -435,12 +436,27 @@ THEN
 0
 ELSE
 ROUND(1.0 * total_damage / hits)
-END) as damage_per_hit
+END) as damage_per_hit,
+(CASE WHEN
+activations IS NULL OR activations = 0
+THEN
+0
+ELSE
+ROUND(1.0 * total_damage / activations)
+END) as damage_per_activations
 from
 (select
 da1.summary_key,
 da1.target_name,
 da1.power_name,
+(select 
+count(da1.power_name)
+from
+player_activation pa
+where
+da1.summary_key = pa.summary_key
+AND
+pa.power_name = da1.power_name) as activations,
 (CASE
 WHEN
 (select 
@@ -567,4 +583,4 @@ damage_action da1
 where
 da1.source_type IN ('Player', 'PlayerPet')
 group by da1.summary_key, da1.target_name, da1.power_name
-order by da1.target_name, da1.power_name);
+order by da1.power_name);

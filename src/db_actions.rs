@@ -363,18 +363,13 @@ pub fn write_to_database(
                     source_type: String::from("Player"),
                     source_name: String::from("Player"),
                 });
-                if damage_dealt.power_name.contains("Interface") {
-                    hits_misses.push(crate::models::HitOrMiss {
+                if damage_dealt.power_name.contains("Interface")
+                {
+                    activations.push(PlayerActivation {
                         summary_key: key,
                         line_number: data_position.line_number as i32,
                         log_date: data_position.date.to_rfc3339(),
-                        hit: 1,
-                        chance_to_hit: 100,
-                        source_type: String::from("Player"),
-                        source_name: String::from("Player"),
-                        target_name: damage_dealt.target.clone(),
                         power_name: damage_dealt.power_name.clone(),
-                        streakbreaker: 0,
                     });
                 }
             }
@@ -840,197 +835,132 @@ pub fn index_details(conn: &mut SqliteConnection) -> Vec<IndexDetails> {
         .expect("Unable to load index details")
 }
 
-fn select_total_damage_reports(conn: &mut SqliteConnection) -> Vec<TotalDamageReport> {
+pub fn get_total_damage_report(conn: &mut SqliteConnection, key: i32) -> TotalDamageReport {
     use crate::schema::total_damage_report::dsl::*;
-    total_damage_report
-        .select(TotalDamageReport::as_select())
+    let mut result: Vec<TotalDamageReport> = total_damage_report
+        .filter(summary_key.eq(key))
         .load(conn)
-        .expect("Unable to load total damage report")
-}
+        .expect("Unable to load total damage report");
 
-pub fn get_total_damage_report(conn: &mut SqliteConnection, key: i32) -> Option<TotalDamageReport> {
-    for r in select_total_damage_reports(conn) {
-        if r.summary_key == key {
-            return Some(r);
-        }
-    }
-
-    None
-}
-
-fn select_damage_taken_report(conn: &mut SqliteConnection) -> Vec<DamageTaken> {
-    use crate::schema::damage_taken::dsl::*;
-    damage_taken
-        .select(DamageTaken::as_select())
-        .load(conn)
-        .expect("Unable to load damage taken report")
+    result.pop().unwrap()
 }
 
 pub fn get_damage_taken_report(conn: &mut SqliteConnection, key: i32) -> Option<DamageTaken> {
-    for r in select_damage_taken_report(conn) {
-        if r.summary_key == key {
-            return Some(r);
-        }
+    use crate::schema::damage_taken::dsl::*;
+    match damage_taken
+        .filter(summary_key.eq(key))
+        .load::<DamageTaken>(conn)
+    {
+        Ok(mut data) => data.pop(),
+        Err(_) => None,
     }
-
-    None
-}
-
-fn select_damage_dealt_by_type_report(conn: &mut SqliteConnection) -> Vec<DamageDealtByType> {
-    use crate::schema::damage_dealt_by_type::dsl::*;
-    damage_dealt_by_type
-        .select(DamageDealtByType::as_select())
-        .load(conn)
-        .expect("Unable to load damage taken report")
 }
 
 pub fn get_damage_dealt_by_type_report(
     conn: &mut SqliteConnection,
     key: i32,
 ) -> Option<Vec<DamageDealtByType>> {
-    let mut result: Vec<DamageDealtByType> = Vec::new();
-    for r in select_damage_dealt_by_type_report(conn) {
-        if r.summary_key == key {
-            result.push(r);
+    use crate::schema::damage_dealt_by_type::dsl::*;
+    match damage_dealt_by_type
+        .filter(summary_key.eq(key))
+        .load::<DamageDealtByType>(conn)
+    {
+                Ok(data) => {
+            if data.is_empty()  {
+                None
+            } else {
+                Some(data)
+            }
         }
+        Err(_) => None,
+
     }
-
-    if result.len() > 0 {
-        return Some(result);
-    }
-
-    None
-}
-
-fn select_damage_taken_by_type_report(conn: &mut SqliteConnection) -> Vec<DamageTakenByType> {
-    use crate::schema::damage_taken_by_type::dsl::*;
-    damage_taken_by_type
-        .select(DamageTakenByType::as_select())
-        .load(conn)
-        .expect("Unable to load damage taken report")
 }
 
 pub fn get_damage_taken_by_type_report(
     conn: &mut SqliteConnection,
     key: i32,
 ) -> Option<Vec<DamageTakenByType>> {
-    let mut result: Vec<DamageTakenByType> = Vec::new();
-    for r in select_damage_taken_by_type_report(conn) {
-        if r.summary_key == key {
-            result.push(r);
+    use crate::schema::damage_taken_by_type::dsl::*;
+    match damage_taken_by_type
+        .filter(summary_key.eq(key))
+        .load::<DamageTakenByType>(conn)
+    {
+        Ok(data) => {
+            if data.is_empty() {
+                None
+            } else {
+                Some(data)
+            }
         }
+        Err(_) => None,
     }
-
-    if result.len() > 0 {
-        return Some(result);
-    }
-
-    None
-}
-
-fn select_damage_taken_by_mob_report(conn: &mut SqliteConnection) -> Vec<DamageTakenByMob> {
-    use crate::schema::damage_taken_by_mob::dsl::*;
-    damage_taken_by_mob
-        .select(DamageTakenByMob::as_select())
-        .load(conn)
-        .expect("Unable to load damage taken report")
 }
 
 pub fn get_damage_taken_by_mob_report(
     conn: &mut SqliteConnection,
     key: i32,
 ) -> Option<Vec<DamageTakenByMob>> {
-    let mut result: Vec<DamageTakenByMob> = Vec::new();
-    for r in select_damage_taken_by_mob_report(conn) {
-        if r.summary_key == key {
-            result.push(r);
+    use crate::schema::damage_taken_by_mob::dsl::*;
+    match damage_taken_by_mob
+        .filter(summary_key.eq(key))
+        .load::<DamageTakenByMob>(conn)
+    {
+        Ok(data) => {
+            if data.is_empty() {
+                None
+            } else {
+                Some(data)
+            }
         }
+        Err(_) => None,
     }
-
-    if result.len() > 0 {
-        return Some(result);
-    }
-
-    None
-}
-
-fn select_damage_taken_by_mob_power_report(
-    conn: &mut SqliteConnection,
-) -> Vec<DamageTakenByMobPower> {
-    use crate::schema::damage_taken_by_mob_power::dsl::*;
-    damage_taken_by_mob_power
-        .select(DamageTakenByMobPower::as_select())
-        .load(conn)
-        .expect("Unable to load damage taken report")
 }
 
 pub fn get_damage_taken_by_mob_power_report(
     conn: &mut SqliteConnection,
     key: i32,
 ) -> Option<Vec<DamageTakenByMobPower>> {
-    let mut result: Vec<DamageTakenByMobPower> = Vec::new();
-    for r in select_damage_taken_by_mob_power_report(conn) {
-        if r.summary_key == key {
-            result.push(r);
+    use crate::schema::damage_taken_by_mob_power::dsl::*;
+    match damage_taken_by_mob_power
+        .filter(summary_key.eq(key))
+        .load::<DamageTakenByMobPower>(conn)
+    {
+        Ok(data) => {
+            if data.is_empty() {
+                None
+            } else {
+                Some(data)
+            }
         }
+        Err(_) => None,
     }
-
-    if result.len() > 0 {
-        return Some(result);
-    }
-
-    None
-}
-
-fn select_damage_dealt_to_mob_by_power_report (
-    conn: &mut SqliteConnection,
-) -> Vec<DamageDealtToMobByPower> {
-    use crate::schema::damage_dealt_to_mob_by_power::dsl::*;
-    damage_dealt_to_mob_by_power
-        .select(DamageDealtToMobByPower::as_select())
-        .load(conn)
-        .expect("Unable to load damage taken report")
 }
 
 pub fn get_damage_dealt_to_mob_by_power_report(
     conn: &mut SqliteConnection,
     key: i32,
 ) -> Option<Vec<DamageDealtToMobByPower>> {
-    let mut result: Vec<DamageDealtToMobByPower> = Vec::new();
-    for r in select_damage_dealt_to_mob_by_power_report(conn) {
-        if r.summary_key == key {
-            result.push(r);
-        }
+    use crate::schema::damage_dealt_to_mob_by_power::dsl::*;
+    match damage_dealt_to_mob_by_power
+        .filter(summary_key.eq(key))
+        .load::<DamageDealtToMobByPower>(conn)
+    {
+        Ok(data) => Some(data),
+        Err(_) => None,
     }
-
-    if result.len() > 0 {
-        return Some(result);
-    }
-
-    None
-}
-
-fn select_damage_reports_by_power(conn: &mut SqliteConnection) -> Vec<DamageReportByPower> {
-    use crate::schema::damage_report_by_power::dsl::*;
-    damage_report_by_power
-        .select(DamageReportByPower::as_select())
-        .load(conn)
-        .expect("Unable to load damage report by power")
 }
 
 pub fn get_damage_by_power_report(
     conn: &mut SqliteConnection,
     key: i32,
 ) -> Vec<DamageReportByPower> {
-    let mut reports: Vec<DamageReportByPower> = Vec::new();
+    use crate::schema::damage_report_by_power::dsl::*;
 
-    for r in select_damage_reports_by_power(conn) {
-        if r.summary_key == key {
-            reports.push(r);
-        }
-    }
-
-    reports
+    damage_report_by_power
+        .filter(summary_key.eq(key))
+        .load(conn)
+        .expect("Unable to load damage report by power")
 }
 
 pub fn select_damage_intervals(conn: &mut SqliteConnection) -> Vec<DamageIntervals> {
@@ -1046,12 +976,11 @@ pub fn get_damage_intervals(
     key: i32,
     interval: i32,
 ) -> Vec<Vec<DamageIntervals>> {
-    let mut intervals: Vec<DamageIntervals> = Vec::new();
-    for r in select_damage_intervals(conn) {
-        if r.summary_key == key {
-            intervals.push(r);
-        }
-    }
+    use crate::schema::damage_intervals::dsl::*;
+    let intervals: Vec<DamageIntervals> = damage_intervals
+        .filter(summary_key.eq(key))
+        .load(conn)
+        .expect("Unable to load damage intervals");
 
     let mut result: Vec<Vec<DamageIntervals>> = Vec::new();
     let mut current_interval: Vec<DamageIntervals> = Vec::new();
