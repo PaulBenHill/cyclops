@@ -279,22 +279,10 @@ impl ParserJob {
         }
     }
 
-    fn generate_summary(
-        conn: &mut SqliteConnection,
-        tera: &Tera,
-        index: usize,
-        summary: &Summary,
-        line_count: usize,
-        dps_interval: usize,
-    ) -> String {
-        let rewards_defeats =
-            db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
-        let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key);
-        let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
-
+    fn generate_dps_report(conn:&mut SqliteConnection, key: i32, interval: usize, line_count: usize ) -> Vec<Vec<String>> {
         let mut dps_reports: Vec<Vec<String>> = Vec::new();
         let damage_intervals =
-            db_actions::get_damage_intervals(conn, summary.summary_key, dps_interval as i32);
+            db_actions::get_damage_intervals(conn, key, interval as i32);
 
         for intervals in damage_intervals {
             let first_interval = intervals.first().unwrap();
@@ -340,6 +328,25 @@ impl ParserJob {
                 dps.to_string(),
             ]);
         }
+
+        dps_reports
+    }
+
+    fn generate_summary(
+        conn: &mut SqliteConnection,
+        tera: &Tera,
+        index: usize,
+        summary: &Summary,
+        line_count: usize,
+        dps_interval: usize,
+    ) -> String {
+        let rewards_defeats =
+            db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
+        let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key);
+        let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
+
+        let dps_reports = Self::generate_dps_report(conn, summary.summary_key, dps_interval, line_count);
+
         let mut report_context = Context::new();
 
         report_context.insert("index", &format!("player{}", index + 1));
