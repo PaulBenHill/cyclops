@@ -139,6 +139,7 @@ diesel::table! {
         misses -> Integer,
         hit_percentage -> Nullable<Integer>,
         power_total_damage -> Integer,
+        total_damage_percent -> Nullable<Integer>,
         dpa -> Nullable<Integer>,
         ate -> Nullable<Integer>,
         direct_damage -> Integer,
