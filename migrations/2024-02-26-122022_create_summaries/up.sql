@@ -75,13 +75,6 @@ sum(streak_breakers) as streak_breakers,
 sum(misses) misses,
 ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100) as hit_percentage,
 sum(power_total_damage) as power_total_damage,
-(CASE WHEN
-sum(power_total_damage) = 0
-THEN
-NULL
-ELSE
-ROUND( 1.0 * sum(power_total_damage) / (select sum(da.damage) from damage_action da where summary_key = da.summary_key AND source_type IN ('Player', 'PlayerPet')) * 100)
-END) AS total_damage_percent,
 (sum(power_total_damage)/activations) as dpa,
 (ROUND(1.0 * sum(hits + misses) / activations)) as ate,
 sum(direct_damage) as direct_damage,

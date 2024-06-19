@@ -201,8 +201,6 @@ pub struct DamageReportByPower {
     pub hit_percentage: Option<i32>,
     pub power_total_damage: i32,
     #[diesel(sql_type = Nullable<Integer>)]
-    pub total_damage_percent: Option<i32>,
-    #[diesel(sql_type = Nullable<Integer>)]
     pub dpa: Option<i32>,
     #[diesel(sql_type = Nullable<Integer>)]
     pub ate: Option<i32>,
