@@ -21,6 +21,7 @@ Make sure these categories are in the left column:
 - Error
 - Healing Received
 - Healing Delivery
+- Pet Combat
 - Pet Damage Inflicted - Pet categories are very important or pseudo pet logging might be missed.
 - Pet Hit Rolls
 - Pet Damage Received
