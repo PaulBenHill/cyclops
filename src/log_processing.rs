@@ -1,7 +1,7 @@
 use std::{
     fmt,
     fs::{self, File},
-    io::{BufRead, BufReader, BufWriter, Lines, Write},
+    io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write},
     path::PathBuf,
     time::{Duration, Instant},
 };
@@ -70,7 +70,14 @@ impl ParserJob {
                 );
                 db_actions::copy_db(conn, report_dir.join("summary.db"));
                 let mut summary_renders: Vec<String> = Vec::new();
-                Self::write_data_files(conn, &report_dir, &file, &file_path, &data_points);
+                Self::write_data_files(
+                    conn,
+                    &report_dir,
+                    &file,
+                    &file_path,
+                    &data_points,
+                    &summaries,
+                );
                 for (i, s) in summaries.iter().enumerate() {
                     summary_renders.push(Self::generate_summary(
                         conn,
@@ -244,9 +251,15 @@ impl ParserJob {
         file_name: &PathBuf,
         data_file: &PathBuf,
         parsed_lines: &Vec<FileDataPoint>,
+        summaries: &Vec<Summary>,
     ) {
-        if let Err(e) = std::fs::copy(data_file, report_dir.join(file_name.file_name().unwrap())) {
+        let log_file_path = report_dir.join(file_name.file_name().unwrap());
+        if let Err(e) = std::fs::copy(data_file, log_file_path.to_path_buf()) {
             println!("Copying data file return zero bytes: {}", e);
+        }
+
+        for s in summaries {
+            Self::write_summary_chunk(s, report_dir, &log_file_path);
         }
 
         // write parsed logs for troubleshooting
@@ -266,6 +279,51 @@ impl ParserJob {
         }
     }
 
+    fn write_summary_chunk(s: &Summary, report_dir: &PathBuf, log_path: &PathBuf) {
+        let result = File::open(log_path);
+        let first: usize = s.first_line_number.try_into().unwrap();
+        let last: usize = s.last_line_number.try_into().unwrap();
+
+        match result {
+            Ok(file) => {
+                println!("File opened for processing: {:?}", log_path);
+                let mut reader = BufReader::new(file);
+                let mut i = 0;
+                let mut buf = String::new();
+                let chunk_path = report_dir.join(&format!(
+                    "{}_{}.txt",
+                    &s.player_name.replace(" ", "_"),
+                    s.first_line_number.to_string()
+                ));
+
+                let mut chunk_file = match File::create(chunk_path.clone()) {
+                    Ok(f) => LineWriter::new(f),
+                    Err(e) => panic!(
+                        "Cannot create summary chunk file: {:?},{:?}",
+                        chunk_path.clone(),
+                        e
+                    ),
+                };
+                while reader
+                    .read_line(&mut buf)
+                    .expect(&format!("Unable to read line from {:?}", log_path))
+                    > 0
+                {
+                    i += 1;
+
+                    if i >= first && i < last {
+                        chunk_file.write_all(buf.as_bytes()).expect(&format!(
+                            "Unable to write lines to {:?}",
+                            chunk_path.clone()
+                        ));
+                    }
+                    buf.clear();
+                }
+            }
+            Err(e) => panic!("Unable to copied log file: {:?}:{}", log_path, e),
+        }
+    }
+
     fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
         let parsed_text_file = match File::create(report_dir.join("parsed.txt")) {
             Ok(f) => f,
@@ -279,10 +337,14 @@ impl ParserJob {
         }
     }
 
-    fn generate_dps_report(conn:&mut SqliteConnection, key: i32, interval: usize, line_count: usize ) -> Vec<Vec<String>> {
+    fn generate_dps_report(
+        conn: &mut SqliteConnection,
+        key: i32,
+        interval: usize,
+        line_count: usize,
+    ) -> Vec<Vec<String>> {
         let mut dps_reports: Vec<Vec<String>> = Vec::new();
-        let damage_intervals =
-            db_actions::get_damage_intervals(conn, key, interval as i32);
+        let damage_intervals = db_actions::get_damage_intervals(conn, key, interval as i32);
 
         for intervals in damage_intervals {
             let first_interval = intervals.first().unwrap();
@@ -343,7 +405,8 @@ impl ParserJob {
         let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key);
         let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
 
-        let dps_reports = Self::generate_dps_report(conn, summary.summary_key, dps_interval, line_count);
+        let dps_reports =
+            Self::generate_dps_report(conn, summary.summary_key, dps_interval, line_count);
 
         let mut report_context = Context::new();
 
