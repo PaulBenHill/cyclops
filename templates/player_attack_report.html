@@ -87,7 +87,7 @@ NO DATA
     var tabledata_base_{{index}} = [
         {% for power in powers %}
     {
-        power: "{{ power.power_name }}",
+        power: "{{ power.power_name | replace(from=":", to=":<br>")}}",
             activations: "{{ power.activations }}",
                 hits: "{{ power.hits }} ({{power.streak_breakers}})",
                     misses: "{{ power.misses }}",
@@ -130,8 +130,8 @@ NO DATA
             { title: "DoT<br>Damage", field: "dot_damage", sorter: "number" },
             { title: "Critcal<br>Damage", field: "critical_damage", sorter: "number" },
             { title: "Critical<br>Hits", field: "critical_hits", sorter: "number" },
-            { title: "%<br>Hits<br>Critical", field: "percent_hits_critical", sorter: "number" },
-            { title: "%<br>Damage<br>Critical", field: "percent_damage_critical", sorter: "number" },
+            { title: "%<br>Hits<br>Critical", field: "percent_hits_critical", sorter: "string", formatter: "html"},
+            { title: "%<br>Damage<br>Critical", field: "percent_damage_critical", sorter: "number", formatter: "html" },
         ],
     });
 
@@ -190,8 +190,8 @@ NO DATA
                 dot_damage: 0,
                 critical_damage: 0,
                 critical_hits: 0,
-                percent_hits_critical: 0,
-                percent_damage_critical: 0,
+                percent_hits_critical: "",
+                percent_damage_critical: "",
             };
 
             for (r of selected) {
@@ -208,8 +208,8 @@ NO DATA
                 new_row.dot_damage += Number(r.dot_damage);
                 new_row.critical_damage += Number(r.critical_damage);
                 new_row.critical_hits += Number(r.critical_hits);
-                new_row.percent_hits_critical += Number(r.percent_hits_critical);
-                new_row.percent_damage_critical += Number(r.percent_damage_critical);
+                new_row.percent_hits_critical += r.percent_hits_critical + '<br>';
+                new_row.percent_damage_critical += r.percent_damage_critical + '<br>';
                 var index = temp.findIndex((element) => element.power === r.power);
                 temp.splice(index, 1);
             }
@@ -217,6 +217,8 @@ NO DATA
             new_row.hits = new_row.hits.substring(0, new_row.hits.length - 4);
             new_row.hit_percentage = new_row.hit_percentage.substring(0, new_row.hit_percentage.length - 4);
             new_row.ate = new_row.ate.substring(0, new_row.ate.length - 4);
+            new_row.percent_hits_critical = new_row.percent_hits_critical.substring(0, new_row.percent_hits_critical.length - 4);
+            new_row.percent_damage_critical = new_row.percent_damage_critical.substring(0, new_row.percent_damage_critical.length - 4);
             temp.unshift(new_row);
             tabledata_{{index}} = temp;
             table_{{index}}.setData(temp);

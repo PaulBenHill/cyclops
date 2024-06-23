@@ -208,20 +208,21 @@ pub fn pseudo_pet_attack_damage(line_number: u32, line: &String) -> Option<FileD
                 Some(FileDataPoint::PsuedoPetCriticalDamage {
                     data_position: DataPosition::new(line_number, &data[1]),
                     pet_name: String::from(&data[2]),
-                    damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
+                    damage_dealt: DamageDealt::new(&data[3], 
+                        &format!("{}: {}", &data[2], &data[4]), &data[5], &data[6]),
                     critical_type: String::from(&data[8]),
                 })
             } else if data.name("dot").is_some() {
                 Some(FileDataPoint::PsuedoPetDamageDoT {
                     data_position: DataPosition::new(line_number, &data[1]),
                     pet_name: String::from(&data[2]),
-                    damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
+                    damage_dealt: DamageDealt::new(&data[3], &format!("{}: {}", &data[2], &data[4]), &data[5], &data[6]),
                 })
             } else {
                 Some(FileDataPoint::PseudoPetDirectDamage {
                     data_position: DataPosition::new(line_number, &data[1]),
                     pet_name: String::from(&data[2]),
-                    damage_dealt: DamageDealt::new(&data[3], &data[4], &data[5], &data[6]),
+                    damage_dealt: DamageDealt::new(&data[3], &format!("{}: {}", &data[2], &data[4]), &data[5], &data[6]),
                 })
             }
         }

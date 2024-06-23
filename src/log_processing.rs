@@ -311,11 +311,9 @@ impl ParserJob {
                 elapsed_duration % 60
             );
 
-            let mut dps: i64 = 1;
-            if elapsed_seconds == 0 {
-                dps = total_damage as i64;
-            } else {
-                dps = (total_damage as i64) / elapsed_seconds;
+            let mut dps = total_damage as i64;
+            if elapsed_seconds > 0 {
+                dps = dps / elapsed_seconds;
             }
 
             dps_reports.push(vec![
