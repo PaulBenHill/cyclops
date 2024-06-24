@@ -85,7 +85,7 @@ fn generate_index(context: &AppContext, indexes: &Vec<SummaryEntry>) {
 
     let mut log_dirs: HashSet<PathBuf> = HashSet::new();
     for i in indexes {
-        let f = Path::new(&i.details.file);
+        let f = Path::new(&i.log_file);
         if f.is_dir() {
             log_dirs.insert(f.to_path_buf());
         } else {
@@ -111,8 +111,10 @@ fn generate_index(context: &AppContext, indexes: &Vec<SummaryEntry>) {
 
 #[derive(Serialize, Deserialize)]
 pub struct SummaryEntry {
-    details: IndexDetails,
-    path: PathBuf,
+    log_file: String,
+    log_date: String,
+    links: Vec<String>,
+    data_points: Vec<String>
 }
 
 fn find_all_summaries(output_path: &Path) -> Vec<SummaryEntry> {
@@ -122,27 +124,34 @@ fn find_all_summaries(output_path: &Path) -> Vec<SummaryEntry> {
         if entry.path().ends_with("summary.db") {
             let mut conn =
                 db_actions::get_file_conn(fs::canonicalize(entry.path()).unwrap().to_path_buf());
-            let i = db_actions::index_details(&mut conn)
-                .get(0)
-                .unwrap()
-                .to_owned();
+            let details = db_actions::index_details(&mut conn);
 
-            let mut html_file = entry
+            let mut links: Vec<String> = Vec::new();
+            let mut data_points: Vec<String> = Vec::new();
+            for (i, d) in details.iter().enumerate() {
+                let mut html_file = entry
                 .path()
                 .strip_prefix(output_path)
                 .unwrap()
                 .to_path_buf();
-            html_file.set_file_name("summary.html");
+                html_file.set_file_name(format!("{}_{}.html", d.player_name, i));
+                links.push(format!("<a href=\"{}\" target=\"_blank\">{}</a>", html_file.display(), d.player_name));
+                data_points.push(d.data_points.clone());
+            }
 
+            let date = details.get(0).unwrap().log_date.to_owned();
+            let file = details.get(0).unwrap().file.to_owned();
             let entry = SummaryEntry {
-                details: i,
-                path: html_file,
+                log_file: file,
+                log_date: date,
+                links: links,
+                data_points: data_points,
             };
             entries.push(entry);
         }
     }
 
-    entries.sort_by(|a, b| b.details.log_date.cmp(&a.details.log_date));
+    entries.sort_by(|a, b| b.log_date.cmp(&a.log_date));
     entries
 }
 

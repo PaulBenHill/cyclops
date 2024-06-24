@@ -88,7 +88,7 @@ diesel::table! {
 diesel::table! {
     index_details (log_date) {
         log_date-> Text,
-        players -> Text,
+        player_name -> Text,
         data_points -> Text,
         file -> Text,
     }

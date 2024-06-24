@@ -1,8 +1,154 @@
+<!DOCTYPE html>
+<html>
+    <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <link href="https://unpkg.com/tabulator-tables@5.2.1/dist/css/tabulator.min.css" rel="stylesheet">
+  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.2.1/dist/js/tabulator.min.js">
+  </script>
+  <style>
+    body {
+      color: #e67e22;
+      background-color: #1b283b;
+      font-size: 100%;
+      font-weight: bold;
+      font-family: Arial;
+    }
+  
+  
+    .tabulator,
+    .tabulator .tabulator-header,
+    .tabulator .tabulator-header .tabulator-col,
+    .tabulator-row {
+      color: #e67e22;
+      background-color: #253237;
+      font-weight: bold !important;
+      font-family: Arial !important;
+    }
+  
+    .tabulator-row.tabulator-row-even {
+      color: black;
+      background: #659ce8;
+    }
+  
+    .tabulator-row.tabulator-selected {
+      color: black;
+      background: #825382;
+    }
+  
+    .tabulator-row.tabulator-selectable:hover {
+      background-color: #858484;
+    }
+  
+    table {
+      border-spacing: 0;
+      width: 100%;
+      border: 1px solid #ddd;
+    }
+  
+    a:visited {
+      color: green;
+    }
+  
+    .sortable-table thead th {
+      cursor: pointer
+    }
+  
+    .sortable-table thead th:after {
+      padding-left: 7px
+    }
+  
+    .sortable-table thead th[data-sort-direction="0"]:after {
+      content: "\21D5"
+    }
+  
+    .sortable-table thead th[data-sort-direction="1"]:after {
+      content: "\25B4"
+    }
+  
+    .sortable-table thead th[data-sort-direction="-1"]:after {
+      content: "\25BE"
+    }
+  
+    .sortable-table.sortable-fa-icons thead th:after {
+      font-family: FontAwesome
+    }
+  
+    .sortable-table.sortable-fa-icons thead th[data-sort-direction="0"]:after {
+      content: "\f0dc"
+    }
+  
+    .sortable-table.sortable-fa-icons thead th[data-sort-direction="1"]:after {
+      content: "\f0de"
+    }
+  
+    .sortable-table.sortable-fa-icons thead th[data-sort-direction="-1"]:after {
+      content: "\f0dd"
+    }
+  
+    th,
+    td {
+      text-align: left;
+      padding: 5px;
+      border: 1px solid #ddd;
+      background-color: #253237;
+      font-size: 100%;
+      font-weight: bold;
+    }
+  
+    details {
+      user-select: none;
+    }
+  
+    details>summary span.icon {
+      width: 24px;
+      height: 24px;
+      transition: all 0.3s;
+      margin-left: auto;
+    }
+  
+    details[open] summary span.icon {
+      transform: rotate(180deg);
+    }
+  
+    summary {
+      display: flex;
+      cursor: pointer;
+    }
+  
+    summary::-webkit-details-marker {
+      display: none;
+    }
+  
+    .container {
+      height: 100%;
+      padding-bottom: 10px;
+      display: flex;
+    }
+  
+    .div-left {
+      width: 50%;
+    }
+  
+    .div-right {
+      width: 50%;
+    }
+  </style>
+  <script>
+
+
+    !function () { function t(t, e) { for (; (t = t.parentElement) && !t.classList.contains(e);); return t } function e(t) { return t = t.replace(/[^\d\.-]/g, ""), Number(t) } function n(t) { var e = document.createElement("span"); return e.innerHTML = t, e.textContent || e.innerText } function r(t, e, n) { for (var r = 0; r < n.length; r++)r == e ? n[e].setAttribute("data-sort-direction", t) : n[r].setAttribute("data-sort-direction", 0) } function a(t, e) { for (var n = t.getElementsByTagName("tbody")[0].getElementsByTagName("tr"), r = 0; r < n.length; r++)for (var a = n[r].getElementsByTagName("td"), i = 0; i < a.length; i++)a[i].innerHTML = e[r][i] } window.addEventListener("load", function () { for (var i = document.getElementsByClassName("sortable-table"), o = [], s = 0; s < i.length; s++)!function () { i[s].setAttribute("data-sort-index", s); for (var d = i[s].getElementsByTagName("tbody")[0].getElementsByTagName("tr"), l = 0; l < d.length; l++)for (var g = d[l].getElementsByTagName("td"), c = 0; c < g.length; c++)void 0 === o[s] && o.splice(s, 0, []), void 0 === o[s][l] && o[s].splice(l, 0, []), o[s][l].splice(c, 0, g[c].innerHTML); for (var u = i[s].getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].getElementsByTagName("th"), m = 0; m < u.length; m++)!function () { var s = u[m].classList.contains("numeric-sort"); u[m].setAttribute("data-sort-direction", 0), u[m].setAttribute("data-sort-index", m), u[m].addEventListener("click", function () { var d = this.getAttribute("data-sort-direction"), l = this.getAttribute("data-sort-index"), g = t(this, "sortable-table").getAttribute("data-sort-index"); r(1 == d ? -1 : 1, l, u), o[g] = o[g].sort(function (t, r) { var a = n(t[l]), i = n(r[l]); return s && (a = e(a), i = e(i)), a === i ? 0 : 1 == d ? a > i ? -1 : 1 : a < i ? -1 : 1 }), a(i[g], o[g]) }) }() }() }) }();
+  </script>
+
+  <title>{{summary.player_name}}: {{summary.log_date | date(format="%Y-%m-%d %H:%M")}}</title>
+</head>
+
+<body>
 <h3>Name: {{summary.player_name}}</h3>
 <h3>Start Date: {{summary.log_date | date(format="%Y-%m-%d %H:%M:%S")}}</h3>
 <h3>Starting Line Number: {{summary.first_line_number}}</h3>
 <h3>Last Line Number: {{summary.last_line_number}}</h3>
 <h3>Data Points: {{summary.last_line_number - summary.first_line_number}}</h3>
+<h3>File name: {{data_file_name}}</h3>
 <hr>
 <details>
     <summary>
@@ -71,12 +217,12 @@ NO DATA
 <h2>Attack Summary By Power</h2>
     </summary>
 <div>
-    <button id="reactivity_merge_{{index}}">Merge Rows</button>
-    <button id="reactivity_delete_{{index}}">Delete Rows</button>
-    <button id="reactivity_remove_non_{{index}}">Remove Non Damage Powers</button>
-    <button id="reactivity_revert_{{index}}">Revert Changes</button>
+    <button id="reactivity_merge">Merge Rows</button>
+    <button id="reactivity_delete">Delete Rows</button>
+    <button id="reactivity_remove_non">Remove Non Damage Powers</button>
+    <button id="reactivity_revert">Revert Changes</button>
 </div>
-<div id="{{index}}_div"></div>
+<div id="powers_div"></div>
 <a id="ate1"><sup>1</sup>For psuedo pets that do two types of damage. This value needs to be divided by two. Example:
     Electrical Melee: Lightning Rod</a>
 <br>
@@ -84,7 +230,7 @@ NO DATA
 </details>
 <script>
     //define data
-    var tabledata_base_{{index}} = [
+    var tabledata_base = [
         {% for power in powers %}
     {
         power: "{{ power.power_name | replace(from=":", to=":<br>")}}",
@@ -106,16 +252,16 @@ NO DATA
     {% endfor %}
     ];
 
-    var tabledata_{{index}} = Array.from(tabledata_base_{{index}});
+    var tabledata = Array.from(tabledata_base);
     //Build Tabulator
-    var table_{{index}} = new Tabulator("#{{index}}_div", {
+    var table = new Tabulator("#powers_div", {
         height: "100%",
         layout: "fitDataStretch",
         reactiveData: true, //turn on data reactivity
         selectable: true,
         movableColumns: true,
         movableRows: true,
-        data: tabledata_{{index}}, //load data into table
+        data: tabledata, //load data into table
         columns: [
             { title: "Power", field: "power", sorter: "string", formatter: "html" },
             { title: "Activations", field: "activations", sorter: "number" },
@@ -135,47 +281,47 @@ NO DATA
         ],
     });
 
-    document.getElementById("reactivity_remove_non_{{index}}").addEventListener("click", function () {
+    document.getElementById("reactivity_remove_non").addEventListener("click", function () {
         console.log("remove non damaging powers fired");
-        var temp = Array.from(tabledata_{{index}});
-        for (r in tabledata_{{index}}) {
-                var index = tabledata_{{index}}.findIndex((element) => element.total_damage === "0");
+        var temp = Array.from(tabledata);
+        for (r in tabledata) {
+                var index = tabledata.findIndex((element) => element.total_damage === "0");
                 console.log(index);
                 temp.splice(index, 1);
         }
-        tabledata_{{index}} = Array.from(temp);
-        table_{{index}}.setData(tabledata_{{index}});
+        tabledata = Array.from(temp);
+        table.setData(tabledata);
     });
 
-    document.getElementById("reactivity_revert_{{index}}").addEventListener("click", function () {
+    document.getElementById("reactivity_revert").addEventListener("click", function () {
         console.log("revert fired");
-        tabledata_{{index}} = Array.from(tabledata_base_{{index}});
-        table_{{index}}.setData(tabledata_{{index}});
+        tabledata = Array.from(tabledata_base);
+        table.setData(tabledata);
     });
 
     //delete selected rows
-    document.getElementById("reactivity_delete_{{index}}").addEventListener("click", function () {
+    document.getElementById("reactivity_delete").addEventListener("click", function () {
         console.log("delete fired");
-        console.log(table_{{index}}.getSelectedData());
-        var selected = table_{{index}}.getSelectedData();
+        console.log(table.getSelectedData());
+        var selected = table.getSelectedData();
         if (selected.length > 0) {
-            var temp = Array.from(tabledata_{{index}});
+            var temp = Array.from(tabledata);
             for (r of selected) {
                 var index = temp.findIndex((element) => element.power === r.power);
                 temp.splice(index, 1);
             }
-            tabledata_{{index}} = temp;
-            table_{{index}}.setData(temp);
+            tabledata = temp;
+            table.setData(temp);
         }
     });
 
     //merge selected rows into a new row, add to the top
-    document.getElementById("reactivity_merge_{{index}}").addEventListener("click", function () {
+    document.getElementById("reactivity_merge").addEventListener("click", function () {
         console.log("merge fired");
-        console.log(table_{{index}}.getSelectedData());
-        var selected = table_{{index}}.getSelectedData();
+        console.log(table.getSelectedData());
+        var selected = table.getSelectedData();
         if (selected.length > 1) {
-            var temp = Array.from(tabledata_{{index}});
+            var temp = Array.from(tabledata);
             var new_row = {
                 power: "",
                 activations: 0,
@@ -220,8 +366,8 @@ NO DATA
             new_row.percent_hits_critical = new_row.percent_hits_critical.substring(0, new_row.percent_hits_critical.length - 4);
             new_row.percent_damage_critical = new_row.percent_damage_critical.substring(0, new_row.percent_damage_critical.length - 4);
             temp.unshift(new_row);
-            tabledata_{{index}} = temp;
-            table_{{index}}.setData(temp);
+            tabledata = temp;
+            table.setData(temp);
         }
     });
 
@@ -378,3 +524,5 @@ NO DATA
 </details>
 </div>
 </div>
+</body>
+</html>

@@ -59,8 +59,8 @@ order by da1.summary_key;
 DROP VIEW IF EXISTS index_details;
 CREATE VIEW IF NOT EXISTS index_details AS select
 substring(log_date, 0, 11) as log_date,
-group_concat(player_name) players,
-group_concat(last_line_number-first_line_number) as data_points,
+player_name,
+(last_line_number-first_line_number) as data_points,
 log_file_name as file
 from summary;
 

@@ -101,10 +101,18 @@
         </thead>
         {% for i in indexes %}
         <tr>
-            <td><a href="{{i.path}}">{{ i.details.log_date }}</a></td>
-            <td>{{ i.details.players | replace(from=",", to="<br>")}}</td>
-            <td>{{ i.details.data_points | replace(from=",", to="<br>") }}</td>
-            <td>{{ i.details.file }}</td>
+            <td>{{ i.log_date }}</td>
+            <td>
+            {% for l in i.links %}
+               {{l}}<br>
+            {% endfor %}
+            </td>
+            <td>
+            {% for d in i.data_points %}
+               {{d}}<br>
+            {% endfor %}
+            </td>
+            <td>{{ i.log_file }}</td>
         </tr>
         {% endfor %}
         <tbody></tbody>

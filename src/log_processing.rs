@@ -69,7 +69,6 @@ impl ParserJob {
                     &summaries.first().unwrap().player_name.replace(" ", "_"),
                 );
                 db_actions::copy_db(conn, report_dir.join("summary.db"));
-                let mut summary_renders: Vec<String> = Vec::new();
                 Self::write_data_files(
                     conn,
                     &report_dir,
@@ -79,23 +78,32 @@ impl ParserJob {
                     &summaries,
                 );
                 for (i, s) in summaries.iter().enumerate() {
-                    summary_renders.push(Self::generate_summary(
+                    let page_content = Self::generate_summary(
                         conn,
                         &context.tera,
-                        i,
+                        i + 1,
                         s,
                         data_points.len(),
+                        &file_path,
                         context.dps_interval,
-                    ));
+                    );
+                    let page_name = format!("{}_{}.html", s.player_name, i);
+                    let mut report_file = match File::create(report_dir.join(page_name.clone())) {
+                        Ok(f) => f,
+                        Err(e) => panic!("Cannot create report page file: {:?}", e),
+                    };
+                    report_file
+                        .write_all(page_content.as_bytes())
+                        .expect(&format!("Unable to write file: {}", page_name));
                 }
 
-                Self::generate_top_level(
-                    &context.tera,
-                    &report_dir,
-                    &file_path,
-                    summaries,
-                    summary_renders,
-                );
+                // Self::generate_top_level(
+                //     &context.tera,
+                //     &report_dir,
+                //     &file_path,
+                //     summaries,
+                //     summary_renders,
+                // );
             } else {
                 println!(
                     "No valid data found in {}.",
@@ -258,9 +266,7 @@ impl ParserJob {
             println!("Copying data file return zero bytes: {}", e);
         }
 
-        for s in summaries {
-            Self::write_summary_chunk(s, report_dir, &log_file_path);
-        }
+        Self::write_summary_chunk(&summaries, report_dir, &log_file_path);
 
         // write parsed logs for troubleshooting
         Self::write_parsed_files(&report_dir, parsed_lines);
@@ -279,48 +285,51 @@ impl ParserJob {
         }
     }
 
-    fn write_summary_chunk(s: &Summary, report_dir: &PathBuf, log_path: &PathBuf) {
+    fn write_summary_chunk(summaries: &Vec<Summary>, report_dir: &PathBuf, log_path: &PathBuf) {
         let result = File::open(log_path);
-        let first: usize = s.first_line_number.try_into().unwrap();
-        let last: usize = s.last_line_number.try_into().unwrap();
+        let mut buf = String::new();
+        let mut lines: Vec<String> = Vec::new();
 
         match result {
             Ok(file) => {
-                println!("File opened for processing: {:?}", log_path);
                 let mut reader = BufReader::new(file);
-                let mut i = 0;
-                let mut buf = String::new();
-                let chunk_path = report_dir.join(&format!(
-                    "{}_{}.txt",
-                    &s.player_name.replace(" ", "_"),
-                    s.first_line_number.to_string()
-                ));
 
-                let mut chunk_file = match File::create(chunk_path.clone()) {
-                    Ok(f) => LineWriter::new(f),
-                    Err(e) => panic!(
-                        "Cannot create summary chunk file: {:?},{:?}",
-                        chunk_path.clone(),
-                        e
-                    ),
-                };
                 while reader
                     .read_line(&mut buf)
                     .expect(&format!("Unable to read line from {:?}", log_path))
                     > 0
                 {
-                    i += 1;
-
-                    if i >= first && i < last {
-                        chunk_file.write_all(buf.as_bytes()).expect(&format!(
-                            "Unable to write lines to {:?}",
-                            chunk_path.clone()
-                        ));
-                    }
+                    lines.push(buf.clone());
                     buf.clear();
                 }
             }
             Err(e) => panic!("Unable to copied log file: {:?}:{}", log_path, e),
+        }
+
+        for (i, s) in summaries.iter().enumerate() {
+            let first: usize = s.first_line_number.try_into().unwrap();
+            let last: usize = s.last_line_number.try_into().unwrap();
+            let chunk_path = report_dir.join(&format!(
+                "{}_{}_{}.txt",
+                i,
+                &s.player_name.replace(" ", "_"),
+                s.first_line_number.to_string()
+            ));
+            let chunk_file = File::create(chunk_path.clone()).expect(&format!(
+                "Unable to create chunk file: {:?}",
+                chunk_path.clone()
+            ));
+            let mut writer = LineWriter::new(chunk_file);
+
+            println!("by summary {}:{}:{}", first, last, lines[first..last].len());
+            for (i, l) in lines[first..last].iter().enumerate() {
+                writer.write_all(l.as_bytes()).expect(&format!(
+                    "Unable to write lines to {:?}",
+                    chunk_path.clone()
+                ));
+                writer.flush();
+            }
+
         }
     }
 
@@ -398,6 +407,7 @@ impl ParserJob {
         index: usize,
         summary: &Summary,
         line_count: usize,
+        log_path: &PathBuf,
         dps_interval: usize,
     ) -> String {
         let rewards_defeats =
@@ -412,6 +422,7 @@ impl ParserJob {
 
         report_context.insert("index", &format!("player{}", index + 1));
         report_context.insert("summary", &summary);
+        report_context.insert("data_file_name", &log_path);
         report_context.insert("rewards_defeats", &rewards_defeats);
         report_context.insert("total_damage", &total_damage);
         if let Some(damage_taken) = db_actions::get_damage_taken_report(conn, summary.summary_key) {
@@ -451,33 +462,6 @@ impl ParserJob {
         match result {
             Ok(data) => data,
             Err(e) => panic!("Could not render {}:{:?}", "player_attack_report.html", e),
-        }
-    }
-
-    fn generate_top_level(
-        tera: &Tera,
-        report_dir: &PathBuf,
-        file_name: &PathBuf,
-        summaries: Vec<Summary>,
-        renders: Vec<String>,
-    ) {
-        let mut summary_file = match File::create(report_dir.join("summary.html")) {
-            Ok(f) => f,
-            Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
-        };
-
-        let mut top_level_context = Context::new();
-        top_level_context.insert("data_file_name", &file_name);
-        top_level_context.insert("summaries", &summaries);
-        top_level_context.insert("renders", &renders);
-        let result = tera.render("summary.html", &top_level_context);
-        match result {
-            Ok(data) => {
-                summary_file
-                    .write_all(data.as_bytes())
-                    .expect("Unable to write file.");
-            }
-            Err(e) => panic!("Could not render {}:{:?}", "summary.html", e),
         }
     }
 }
