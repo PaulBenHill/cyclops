@@ -6,7 +6,7 @@ use serde::Deserialize;
 use tera::Context;
 
 use crate::{
-    find_all_summaries, generate_index, get_last_modified_file_in_dir,
+    db_actions, find_all_summaries, generate_index, get_last_modified_file_in_dir,
     log_processing::{self, ParserJob, ProcessingError},
     read_log_file_dir, AppContext,
 };
@@ -14,6 +14,14 @@ use crate::{
 #[derive(Deserialize)]
 struct FileFormData {
     log_path: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct PowersMobsData {
+    pub key: i32,
+    pub db_path: String,
+    pub power_name: Option<String>,
+    pub mob_name: Option<String>,
 }
 
 fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
@@ -125,6 +133,24 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
     }
 }
 
+#[get("/powers_and_mobs")]
+async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let selected: web::Query<PowersMobsData> = web::Query::from_query(req.query_string()).unwrap();
+    let table_data = db_actions::get_damage_dealt_by_power_or_mob(&selected);
+    let mut table_context = Context::new();
+    table_context.insert("powers_and_mobs", &table_data.unwrap());
+
+    let result = context
+        .tera
+        .render("powers_and_mobs_table.html", &table_context);
+    match result {
+        Ok(data) => {
+            HttpResponse::Ok().body(data)
+        }
+        Err(e) => panic!("Could not render {}:{:?}", "powers_and_mobs_table.html", e),
+    }
+}
+
 #[actix_web::main]
 pub async fn start(context: AppContext) -> std::io::Result<()> {
     let address = context.web_address.to_string();
@@ -136,6 +162,7 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .service(parse_dir)
             .service(process_dir)
             .service(process_latest)
+            .service(powers_and_mobs_query)
             .service(
                 fs::Files::new("/", context.output_dir.to_owned())
                     .index_file("index.html")

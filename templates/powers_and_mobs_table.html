@@ -1,0 +1,26 @@
+<table title="Damage Dealt By Power To Mobs" style="width: 100%;" class="sortable-table">
+    <thead>
+        <th>Mob</th>
+        <th>Power</th>
+        <th class="numeric-sort">Hits</th>
+        <th class="numeric-sort">Misses</th>
+        <th class="numeric-sort">Chance to Hit</th>
+        <th class="numeric-sort">Hit Percentage</th>
+        <th class="numeric-sort">Total Damage</th>
+        <th class="numeric-sort">Damage Per Hit</th>
+    </thead>
+    <tbody>
+        {% for row in powers_and_mobs %}
+        <tr>
+            <td>{{ row.target_name }}</td>
+            <td>{{ row.power_name }}</td>
+            <td>{{ row.hits }}</td>
+            <td>{{ row.misses }}</td>
+            <td>{{ row.chance_to_hit }}</td>
+            <td>{{ row.hit_percent }}</td>
+            <td>{{ row.total_damage }}</td>
+            <td>{{ row.damage_per_hit }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>

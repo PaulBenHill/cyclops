@@ -418,7 +418,6 @@ select
 summary_key,
 target_name,
 power_name,
-activations,
 hits,
 misses,
 chance_to_hit,
@@ -436,27 +435,12 @@ THEN
 0
 ELSE
 ROUND(1.0 * total_damage / hits)
-END) as damage_per_hit,
-(CASE WHEN
-activations IS NULL OR activations = 0
-THEN
-0
-ELSE
-ROUND(1.0 * total_damage / activations)
-END) as damage_per_activations
+END) as damage_per_hit
 from
 (select
 da1.summary_key,
 da1.target_name,
 da1.power_name,
-(select 
-count(da1.power_name)
-from
-player_activation pa
-where
-da1.summary_key = pa.summary_key
-AND
-pa.power_name = da1.power_name) as activations,
 (CASE
 WHEN
 (select 

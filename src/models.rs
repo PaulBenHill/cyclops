@@ -360,6 +360,7 @@ pub struct DamageDealtToMobByPower {
     pub power_name: String,
     pub hits: i32,
     pub misses: i32,
+    pub chance_to_hit: i32,
     pub hit_percent: i32,
     pub total_damage: i32,
     pub damage_per_hit: i32,

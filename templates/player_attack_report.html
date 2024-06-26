@@ -3,6 +3,7 @@
     <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <link href="https://unpkg.com/tabulator-tables@5.2.1/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@2.0.0" integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw" crossorigin="anonymous"></script>
   <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.2.1/dist/js/tabulator.min.js">
   </script>
   <style>
@@ -52,6 +53,7 @@
     .sortable-table thead th {
       cursor: pointer
     }
+
   
     .sortable-table thead th:after {
       padding-left: 7px
@@ -524,5 +526,42 @@ NO DATA
 </details>
 </div>
 </div>
+<hr>
+    <details>
+        <summary><h2>Powers And Mob Damaged</h2></summary>
+    Damaging Powers: <select name="power_name" hx-get="/powers_and_mobs?key={{summary.summary_key}}&db_path={{db_path}}" hx-target="#pam_div">
+        <option disabled selected value> -- select an power -- </option>
+      {% for p in damaging_powers %}
+        <option value="{{p | replace(from=" ", to="_")}}">{{p}}</option>
+      {% endfor %}
+      </optgroup>
+    </select>
+    Mobs:
+    <select name="mob_name" hx-get="/powers_and_mobs?key={{summary.summary_key}}&db_path={{db_path}}}" hx-target="#pam_div">
+        <option disabled selected value> -- select an mob -- </option>
+      {% for m in mobs_damaged %}
+        <option value="{{m | replace(from=" ", to="_")}}">{{m}}</option>
+      {% endfor %}
+      </optgroup>
+    </select>
+        <div id="pam_div">
+            <table title="Damage Dealt By Power To Mobs" style="width: 100%;" class="sortable-table">
+                <thead>
+                    <th>Mob</th>
+                    <th>Power</th>
+                    <th class="numeric-sort">Activations</th>
+                    <th class="numeric-sort">Hits</th>
+                    <th class="numeric-sort">Misses</th>
+                    <th class="numeric-sort">Chance to Hit</th>
+                    <th class="numeric-sort">Hit Percentage</th>
+                    <th class="numeric-sort">Total Damage</th>
+                    <th class="numeric-sort">Damage Per Hit</th>
+                    <th class="numeric-sort">Damage Per Activation</th>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        </details>
 </body>
 </html>

@@ -219,6 +219,7 @@ diesel::table! {
         power_name -> Text,
         hits -> Integer,
         misses -> Integer,
+        chance_to_hit -> Integer,
         hit_percent -> Integer,
         total_damage -> Integer,
         damage_per_hit -> Integer,

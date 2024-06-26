@@ -70,13 +70,20 @@ impl ParserJob {
                 );
                 db_actions::copy_db(conn, report_dir.join("summary.db"));
                 Self::write_data_files(
-                    conn,
+//                    conn,
                     &report_dir,
-                    &file,
+//                   &file,
                     &file_path,
-                    &data_points,
+//                    &data_points,
                     &summaries,
                 );
+                let first_summary = summaries.get(0).unwrap();
+                let db_path = context.working_dir.
+                join(context.output_dir.
+                join(
+                    format!( "{}_{}", first_summary.player_name.
+                    replace(" ", "_"), first_summary.log_date[0..10].
+                    replace(" ", "_").replace("-", "_")))).join("summary.db");
                 for (i, s) in summaries.iter().enumerate() {
                     let page_content = Self::generate_summary(
                         conn,
@@ -86,6 +93,7 @@ impl ParserJob {
                         data_points.len(),
                         &file_path,
                         context.dps_interval,
+                        &db_path,
                     );
                     let page_name = format!("{}_{}.html", s.player_name, i);
                     let mut report_file = match File::create(report_dir.join(page_name.clone())) {
@@ -254,35 +262,30 @@ impl ParserJob {
     }
 
     fn write_data_files(
-        conn: &mut SqliteConnection,
+        //conn: &mut SqliteConnection,
         report_dir: &PathBuf,
-        file_name: &PathBuf,
+        //file_name: &PathBuf,
         data_file: &PathBuf,
-        parsed_lines: &Vec<FileDataPoint>,
+        //parsed_lines: &Vec<FileDataPoint>,
         summaries: &Vec<Summary>,
     ) {
-        let log_file_path = report_dir.join(file_name.file_name().unwrap());
-        if let Err(e) = std::fs::copy(data_file, log_file_path.to_path_buf()) {
-            println!("Copying data file return zero bytes: {}", e);
-        }
-
-        Self::write_summary_chunk(&summaries, report_dir, &log_file_path);
+        Self::write_summary_chunk(&summaries, report_dir, &data_file);
 
         // write parsed logs for troubleshooting
-        Self::write_parsed_files(&report_dir, parsed_lines);
+        //Self::write_parsed_files(&report_dir, parsed_lines);
 
-        let dps_file = match File::create(report_dir.join("dps.csv")) {
-            Ok(f) => f,
-            Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
-        };
+        // let dps_file = match File::create(report_dir.join("dps.csv")) {
+        //     Ok(f) => f,
+        //     Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
+        // };
 
-        let dps_intervals = db_actions::select_damage_intervals(conn);
-        let mut wtr = csv::Writer::from_writer(dps_file);
-        for dp in dps_intervals {
-            if let Err(e) = wtr.serialize(&dp) {
-                panic!("Unable to write dps data. {:?}:{}", dp, e);
-            }
-        }
+        // let dps_intervals = db_actions::select_damage_intervals(conn);
+        // let mut wtr = csv::Writer::from_writer(dps_file);
+        // for dp in dps_intervals {
+        //     if let Err(e) = wtr.serialize(&dp) {
+        //         panic!("Unable to write dps data. {:?}:{}", dp, e);
+        //     }
+        // }
     }
 
     fn write_summary_chunk(summaries: &Vec<Summary>, report_dir: &PathBuf, log_path: &PathBuf) {
@@ -321,30 +324,28 @@ impl ParserJob {
             ));
             let mut writer = LineWriter::new(chunk_file);
 
-            println!("by summary {}:{}:{}", first, last, lines[first..last].len());
-            for (i, l) in lines[first..last].iter().enumerate() {
+            for l in lines[first..last].iter() {
                 writer.write_all(l.as_bytes()).expect(&format!(
                     "Unable to write lines to {:?}",
                     chunk_path.clone()
                 ));
-                writer.flush();
             }
 
         }
     }
 
-    fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
-        let parsed_text_file = match File::create(report_dir.join("parsed.txt")) {
-            Ok(f) => f,
-            Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
-        };
-        let mut buf_text_writer = BufWriter::new(parsed_text_file);
-        for data_point in parsed_lines {
-            buf_text_writer
-                .write_all(format!("{:?}\n,", data_point).as_bytes())
-                .expect("Unable to write parsed.txt")
-        }
-    }
+    // fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
+    //     let parsed_text_file = match File::create(report_dir.join("parsed.txt")) {
+    //         Ok(f) => f,
+    //         Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
+    //     };
+    //     let mut buf_text_writer = BufWriter::new(parsed_text_file);
+    //     for data_point in parsed_lines {
+    //         buf_text_writer
+    //             .write_all(format!("{:?}\n,", data_point).as_bytes())
+    //             .expect("Unable to write parsed.txt")
+    //     }
+    // }
 
     fn generate_dps_report(
         conn: &mut SqliteConnection,
@@ -409,6 +410,7 @@ impl ParserJob {
         line_count: usize,
         log_path: &PathBuf,
         dps_interval: usize,
+        db_path: &PathBuf,
     ) -> String {
         let rewards_defeats =
             db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
@@ -421,6 +423,8 @@ impl ParserJob {
         let mut report_context = Context::new();
 
         report_context.insert("index", &format!("player{}", index + 1));
+        report_context.insert("db_path", &db_path);
+
         report_context.insert("summary", &summary);
         report_context.insert("data_file_name", &log_path);
         report_context.insert("rewards_defeats", &rewards_defeats);
@@ -451,6 +455,9 @@ impl ParserJob {
         {
             report_context.insert("damage_taken_by_mob_power", &damage_taken_by_mob_power);
         }
+
+            report_context.insert("damaging_powers", &db_actions::get_damaging_powers(conn, summary.summary_key));
+            report_context.insert("mobs_damaged", &&db_actions::get_mobs_damaged(conn, summary.summary_key));
         // if let Some(damage_dealt_to_mob_by_power) =
         //     db_actions::get_damage_dealt_to_mob_by_power_report(conn, summary.summary_key)
         // {

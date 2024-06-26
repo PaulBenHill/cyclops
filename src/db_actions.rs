@@ -23,7 +23,7 @@ use crate::schema::{
 };
 pub fn get_file_conn(path: PathBuf) -> SqliteConnection {
     let mut conn = SqliteConnection::establish(path.to_str().unwrap())
-        .unwrap_or_else(|_| panic!("Unable to create in memory database"));
+        .unwrap_or_else(|_| panic!("Unable to connect to database"));
 
     conn
 }
@@ -363,8 +363,7 @@ pub fn write_to_database(
                     source_type: String::from("Player"),
                     source_name: String::from("Player"),
                 });
-                if damage_dealt.power_name.contains("Interface")
-                {
+                if damage_dealt.power_name.contains("Interface") {
                     activations.push(PlayerActivation {
                         summary_key: key,
                         line_number: data_position.line_number as i32,
@@ -865,15 +864,14 @@ pub fn get_damage_dealt_by_type_report(
         .filter(summary_key.eq(key))
         .load::<DamageDealtByType>(conn)
     {
-                Ok(data) => {
-            if data.is_empty()  {
+        Ok(data) => {
+            if data.is_empty() {
                 None
             } else {
                 Some(data)
             }
         }
         Err(_) => None,
-
     }
 }
 
@@ -951,6 +949,42 @@ pub fn get_damage_dealt_to_mob_by_power_report(
     }
 }
 
+use crate::web::PowersMobsData;
+pub fn get_damage_dealt_by_power_or_mob(
+    query: &PowersMobsData,
+) -> Option<Vec<DamageDealtToMobByPower>> {
+    use crate::schema::damage_dealt_to_mob_by_power::dsl::*;
+    let db_path: PathBuf = query.db_path.clone().into();
+    println!("{:?}", db_path);
+    let mut conn = get_file_conn(db_path);
+
+    if query.power_name.is_some() {
+        Some(
+            damage_dealt_to_mob_by_power
+                .filter(
+                    summary_key
+                        .eq(query.key)
+                        .and(power_name.eq(query.power_name.clone().unwrap().replace("_", " "))),
+                )
+                .load::<DamageDealtToMobByPower>(&mut conn)
+                .expect("Unable to load damage report by power"),
+        )
+    } else if query.mob_name.is_some() {
+        Some(
+            damage_dealt_to_mob_by_power
+                .filter(
+                    summary_key
+                        .eq(query.key)
+                        .and(target_name.eq(query.mob_name.clone().unwrap().replace("_", " "))),
+                )
+                .load::<DamageDealtToMobByPower>(&mut conn)
+                .expect("Unable to load damage report by power"),
+        )
+    } else {
+        None
+    }
+}
+
 pub fn get_damage_by_power_report(
     conn: &mut SqliteConnection,
     key: i32,
@@ -1022,5 +1056,37 @@ pub fn get_rewards_defeats(
             experience: 0,
             mobs_defeated: 0,
         },
+    }
+}
+
+pub fn get_damaging_powers(conn: &mut SqliteConnection, key: i32) -> Vec<String> {
+    use crate::schema::damage_action::dsl::*;
+    let source_types: Vec<&str> = vec!["Player", "PlayerPet"];
+    let result = damage_action
+        .select(power_name)
+        .distinct()
+        .filter(summary_key.eq(key))
+        .filter(source_type.eq_any(source_types))
+        .load::<String>(conn);
+
+    match result {
+        Ok(names) => names,
+        Err(_) => panic!("Unable to load power names"),
+    }
+}
+
+pub fn get_mobs_damaged(conn: &mut SqliteConnection, key: i32) -> Vec<String> {
+    use crate::schema::damage_action::dsl::*;
+    let source_types: Vec<&str> = vec!["Player", "PlayerPet"];
+    let result = damage_action
+        .select(target_name)
+        .distinct()
+        .filter(summary_key.eq(key))
+        .filter(source_type.eq_any(source_types))
+        .load::<String>(conn);
+
+    match result {
+        Ok(names) => names,
+        Err(_) => panic!("Unable to load power names"),
     }
 }
