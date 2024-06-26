@@ -536,8 +536,7 @@ NO DATA
       {% endfor %}
       </optgroup>
     </select>
-    Mobs:
-    <select name="mob_name" hx-get="/powers_and_mobs?key={{summary.summary_key}}&db_path={{db_path}}}" hx-target="#pam_div">
+    Mobs: <select name="mob_name" hx-get="/powers_and_mobs?key={{summary.summary_key}}&db_path={{db_path}}" hx-target="#pam_div">
         <option disabled selected value> -- select an mob -- </option>
       {% for m in mobs_damaged %}
         <option value="{{m | replace(from=" ", to="_")}}">{{m}}</option>

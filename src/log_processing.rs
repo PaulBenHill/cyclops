@@ -1,7 +1,7 @@
 use std::{
     fmt,
     fs::{self, File},
-    io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write},
+    io::{BufRead, BufReader, LineWriter, Lines, Write},
     path::PathBuf,
     time::{Duration, Instant},
 };
@@ -104,14 +104,6 @@ impl ParserJob {
                         .write_all(page_content.as_bytes())
                         .expect(&format!("Unable to write file: {}", page_name));
                 }
-
-                // Self::generate_top_level(
-                //     &context.tera,
-                //     &report_dir,
-                //     &file_path,
-                //     summaries,
-                //     summary_renders,
-                // );
             } else {
                 println!(
                     "No valid data found in {}.",
