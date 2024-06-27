@@ -208,21 +208,35 @@ pub fn pseudo_pet_attack_damage(line_number: u32, line: &String) -> Option<FileD
                 Some(FileDataPoint::PsuedoPetCriticalDamage {
                     data_position: DataPosition::new(line_number, &data[1]),
                     pet_name: String::from(&data[2]),
-                    damage_dealt: DamageDealt::new(&data[3], 
-                        &format!("{}: {}", &data[2], &data[4]), &data[5], &data[6]),
+                    damage_dealt: DamageDealt::new(
+                        &data[3],
+                        &format!("{}: {}", &data[2], &data[4]),
+                        &data[5],
+                        &data[6],
+                    ),
                     critical_type: String::from(&data[8]),
                 })
             } else if data.name("dot").is_some() {
                 Some(FileDataPoint::PsuedoPetDamageDoT {
                     data_position: DataPosition::new(line_number, &data[1]),
                     pet_name: String::from(&data[2]),
-                    damage_dealt: DamageDealt::new(&data[3], &format!("{}: {}", &data[2], &data[4]), &data[5], &data[6]),
+                    damage_dealt: DamageDealt::new(
+                        &data[3],
+                        &format!("{}: {}", &data[2], &data[4]),
+                        &data[5],
+                        &data[6],
+                    ),
                 })
             } else {
                 Some(FileDataPoint::PseudoPetDirectDamage {
                     data_position: DataPosition::new(line_number, &data[1]),
                     pet_name: String::from(&data[2]),
-                    damage_dealt: DamageDealt::new(&data[3], &format!("{}: {}", &data[2], &data[4]), &data[5], &data[6]),
+                    damage_dealt: DamageDealt::new(
+                        &data[3],
+                        &format!("{}: {}", &data[2], &data[4]),
+                        &data[5],
+                        &data[6],
+                    ),
                 })
             }
         }
@@ -498,7 +512,11 @@ pub fn extract_pseudo_pet_hit(line_number: u32, line: &String) -> Option<FileDat
         Some(data) => Some(FileDataPoint::PseudoPetHit {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
-            action_result: HitOrMiss::new(&data[3], &data[4], &data[5]),
+            action_result: HitOrMiss::new(
+                &data[3],
+                &format!("{}: {}", &data[2], &data[4]),
+                &data[5],
+            ),
         }),
         None => None,
     }
@@ -514,7 +532,7 @@ pub fn extract_pseudo_pet_streakbreaker_hit(
         Some(data) => Some(FileDataPoint::PseudoPetStreakbreakerHit {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
-            action_result: HitOrMiss::new(&data[3], &data[4], &"100"),
+            action_result: HitOrMiss::new(&data[3], &format!("{}: {}", &data[2], &data[4]), &"100"),
         }),
         None => None,
     }
@@ -527,7 +545,11 @@ pub fn extract_pseudo_pet_miss(line_number: u32, line: &String) -> Option<FileDa
         Some(data) => Some(FileDataPoint::PsuedoPetMiss {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
-            action_result: HitOrMiss::new(&data[3], &data[4], &data[5]),
+            action_result: HitOrMiss::new(
+                &data[3],
+                &format!("{}: {}", &data[2], &data[4]),
+                &data[5],
+            ),
         }),
         None => None,
     }

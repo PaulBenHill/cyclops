@@ -1,7 +1,7 @@
 use std::{
     fmt,
     fs::{self, File},
-    io::{BufRead, BufReader, LineWriter, Lines, Write},
+    io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write},
     path::PathBuf,
     time::{Duration, Instant},
 };
@@ -70,11 +70,11 @@ impl ParserJob {
                 );
                 db_actions::copy_db(conn, report_dir.join("summary.db"));
                 Self::write_data_files(
-//                    conn,
+                    conn,
                     &report_dir,
-//                   &file,
+                   &file,
                     &file_path,
-//                    &data_points,
+                    &data_points,
                     &summaries,
                 );
                 let first_summary = summaries.get(0).unwrap();
@@ -254,30 +254,35 @@ impl ParserJob {
     }
 
     fn write_data_files(
-        //conn: &mut SqliteConnection,
+        conn: &mut SqliteConnection,
         report_dir: &PathBuf,
-        //file_name: &PathBuf,
+        file_name: &PathBuf,
         data_file: &PathBuf,
-        //parsed_lines: &Vec<FileDataPoint>,
+        parsed_lines: &Vec<FileDataPoint>,
         summaries: &Vec<Summary>,
     ) {
-        Self::write_summary_chunk(&summaries, report_dir, &data_file);
+         let log_file_path = report_dir.join(file_name.file_name().unwrap());
+        if let Err(e) = std::fs::copy(data_file, log_file_path.to_path_buf()) {
+            println!("Copying data file return zero bytes: {}", e);
+        }
 
-        // write parsed logs for troubleshooting
-        //Self::write_parsed_files(&report_dir, parsed_lines);
+        Self::write_summary_chunk(&summaries, report_dir, &log_file_path);
 
-        // let dps_file = match File::create(report_dir.join("dps.csv")) {
-        //     Ok(f) => f,
-        //     Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
-        // };
+        //write parsed logs for troubleshooting
+        Self::write_parsed_files(&report_dir, parsed_lines);
 
-        // let dps_intervals = db_actions::select_damage_intervals(conn);
-        // let mut wtr = csv::Writer::from_writer(dps_file);
-        // for dp in dps_intervals {
-        //     if let Err(e) = wtr.serialize(&dp) {
-        //         panic!("Unable to write dps data. {:?}:{}", dp, e);
-        //     }
-        // }
+        let dps_file = match File::create(report_dir.join("dps.csv")) {
+            Ok(f) => f,
+            Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
+        };
+
+        let dps_intervals = db_actions::select_damage_intervals(conn);
+        let mut wtr = csv::Writer::from_writer(dps_file);
+        for dp in dps_intervals {
+            if let Err(e) = wtr.serialize(&dp) {
+                panic!("Unable to write dps data. {:?}:{}", dp, e);
+            }
+        }
     }
 
     fn write_summary_chunk(summaries: &Vec<Summary>, report_dir: &PathBuf, log_path: &PathBuf) {
@@ -326,18 +331,18 @@ impl ParserJob {
         }
     }
 
-    // fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
-    //     let parsed_text_file = match File::create(report_dir.join("parsed.txt")) {
-    //         Ok(f) => f,
-    //         Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
-    //     };
-    //     let mut buf_text_writer = BufWriter::new(parsed_text_file);
-    //     for data_point in parsed_lines {
-    //         buf_text_writer
-    //             .write_all(format!("{:?}\n,", data_point).as_bytes())
-    //             .expect("Unable to write parsed.txt")
-    //     }
-    // }
+    fn write_parsed_files(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
+        let parsed_text_file = match File::create(report_dir.join("parsed.txt")) {
+            Ok(f) => f,
+            Err(e) => panic!("Cannot create parser.txt file: {:?}", e),
+        };
+        let mut buf_text_writer = BufWriter::new(parsed_text_file);
+        for data_point in parsed_lines {
+            buf_text_writer
+                .write_all(format!("{:?}\n,", data_point).as_bytes())
+                .expect("Unable to write parsed.txt")
+        }
+    }
 
     fn generate_dps_report(
         conn: &mut SqliteConnection,
