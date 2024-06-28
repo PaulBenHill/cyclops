@@ -266,7 +266,7 @@ impl ParserJob {
             println!("Copying data file return zero bytes: {}", e);
         }
 
-        Self::write_summary_chunk(&summaries, report_dir, &log_file_path);
+        Self::write_summary_chunk(&summaries, report_dir, &data_file);
 
         //write parsed logs for troubleshooting
         Self::write_parsed_files(&report_dir, parsed_lines);

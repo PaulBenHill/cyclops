@@ -18,6 +18,7 @@ use crate::models::{
     PlayerActivation, Reward, Summary, TotalDamageReport,
 };
 use crate::parser_model::*;
+use crate::schema::activations_per_power::star;
 use crate::schema::{
     damage_action, defeated_targets, hit_or_miss, player_activation, reward, summary,
 };
@@ -683,21 +684,32 @@ fn finalize_summaries(
     summaries: &[Summary],
 ) -> Vec<Summary> {
     use crate::schema::summary::dsl::*;
-    let mut start_lines: Vec<i32> = Vec::new();
-    for s in summaries {
-        start_lines.push(s.first_line_number);
-    }
 
-    let mut end_lines: Vec<i32> = start_lines.iter().map(|i| i - 1).collect();
+    // Determine the last line in a session
+    // If more than one summary, then map
+    // the start lines into a vec
+    // end lines are the startline -1 lines
+    // push the last line of the file onto the end line vec
+    // else
+    // skip
+    if summaries.len() > 2 {
+        let mut start_lines: Vec<i32> = Vec::new();
+        for s in summaries {
+            start_lines.push(s.first_line_number);
+            println!("{:?}", s);
+        }
 
-    end_lines.remove(0);
-    end_lines.push(end_line as i32);
+        let mut end_lines: Vec<i32> = start_lines.iter().map(|i| i - 1).collect();
 
-    for (i, _) in summaries.iter().enumerate() {
-        let query = diesel::update(summary)
-            .filter(first_line_number.eq(start_lines.get(i).unwrap()))
-            .set(last_line_number.eq(end_lines.get(i).unwrap()));
-        query.execute(conn).expect("Unable to update summary row");
+        end_lines.remove(0);
+        end_lines.push(end_line as i32);
+
+        for (i, _) in summaries.iter().enumerate() {
+            let query = diesel::update(summary)
+                .filter(first_line_number.eq(start_lines.get(i).unwrap()))
+                .set(last_line_number.eq(end_lines.get(i).unwrap()));
+            query.execute(conn).expect("Unable to update summary row");
+        }
     }
 
     conn.batch_execute("update summary set log_date = (select pa.log_date from player_activation pa, summary s where s.summary_key = pa.summary_key AND s.log_date = 'PLACEHOLDER' group by s.summary_key)
