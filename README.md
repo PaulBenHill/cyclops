@@ -115,6 +115,7 @@ Usage: cyclops.exe [OPTIONS]
         - Damage Taken By Type - Damage dealt to the player by damage type.
         - Damage Taken By Mob - General summary of damage dealt to the player by each mob.
         - Damage Taken By Mob Power - Detailed break down of damage dealt to the player by each mob's power.
+        - Damage Dealt To Mob Power - Detailed break down of damage dealty by each player power for each mob damaged.
 
 
 ### Notes
