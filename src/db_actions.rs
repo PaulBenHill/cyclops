@@ -696,7 +696,6 @@ fn finalize_summaries(
         let mut start_lines: Vec<i32> = Vec::new();
         for s in summaries {
             start_lines.push(s.first_line_number);
-            println!("{:?}", s);
         }
 
         let mut end_lines: Vec<i32> = start_lines.iter().map(|i| i - 1).collect();
