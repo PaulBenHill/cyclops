@@ -453,8 +453,6 @@ impl ParserJob {
             report_context.insert("damage_taken_by_mob_power", &damage_taken_by_mob_power);
         }
 
-            report_context.insert("damaging_powers", &db_actions::get_damaging_powers(conn, summary.summary_key));
-            report_context.insert("mobs_damaged", &&db_actions::get_mobs_damaged(conn, summary.summary_key));
         // if let Some(damage_dealt_to_mob_by_power) =
         //     db_actions::get_damage_dealt_to_mob_by_power_report(conn, summary.summary_key)
         // {

@@ -4,8 +4,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <link href="https://unpkg.com/tabulator-tables@5.2.1/dist/css/tabulator.min.css" rel="stylesheet">
   <script src="https://unpkg.com/htmx.org@2.0.0" integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw" crossorigin="anonymous"></script>
-  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.2.1/dist/js/tabulator.min.js">
-  </script>
+  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.2.1/dist/js/tabulator.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sorttable@1.0.2/sorttable.min.js"></script>
   <style>
     body {
       color: #e67e22;
@@ -49,6 +49,20 @@
     a:visited {
       color: green;
     }
+
+
+/* Sortable tables */
+table.sortable a.sortheader {
+    background-color:#eee;
+    color:#666666;
+    font-weight: bold;
+    text-decoration: none;
+    display: block;
+}
+table.sortable span.sortarrow {
+    color: black;
+    text-decoration: none;
+}
   
     .sortable-table thead th {
       cursor: pointer
@@ -134,12 +148,11 @@
     .div-right {
       width: 50%;
     }
+
+    .sub-title {
+        display: inline;
+    }
   </style>
-  <script>
-
-
-    !function () { function t(t, e) { for (; (t = t.parentElement) && !t.classList.contains(e);); return t } function e(t) { return t = t.replace(/[^\d\.-]/g, ""), Number(t) } function n(t) { var e = document.createElement("span"); return e.innerHTML = t, e.textContent || e.innerText } function r(t, e, n) { for (var r = 0; r < n.length; r++)r == e ? n[e].setAttribute("data-sort-direction", t) : n[r].setAttribute("data-sort-direction", 0) } function a(t, e) { for (var n = t.getElementsByTagName("tbody")[0].getElementsByTagName("tr"), r = 0; r < n.length; r++)for (var a = n[r].getElementsByTagName("td"), i = 0; i < a.length; i++)a[i].innerHTML = e[r][i] } window.addEventListener("load", function () { for (var i = document.getElementsByClassName("sortable-table"), o = [], s = 0; s < i.length; s++)!function () { i[s].setAttribute("data-sort-index", s); for (var d = i[s].getElementsByTagName("tbody")[0].getElementsByTagName("tr"), l = 0; l < d.length; l++)for (var g = d[l].getElementsByTagName("td"), c = 0; c < g.length; c++)void 0 === o[s] && o.splice(s, 0, []), void 0 === o[s][l] && o[s].splice(l, 0, []), o[s][l].splice(c, 0, g[c].innerHTML); for (var u = i[s].getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].getElementsByTagName("th"), m = 0; m < u.length; m++)!function () { var s = u[m].classList.contains("numeric-sort"); u[m].setAttribute("data-sort-direction", 0), u[m].setAttribute("data-sort-index", m), u[m].addEventListener("click", function () { var d = this.getAttribute("data-sort-direction"), l = this.getAttribute("data-sort-index"), g = t(this, "sortable-table").getAttribute("data-sort-index"); r(1 == d ? -1 : 1, l, u), o[g] = o[g].sort(function (t, r) { var a = n(t[l]), i = n(r[l]); return s && (a = e(a), i = e(i)), a === i ? 0 : 1 == d ? a > i ? -1 : 1 : a < i ? -1 : 1 }), a(i[g], o[g]) }) }() }() }) }();
-  </script>
 
   <title>{{summary.player_name}}: {{summary.log_date | date(format="%Y-%m-%d %H:%M")}}</title>
 </head>
@@ -379,15 +392,15 @@ NO DATA
     <summary>
         <h2>DPS using an interval of {{ dps_interval}} </h2>
     </summary>
-<table title="DPS Report" style="width: 50%;" class="sortable-table">
+<table title="DPS Report" style="width: 50%;" class="sortable" id="dps_table">
     <thead>
-        <th class="numeric-sort">Starting Line</th>
-        <th class="numeric-sort">Ending Line</th>
-        <th class="numeric-sort">Total lines with damage</th>
-        <th class="numeric-sort">Elapsed Seconds</th>
-        <th class="numeric-sort">Elapsed Mins/Seconds</th>
-        <th class="numeric-sort">Total Damage</th>
-        <th class="numeric-sort">DPS</th>
+        <th>Starting Line</th>
+        <th>Ending Line</th>
+        <th>Total lines with damage</th>
+        <th>Elapsed Seconds</th>
+        <th>Elapsed Mins/Seconds</th>
+        <th>Total Damage</th>
+        <th>DPS</th>
     </thead>
     <tbody>
         {% for row in dps_reports %}
@@ -408,11 +421,11 @@ NO DATA
         <h2>Damage Dealt By Type</h2>
     </summary>
 {% if damage_dealt_by_type is defined %}
-<table title="Damage Dealt By Type" style="width: 50%;" class="sortable-table">
+<table title="Damage Dealt By Type" style="width: 50%;" class="sortable" id="ddbt_table">
     <thead>
         <th>Type</th>
-        <th class="numeric-sort">Total Damage</th>
-        <th class="numeric-sort">Damage %</th>
+        <th>Total Damage</th>
+        <th>Damage %</th>
     </thead>
     <tbody>
         {% for row in damage_dealt_by_type %}
@@ -435,11 +448,11 @@ NO DATA
         <h2>Damage Taken By Type</h2>
     </summary>
 {% if damage_taken_by_type is defined %}
-<table title="Damage Taken By Type" style="width: 50%;" class="sortable-table">
+<table title="Damage Taken By Type" style="width: 50%;" class="sortable" id="dtbt_table">
     <thead>
         <th>Type</th>
-        <th class="numeric-sort">Total Damage</th>
-        <th class="numeric-sort">Damage %</th>
+        <th>Total Damage</th>
+        <th>Damage %</th>
     </thead>
     <tbody>
         {% for row in damage_taken_by_type %}
@@ -465,13 +478,13 @@ NO DATA
         <h2>Damage Taken By Mob</h2>
     </summary>
 {% if damage_taken_by_mob is defined %}
-<table title="Damage Taken By Mob" style="width: 50%;" class="sortable-table">
+<table title="Damage Taken By Mob" style="width: 50%;" class="sortable" id="dtbm_table">
     <thead>
         <th>Mob</th>
-        <th class="numeric-sort">Hits</th>
-        <th class="numeric-sort">Average Hit Chance</th>
-        <th class="numeric-sort">Total Damage</th>
-        <th class="numeric-sort">Damage Per Hit</th>
+        <th>Hits</th>
+        <th>Average Hit Chance</th>
+        <th>Total Damage</th>
+        <th>Damage Per Hit</th>
     </thead>
     <tbody>
         {% for row in damage_taken_by_mob %}
@@ -496,15 +509,15 @@ NO DATA
         <h2>Damage Taken By Mob Power</h2>
     </summary>
 {% if damage_taken_by_mob_power is defined %}
-<table title="Damage Taken By Mob Power" style="width: 50%;" class="sortable-table">
+<table title="Damage Taken By Mob Power" style="width: 50%;" class="sortable" id="dtbmp">
     <thead>
         <th>Mob</th>
         <th>Power</th>
         <th>Damage Type</th>
-        <th class="numeric-sort">Hits</th>
-        <th class="numeric-sort">Average Hit Chance</th>
-        <th class="numeric-sort">Total Damage</th>
-        <th class="numeric-sort">Damage Per Hit</th>
+        <th>Hits</th>
+        <th>Average Hit Chance</th>
+        <th>Total Damage</th>
+        <th>Damage Per Hit</th>
     </thead>
     <tbody>
         {% for row in damage_taken_by_mob_power %}
@@ -527,40 +540,14 @@ NO DATA
 </div>
 </div>
 <hr>
-    <details>
-        <summary><h2>Powers And Mob Damaged</h2></summary>
-    Damaging Powers: <select name="power_name" hx-get="/powers_and_mobs?key={{summary.summary_key}}&db_path={{db_path}}" hx-target="#pam_div">
-        <option disabled selected value> -- select an power -- </option>
-      {% for p in damaging_powers %}
-        <option value="{{p | replace(from=" ", to="_")}}">{{p}}</option>
-      {% endfor %}
-      </optgroup>
-    </select>
-    Mobs: <select name="mob_name" hx-get="/powers_and_mobs?key={{summary.summary_key}}&db_path={{db_path}}" hx-target="#pam_div">
-        <option disabled selected value> -- select an mob -- </option>
-      {% for m in mobs_damaged %}
-        <option value="{{m | replace(from=" ", to="_")}}">{{m}}</option>
-      {% endfor %}
-      </optgroup>
-    </select>
-        <div id="pam_div">
-            <table title="Damage Dealt By Power To Mobs" style="width: 100%;" class="sortable-table">
-                <thead>
-                    <th>Mob</th>
-                    <th>Power</th>
-                    <th class="numeric-sort">Activations</th>
-                    <th class="numeric-sort">Hits</th>
-                    <th class="numeric-sort">Misses</th>
-                    <th class="numeric-sort">Chance to Hit</th>
-                    <th class="numeric-sort">Hit Percentage</th>
-                    <th class="numeric-sort">Total Damage</th>
-                    <th class="numeric-sort">Damage Per Hit</th>
-                    <th class="numeric-sort">Damage Per Activation</th>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
-        </details>
+    <h2 class="sub-title" hx-get="/powers_and_mobs" hx-target="#pam_div">Powers and Mobs Damaged<h2 class="sub-title" hx-get="" hx-target="#pam_table" hx-swap="delete"> [close]</h2></h2>
+    <div styple="padding-top: 50px" id="pam_div" >
+    </div>
 </body>
 </html>
+<script>
+    document.body.addEventListener('htmx:configRequest', function(evt) {
+     evt.detail.parameters['db_path'] = {{db_path | json_encode() | safe}}; 
+     evt.detail.parameters['key'] = '{{summary.summary_key}}'; 
+    });
+</script>

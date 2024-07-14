@@ -18,7 +18,6 @@ use crate::models::{
     PlayerActivation, Reward, Summary, TotalDamageReport,
 };
 use crate::parser_model::*;
-use crate::schema::activations_per_power::star;
 use crate::schema::{
     damage_action, defeated_targets, hit_or_miss, player_activation, reward, summary,
 };
@@ -946,20 +945,6 @@ pub fn get_damage_taken_by_mob_power_report(
     }
 }
 
-pub fn get_damage_dealt_to_mob_by_power_report(
-    conn: &mut SqliteConnection,
-    key: i32,
-) -> Option<Vec<DamageDealtToMobByPower>> {
-    use crate::schema::damage_dealt_to_mob_by_power::dsl::*;
-    match damage_dealt_to_mob_by_power
-        .filter(summary_key.eq(key))
-        .load::<DamageDealtToMobByPower>(conn)
-    {
-        Ok(data) => Some(data),
-        Err(_) => None,
-    }
-}
-
 use crate::web::PowersMobsData;
 pub fn get_damage_dealt_by_power_or_mob(
     query: &PowersMobsData,
@@ -1070,15 +1055,19 @@ pub fn get_rewards_defeats(
     }
 }
 
-pub fn get_damaging_powers(conn: &mut SqliteConnection, key: i32) -> Vec<String> {
+pub fn get_damaging_powers(query: &PowersMobsData) -> Vec<String> {
     use crate::schema::damage_action::dsl::*;
+    
+    let db_path: PathBuf = query.db_path.clone().into();
+    let mut conn = get_file_conn(db_path);
+
     let source_types: Vec<&str> = vec!["Player", "PlayerPet"];
     let result = damage_action
         .select(power_name)
         .distinct()
-        .filter(summary_key.eq(key))
+        .filter(summary_key.eq(query.key))
         .filter(source_type.eq_any(source_types))
-        .load::<String>(conn);
+        .load::<String>(&mut conn);
 
     match result {
         Ok(names) => names,
@@ -1086,15 +1075,19 @@ pub fn get_damaging_powers(conn: &mut SqliteConnection, key: i32) -> Vec<String>
     }
 }
 
-pub fn get_mobs_damaged(conn: &mut SqliteConnection, key: i32) -> Vec<String> {
+pub fn get_mobs_damaged(query: &PowersMobsData) -> Vec<String> {
     use crate::schema::damage_action::dsl::*;
+
+    let db_path: PathBuf = query.db_path.clone().into();
+    let mut conn = get_file_conn(db_path);
+
     let source_types: Vec<&str> = vec!["Player", "PlayerPet"];
     let result = damage_action
         .select(target_name)
         .distinct()
-        .filter(summary_key.eq(key))
+        .filter(summary_key.eq(query.key))
         .filter(source_type.eq_any(source_types))
-        .load::<String>(conn);
+        .load::<String>(&mut conn);
 
     match result {
         Ok(names) => names,

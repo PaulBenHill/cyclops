@@ -1,13 +1,29 @@
-<table title="Damage Dealt By Power To Mobs" style="width: 100%;" class="sortable-table">
+<div id="pam_table">
+Damaging Powers: <select name="power_name" hx-get="/powers_and_mobs" hx-target="#pam_div">
+    <option disabled selected value>{{ power_name | default(value="-- select a power --") | replace(from="_", to=" ")}}</option>
+  {% for p in damaging_powers %}
+    <option value="{{p | replace(from=" ", to="_")}}">{{p}}</option>
+  {% endfor %}
+  </optgroup>
+</select>
+Mobs: <select name="mob_name" hx-get="/powers_and_mobs" hx-target="#pam_div">
+    
+    <option disabled selected value>{{ mob_name | default(value="-- select a mob --")  | replace(from="_", to=" ")}}</option>
+  {% for m in mobs_damaged %}
+    <option value="{{m | replace(from=" ", to="_")}}">{{m}}</option>
+  {% endfor %}
+  </optgroup>
+</select>
+{% if powers_and_mobs is defined %}
+<table title="Damage Dealt By Power To Mobs" style="width: 100%;" id="ddbptm_table">
     <thead>
-        <th>Mob</th>
-        <th>Power</th>
-        <th class="numeric-sort">Hits</th>
-        <th class="numeric-sort">Misses</th>
-        <th class="numeric-sort">Chance to Hit</th>
-        <th class="numeric-sort">Hit Percentage</th>
-        <th class="numeric-sort">Total Damage</th>
-        <th class="numeric-sort">Damage Per Hit</th>
+      {% for c in headers %}
+        {% if power_name is defined %}
+          <th hx-get="/powers_and_mobs?sort_field={{c.1}}&power_name={{power_name}}&sort_dir={{sort_dir}}" hx-target="#pam_div">{{c.0}}</th>
+        {% else %}
+          <th hx-get="/powers_and_mobs?sort_field={{c.1}}&mob_name={{mob_name}}&sort_dir={{sort_dir}}" hx-target="#pam_div">{{c.0}}</th>
+        {% endif %}
+      {% endfor %}
     </thead>
     <tbody>
         {% for row in powers_and_mobs %}
@@ -24,3 +40,5 @@
         {% endfor %}
     </tbody>
 </table>
+{% endif %}
+</div>

@@ -23,6 +23,7 @@ mod models;
 mod parser_model;
 mod schema;
 mod web;
+mod powers_and_mobs_table;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";

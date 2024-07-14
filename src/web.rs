@@ -2,18 +2,22 @@ use std::path::PathBuf;
 
 use actix_files as fs;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
-    db_actions, find_all_summaries, generate_index, get_last_modified_file_in_dir,
-    log_processing::{self, ParserJob, ProcessingError},
-    read_log_file_dir, AppContext,
+    db_actions, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, read_log_file_dir, powers_and_mobs_table::{self, *}, AppContext
 };
 
 #[derive(Deserialize)]
 struct FileFormData {
     log_path: String,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub enum SortDirection {
+    ASC,
+    DESC,
 }
 
 #[derive(Deserialize, Debug)]
@@ -22,6 +26,8 @@ pub struct PowersMobsData {
     pub db_path: String,
     pub power_name: Option<String>,
     pub mob_name: Option<String>,
+    pub sort_field: Option<String>,
+    pub sort_dir: Option<SortDirection>,
 }
 
 fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
@@ -136,17 +142,43 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
 #[get("/powers_and_mobs")]
 async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let selected: web::Query<PowersMobsData> = web::Query::from_query(req.query_string()).unwrap();
-    let table_data = db_actions::get_damage_dealt_by_power_or_mob(&selected);
+
     let mut table_context = Context::new();
-    table_context.insert("powers_and_mobs", &table_data.unwrap());
+    table_context.insert(
+        "damaging_powers",
+        &db_actions::get_damaging_powers(&selected),
+    );
+    table_context.insert("mobs_damaged", &db_actions::get_mobs_damaged(&selected));
+    table_context.insert("headers", &powers_and_mobs_table::headers());
+
+    match db_actions::get_damage_dealt_by_power_or_mob(&selected) {
+        Some(mut data) => {
+            if selected.sort_field.is_some() {
+                powers_and_mobs_table::sort(selected.sort_field.clone().unwrap(), selected.sort_dir.clone().unwrap(), &mut data);
+            }
+            if selected.power_name.is_some() {
+                table_context.insert("power_name", &selected.power_name);
+            } else if selected.mob_name.is_some() {
+                table_context.insert("mob_name", &selected.mob_name);
+            }
+            table_context.insert("powers_and_mobs", &data);
+        }
+        None => (),
+    }
+
+    match &selected.sort_dir {
+        Some(dir) => match dir {
+            SortDirection::ASC => table_context.insert("sort_dir", &SortDirection::DESC),
+            SortDirection::DESC => table_context.insert("sort_dir", &SortDirection::ASC),
+        },
+        None => table_context.insert("sort_dir", &SortDirection::DESC),
+    }
 
     let result = context
         .tera
         .render("powers_and_mobs_table.html", &table_context);
     match result {
-        Ok(data) => {
-            HttpResponse::Ok().body(data)
-        }
+        Ok(data) => HttpResponse::Ok().body(data),
         Err(e) => panic!("Could not render {}:{:?}", "powers_and_mobs_table.html", e),
     }
 }
