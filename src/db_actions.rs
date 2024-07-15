@@ -865,14 +865,14 @@ pub fn get_damage_taken_report(conn: &mut SqliteConnection, key: i32) -> Option<
     }
 }
 
-pub fn get_damage_dealt_by_type_report(
-    conn: &mut SqliteConnection,
-    key: i32,
-) -> Option<Vec<DamageDealtByType>> {
+pub fn get_damage_dealt_by_type_query(query: &TableQuery) -> Option<Vec<DamageDealtByType>> {
     use crate::schema::damage_dealt_by_type::dsl::*;
+    let db_path: PathBuf = query.db_path.clone().into();
+    let mut conn = get_file_conn(db_path);
+
     match damage_dealt_by_type
-        .filter(summary_key.eq(key))
-        .load::<DamageDealtByType>(conn)
+        .filter(summary_key.eq(query.key))
+        .load::<DamageDealtByType>(&mut conn)
     {
         Ok(data) => {
             if data.is_empty() {
@@ -885,14 +885,14 @@ pub fn get_damage_dealt_by_type_report(
     }
 }
 
-pub fn get_damage_taken_by_type_report(
-    conn: &mut SqliteConnection,
-    key: i32,
-) -> Option<Vec<DamageTakenByType>> {
+pub fn get_damage_taken_by_type_query(query: &TableQuery) -> Option<Vec<DamageTakenByType>> {
     use crate::schema::damage_taken_by_type::dsl::*;
+    let db_path: PathBuf = query.db_path.clone().into();
+    let mut conn = get_file_conn(db_path);
+
     match damage_taken_by_type
-        .filter(summary_key.eq(key))
-        .load::<DamageTakenByType>(conn)
+        .filter(summary_key.eq(query.key))
+        .load::<DamageTakenByType>(&mut conn)
     {
         Ok(data) => {
             if data.is_empty() {
@@ -946,6 +946,7 @@ pub fn get_damage_taken_by_mob_power_report(
 }
 
 use crate::web::PowersMobsData;
+use crate::web::TableQuery;
 pub fn get_damage_dealt_by_power_or_mob(
     query: &PowersMobsData,
 ) -> Option<Vec<DamageDealtToMobByPower>> {

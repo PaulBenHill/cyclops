@@ -19,9 +19,9 @@ Mobs: <select name="mob_name" hx-get="/powers_and_mobs" hx-target="#pam_div">
     <thead>
       {% for c in headers %}
         {% if power_name is defined %}
-          <th hx-get="/powers_and_mobs?sort_field={{c.1}}&power_name={{power_name}}&sort_dir={{sort_dir}}" hx-target="#pam_div">{{c.0}}</th>
+          <th hx-get="/powers_and_mobs?sort_field={{c.0}}&power_name={{power_name}}&sort_dir={{sort_dir}}" hx-target="#pam_div">{{c.1}}</th>
         {% else %}
-          <th hx-get="/powers_and_mobs?sort_field={{c.1}}&mob_name={{mob_name}}&sort_dir={{sort_dir}}" hx-target="#pam_div">{{c.0}}</th>
+          <th hx-get="/powers_and_mobs?sort_field={{c.0}}&mob_name={{mob_name}}&sort_dir={{sort_dir}}" hx-target="#pam_div">{{c.1}}</th>
         {% endif %}
       {% endfor %}
     </thead>

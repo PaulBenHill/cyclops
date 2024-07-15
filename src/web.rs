@@ -6,10 +6,7 @@ use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
-    db_actions, find_all_summaries, generate_index, get_last_modified_file_in_dir,
-    log_processing::{self, ParserJob, ProcessingError},
-    powers_and_mobs_table::{self, *},
-    read_log_file_dir, AppContext,
+    damage_dealt_by_type_table, damage_taken_by_type_table, db_actions::{self, get_damage_dealt_by_type_query}, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, powers_and_mobs_table::{self, *}, read_log_file_dir, AppContext
 };
 
 #[derive(Deserialize)]
@@ -23,10 +20,26 @@ pub enum SortDirection {
     DESC,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum TableNames {
+    DamageDealtByType,
+    DamageTakenByType,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct TableQuery {
+    pub key: i32,
+    pub db_path: String,
+    pub table_name: Option<TableNames>,
+    pub sort_field: Option<String>,
+    pub sort_dir: Option<SortDirection>,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct PowersMobsData {
     pub key: i32,
     pub db_path: String,
+    pub table_name: Option<TableNames>,
     pub power_name: Option<String>,
     pub mob_name: Option<String>,
     pub sort_field: Option<String>,
@@ -142,6 +155,34 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
     }
 }
 
+#[get("/damage_by_type")]
+async fn damage_by_type(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let query: web::Query<TableQuery> = web::Query::from_query(req.query_string()).unwrap();
+
+    match &query.table_name {
+        Some(table_name) => {
+            let mut table_context = Context::new();
+            match table_name {
+                TableNames::DamageDealtByType => {
+                    damage_dealt_by_type_table::process(&mut table_context, &query);
+                }
+                TableNames::DamageTakenByType => {
+                    damage_taken_by_type_table::process(&mut table_context, &query);
+                },
+            }
+            let result = context.tera.render("simple_table.html", &table_context);
+            match result {
+                Ok(data) => HttpResponse::Ok().body(data),
+                Err(e) => {
+                    println!("Could not render {}:{:?}", "simple_table.html", e);
+                    HttpResponse::Ok().body("NO DATA")
+                }
+            }
+        }
+        None => HttpResponse::Ok().body("NO DATA"),
+    }
+}
+
 #[get("/powers_and_mobs")]
 async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let selected: web::Query<PowersMobsData> = web::Query::from_query(req.query_string()).unwrap();
@@ -202,6 +243,7 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .service(parse_dir)
             .service(process_dir)
             .service(process_latest)
+            .service(damage_by_type)
             .service(powers_and_mobs_query)
             .service(
                 fs::Files::new("/", context.output_dir.to_owned())

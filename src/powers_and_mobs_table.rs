@@ -1,18 +1,18 @@
 use crate::{
     models::DamageDealtToMobByPower,
-    web::{SortDirection},
+    web::SortDirection,
 };
 
 pub fn headers() -> Vec<(&'static str, &'static str)> {
     let mut headers = Vec::<(&'static str, &'static str)>::new();
-    headers.push(("Target Name", "target_name"));
-    headers.push(("Power Name", "power_name"));
-    headers.push(("Hits", "hits"));
-    headers.push(("Misses", "misses"));
-    headers.push(("Chance To Hit", "chance_to_hit"));
-    headers.push(("Hit Percent", "hit_percent"));
-    headers.push(("Total Damage", "total_damage"));
-    headers.push(("Damage Per Hit", "damage_per_hit"));
+    headers.push(("target_name", "Target Name"));
+    headers.push(("power_name", "Power Name"));
+    headers.push(("hits", "Hits"));
+    headers.push(("misses", "Misses"));
+    headers.push(("chance_to_hit", "Chance To Hit"));
+    headers.push(("hit_percent", "Hit Percent"));
+    headers.push(("total_damage", "Total Damage"));
+    headers.push(("damage_per_hit", "Damage Per Hit"));
 
     headers
 }

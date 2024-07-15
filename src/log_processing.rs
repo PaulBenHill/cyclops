@@ -11,7 +11,7 @@ use diesel::SqliteConnection;
 use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 
-use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, AppContext};
+use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, web::TableNames, AppContext};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessingError {
@@ -432,16 +432,8 @@ impl ParserJob {
         report_context.insert("powers", &damage_by_power);
         report_context.insert("dps_interval", &dps_interval);
         report_context.insert("dps_reports", &dps_reports);
-        if let Some(damage_dealt_by_type) =
-            db_actions::get_damage_dealt_by_type_report(conn, summary.summary_key)
-        {
-            report_context.insert("damage_dealt_by_type", &damage_dealt_by_type);
-        }
-        if let Some(damage_taken_by_type) =
-            db_actions::get_damage_taken_by_type_report(conn, summary.summary_key)
-        {
-            report_context.insert("damage_taken_by_type", &damage_taken_by_type);
-        }
+        report_context.insert("damage_dealt_by_type", &TableNames::DamageDealtByType);
+        report_context.insert("damage_taken_by_type", &TableNames::DamageTakenByType);
         if let Some(damage_taken_by_mob) =
             db_actions::get_damage_taken_by_mob_report(conn, summary.summary_key)
         {

@@ -416,58 +416,12 @@ NO DATA
 <hr>
 <div class="container">
 <div class="div-left">
-<details>
-    <summary>
-        <h2>Damage Dealt By Type</h2>
-    </summary>
-{% if damage_dealt_by_type is defined %}
-<table title="Damage Dealt By Type" style="width: 50%;" class="sortable" id="ddbt_table">
-    <thead>
-        <th>Type</th>
-        <th>Total Damage</th>
-        <th>Damage %</th>
-    </thead>
-    <tbody>
-        {% for row in damage_dealt_by_type %}
-        <tr>
-            <td>{{ row.damage_type }}</td>
-            <td>{{ row.total_damage }}</td>
-            <td>{{ row.damage_percent }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-NO DATA
-{% endif %}
-</details>
+  <h2 class="sub-title" hx-get="/damage_by_type?table_name={{damage_dealt_by_type}}" hx-target="#{{damage_dealt_by_type}}_div">Damage Dealt By Type<h2 class="sub-title" hx-get="" hx-target="#{{damage_dealt_by_type}}_table" hx-swap="delete"> [close]</h2></h2>
+  <div style="padding-top: 25px" id="{{damage_dealt_by_type}}_div" ></div>
 </div>
 <div class="div-right">
-<details>
-    <summary>
-        <h2>Damage Taken By Type</h2>
-    </summary>
-{% if damage_taken_by_type is defined %}
-<table title="Damage Taken By Type" style="width: 50%;" class="sortable" id="dtbt_table">
-    <thead>
-        <th>Type</th>
-        <th>Total Damage</th>
-        <th>Damage %</th>
-    </thead>
-    <tbody>
-        {% for row in damage_taken_by_type %}
-        <tr>
-            <td>{{ row.damage_type }}</td>
-            <td>{{ row.total_damage }}</td>
-            <td>{{ row.damage_percent }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-NO DATA
-{% endif %}
-</details>
+  <h2 class="sub-title" hx-get="/damage_by_type?table_name={{damage_taken_by_type}}" hx-target="#{{damage_taken_by_type}}_div">Damage Dealt By Type<h2 class="sub-title" hx-get="" hx-target="#{{damage_taken_by_type}}_table" hx-swap="delete"> [close]</h2></h2>
+  <div style="padding-top: 25px" id="{{damage_taken_by_type}}_div" ></div>
 </div>
 </div>
 <hr>
@@ -541,8 +495,7 @@ NO DATA
 </div>
 <hr>
     <h2 class="sub-title" hx-get="/powers_and_mobs" hx-target="#pam_div">Powers and Mobs Damaged<h2 class="sub-title" hx-get="" hx-target="#pam_table" hx-swap="delete"> [close]</h2></h2>
-    <div styple="padding-top: 50px" id="pam_div" >
-    </div>
+    <div style="padding-top: 25px" id="pam_div" ></div>
 </body>
 </html>
 <script>

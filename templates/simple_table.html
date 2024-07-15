@@ -1,0 +1,18 @@
+<div id="{{table_name}}_table">
+<table title="{{table_title}}" style="width: 50%;" id="{{table_name}}_table">
+    <thead>
+      {% for c in headers %}
+          <th hx-get="/damage_by_type?table_name={{table_name}}&sort_field={{c.0}}&sort_dir={{sort_dir}}" hx-target="#{{table_name}}_div">{{c.1}}</th>
+      {% endfor %}
+    </thead>
+    <tbody>
+        {% for rows in table_rows %}
+          <tr>
+            {% for data in rows %}
+                  <td>{{data}}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
