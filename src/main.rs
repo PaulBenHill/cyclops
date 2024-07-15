@@ -26,6 +26,8 @@ mod web;
 mod powers_and_mobs_table;
 mod damage_dealt_by_type_table;
 mod damage_taken_by_type_table;
+mod damage_taken_by_mob_table;
+mod damage_taken_by_mob_power_table;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";

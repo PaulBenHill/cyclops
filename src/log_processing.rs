@@ -434,23 +434,8 @@ impl ParserJob {
         report_context.insert("dps_reports", &dps_reports);
         report_context.insert("damage_dealt_by_type", &TableNames::DamageDealtByType);
         report_context.insert("damage_taken_by_type", &TableNames::DamageTakenByType);
-        if let Some(damage_taken_by_mob) =
-            db_actions::get_damage_taken_by_mob_report(conn, summary.summary_key)
-        {
-            report_context.insert("damage_taken_by_mob", &damage_taken_by_mob);
-        }
-        if let Some(damage_taken_by_mob_power) =
-            db_actions::get_damage_taken_by_mob_power_report(conn, summary.summary_key)
-        {
-            report_context.insert("damage_taken_by_mob_power", &damage_taken_by_mob_power);
-        }
-
-        // if let Some(damage_dealt_to_mob_by_power) =
-        //     db_actions::get_damage_dealt_to_mob_by_power_report(conn, summary.summary_key)
-        // {
-        //     println!("DDTMBP count: {}", damage_dealt_to_mob_by_power.len());
-        //     //report_context.insert("damage_dealt_to_mob_by_power", &damage_dealt_to_mob_by_power);
-        // }
+        report_context.insert("damage_taken_by_mob", &TableNames::DamageTakenByMob);
+        report_context.insert("damage_taken_by_mob_power", &TableNames::DamageTakenByMobPower);
 
         let result = tera.render("player_attack_report.html", &report_context);
         match result {

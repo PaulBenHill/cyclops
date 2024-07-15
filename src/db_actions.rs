@@ -905,14 +905,14 @@ pub fn get_damage_taken_by_type_query(query: &TableQuery) -> Option<Vec<DamageTa
     }
 }
 
-pub fn get_damage_taken_by_mob_report(
-    conn: &mut SqliteConnection,
-    key: i32,
-) -> Option<Vec<DamageTakenByMob>> {
+pub fn get_damage_taken_by_mob_query(query: &TableQuery) -> Option<Vec<DamageTakenByMob>> {
     use crate::schema::damage_taken_by_mob::dsl::*;
+    let db_path: PathBuf = query.db_path.clone().into();
+    let mut conn = get_file_conn(db_path);
+
     match damage_taken_by_mob
-        .filter(summary_key.eq(key))
-        .load::<DamageTakenByMob>(conn)
+        .filter(summary_key.eq(query.key))
+        .load::<DamageTakenByMob>(&mut conn)
     {
         Ok(data) => {
             if data.is_empty() {
@@ -925,14 +925,14 @@ pub fn get_damage_taken_by_mob_report(
     }
 }
 
-pub fn get_damage_taken_by_mob_power_report(
-    conn: &mut SqliteConnection,
-    key: i32,
-) -> Option<Vec<DamageTakenByMobPower>> {
+pub fn get_damage_taken_by_mob_power_query(query: &TableQuery) -> Option<Vec<DamageTakenByMobPower>> {
     use crate::schema::damage_taken_by_mob_power::dsl::*;
+    let db_path: PathBuf = query.db_path.clone().into();
+    let mut conn = get_file_conn(db_path);
+
     match damage_taken_by_mob_power
-        .filter(summary_key.eq(key))
-        .load::<DamageTakenByMobPower>(conn)
+        .filter(summary_key.eq(query.key))
+        .load::<DamageTakenByMobPower>(&mut conn)
     {
         Ok(data) => {
             if data.is_empty() {

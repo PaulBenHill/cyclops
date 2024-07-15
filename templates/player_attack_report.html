@@ -152,6 +152,15 @@ table.sortable span.sortarrow {
     .sub-title {
         display: inline;
     }
+
+    .table-div {
+      padding-top: 25px;
+    }
+
+    .table-div.html-swapping {
+      opacity: 1;
+      transition: opacity 1s ease-in;
+    }
   </style>
 
   <title>{{summary.player_name}}: {{summary.log_date | date(format="%Y-%m-%d %H:%M")}}</title>
@@ -416,86 +425,28 @@ NO DATA
 <hr>
 <div class="container">
 <div class="div-left">
-  <h2 class="sub-title" hx-get="/damage_by_type?table_name={{damage_dealt_by_type}}" hx-target="#{{damage_dealt_by_type}}_div">Damage Dealt By Type<h2 class="sub-title" hx-get="" hx-target="#{{damage_dealt_by_type}}_table" hx-swap="delete"> [close]</h2></h2>
+  <h2 class="sub-title" hx-get="/damage_table?table_name={{damage_dealt_by_type}}" hx-target="#{{damage_dealt_by_type}}_div">Damage Dealt By Type<h2 class="sub-title" hx-get="" hx-target="#{{damage_dealt_by_type}}_table" hx-swap="delete"> [close]</h2></h2>
   <div style="padding-top: 25px" id="{{damage_dealt_by_type}}_div" ></div>
 </div>
 <div class="div-right">
-  <h2 class="sub-title" hx-get="/damage_by_type?table_name={{damage_taken_by_type}}" hx-target="#{{damage_taken_by_type}}_div">Damage Dealt By Type<h2 class="sub-title" hx-get="" hx-target="#{{damage_taken_by_type}}_table" hx-swap="delete"> [close]</h2></h2>
+  <h2 class="sub-title" hx-get="/damage_table?table_name={{damage_taken_by_type}}" hx-target="#{{damage_taken_by_type}}_div">Damage Taken By Type<h2 class="sub-title" hx-get="" hx-target="#{{damage_taken_by_type}}_table" hx-swap="delete"> [close]</h2></h2>
   <div style="padding-top: 25px" id="{{damage_taken_by_type}}_div" ></div>
 </div>
 </div>
 <hr>
 <div class="container">
 <div class="div-left">
-<details>
-    <summary>
-        <h2>Damage Taken By Mob</h2>
-    </summary>
-{% if damage_taken_by_mob is defined %}
-<table title="Damage Taken By Mob" style="width: 50%;" class="sortable" id="dtbm_table">
-    <thead>
-        <th>Mob</th>
-        <th>Hits</th>
-        <th>Average Hit Chance</th>
-        <th>Total Damage</th>
-        <th>Damage Per Hit</th>
-    </thead>
-    <tbody>
-        {% for row in damage_taken_by_mob %}
-        <tr>
-            <td>{{ row.source_name }}</td>
-            <td>{{ row.hits }}</td>
-            <td>{{ row.avg_hit_chance }}</td>
-            <td>{{ row.total_damage }}</td>
-            <td>{{ row.damage_per_hit }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-NO DATA
-{% endif %}
-</details>
+  <h2 class="sub-title" hx-get="/damage_table?table_name={{damage_taken_by_mob}}" hx-target="#{{damage_taken_by_mob}}_div">Damage Taken By Mob<h2 class="sub-title" hx-get="" hx-target="#{{damage_taken_by_mob}}_table" hx-swap="delete"> [close]</h2></h2>
+  <div style="padding-top: 25px" id="{{damage_taken_by_mob}}_div" ></div>
 </div>
 <div class="div-right">
-<details>
-    <summary>
-        <h2>Damage Taken By Mob Power</h2>
-    </summary>
-{% if damage_taken_by_mob_power is defined %}
-<table title="Damage Taken By Mob Power" style="width: 50%;" class="sortable" id="dtbmp">
-    <thead>
-        <th>Mob</th>
-        <th>Power</th>
-        <th>Damage Type</th>
-        <th>Hits</th>
-        <th>Average Hit Chance</th>
-        <th>Total Damage</th>
-        <th>Damage Per Hit</th>
-    </thead>
-    <tbody>
-        {% for row in damage_taken_by_mob_power %}
-        <tr>
-            <td>{{ row.source_name }}</td>
-            <td>{{ row.power_name }}</td>
-            <td>{{ row.damage_type }}</td>
-            <td>{{ row.hits }}</td>
-            <td>{{ row.avg_hit_chance }}</td>
-            <td>{{ row.total_damage }}</td>
-            <td>{{ row.damage_per_hit }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-{% else %}
-NO DATA
-{% endif %}
-</details>
+  <h2 class="sub-title" hx-get="/damage_table?table_name={{damage_taken_by_mob_power}}" hx-target="#{{damage_taken_by_mob_power}}_div">Damage Taken By Mob<h2 class="sub-title" hx-get="" hx-target="#{{damage_taken_by_mob_power}}_table" hx-swap="delete"> [close]</h2></h2>
+  <div style="padding-top: 25px" id="{{damage_taken_by_mob_power}}_div" ></div>
 </div>
 </div>
 <hr>
     <h2 class="sub-title" hx-get="/powers_and_mobs" hx-target="#pam_div">Powers and Mobs Damaged<h2 class="sub-title" hx-get="" hx-target="#pam_table" hx-swap="delete"> [close]</h2></h2>
-    <div style="padding-top: 25px" id="pam_div" ></div>
+    <div class="table-div" id="pam_div" ></div>
 </body>
 </html>
 <script>

@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
-    damage_dealt_by_type_table, damage_taken_by_type_table, db_actions::{self, get_damage_dealt_by_type_query}, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, powers_and_mobs_table::{self, *}, read_log_file_dir, AppContext
+    damage_dealt_by_type_table, damage_taken_by_mob_power_table, damage_taken_by_mob_table, damage_taken_by_type_table, db_actions::{self}, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, powers_and_mobs_table::{self, *}, read_log_file_dir, AppContext
 };
 
 #[derive(Deserialize)]
@@ -24,6 +24,8 @@ pub enum SortDirection {
 pub enum TableNames {
     DamageDealtByType,
     DamageTakenByType,
+    DamageTakenByMob,
+    DamageTakenByMobPower,
 }
 
 #[derive(Deserialize, Debug)]
@@ -155,8 +157,8 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
     }
 }
 
-#[get("/damage_by_type")]
-async fn damage_by_type(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+#[get("/damage_table")]
+async fn damage_table(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let query: web::Query<TableQuery> = web::Query::from_query(req.query_string()).unwrap();
 
     match &query.table_name {
@@ -168,7 +170,13 @@ async fn damage_by_type(req: HttpRequest, context: web::Data<AppContext>) -> imp
                 }
                 TableNames::DamageTakenByType => {
                     damage_taken_by_type_table::process(&mut table_context, &query);
-                },
+                }
+                TableNames::DamageTakenByMob => {
+                    damage_taken_by_mob_table::process(&mut table_context, &query);
+                }
+                TableNames::DamageTakenByMobPower => {
+                    damage_taken_by_mob_power_table::process(&mut table_context, &query);
+                }
             }
             let result = context.tera.render("simple_table.html", &table_context);
             match result {
@@ -243,7 +251,7 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .service(parse_dir)
             .service(process_dir)
             .service(process_latest)
-            .service(damage_by_type)
+            .service(damage_table)
             .service(powers_and_mobs_query)
             .service(
                 fs::Files::new("/", context.output_dir.to_owned())

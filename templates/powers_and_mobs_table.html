@@ -1,12 +1,12 @@
-<div id="pam_table">
-Damaging Powers: <select name="power_name" hx-get="/powers_and_mobs" hx-target="#pam_div">
+<div class="table-section" id="pam_table">
+Damaging Powers: <select name="power_name" hx-get="/powers_and_mobs" hx-target="#pam_div" hx-swap="show:top" >
     <option disabled selected value>{{ power_name | default(value="-- select a power --") | replace(from="_", to=" ")}}</option>
   {% for p in damaging_powers %}
     <option value="{{p | replace(from=" ", to="_")}}">{{p}}</option>
   {% endfor %}
   </optgroup>
 </select>
-Mobs: <select name="mob_name" hx-get="/powers_and_mobs" hx-target="#pam_div">
+Mobs: <select name="mob_name" hx-get="/powers_and_mobs" hx-target="#pam_div" hx-swap="show:top">
     
     <option disabled selected value>{{ mob_name | default(value="-- select a mob --")  | replace(from="_", to=" ")}}</option>
   {% for m in mobs_damaged %}
