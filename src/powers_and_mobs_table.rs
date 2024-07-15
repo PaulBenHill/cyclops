@@ -1,6 +1,6 @@
 use crate::{
     models::DamageDealtToMobByPower,
-    web::{PowersMobsData, SortDirection},
+    web::{SortDirection},
 };
 
 pub fn headers() -> Vec<(&'static str, &'static str)> {
@@ -10,11 +10,29 @@ pub fn headers() -> Vec<(&'static str, &'static str)> {
     headers.push(("Hits", "hits"));
     headers.push(("Misses", "misses"));
     headers.push(("Chance To Hit", "chance_to_hit"));
-    headers.push(("Hit Percent", "hit_perecent"));
+    headers.push(("Hit Percent", "hit_percent"));
     headers.push(("Total Damage", "total_damage"));
     headers.push(("Damage Per Hit", "damage_per_hit"));
 
     headers
+}
+
+pub fn flatten(data: Vec<DamageDealtToMobByPower>) -> Vec<Vec<String>> {
+    let mut result = Vec::<Vec<String>>::new();
+
+    for d in data {
+        let mut row = Vec::<String>::new();
+        row.push(d.target_name);
+        row.push(d.power_name);
+        row.push(d.hits.to_string());
+        row.push(d.misses.to_string());
+        row.push(d.chance_to_hit.to_string());
+        row.push(d.hit_percent.to_string());
+        row.push(d.total_damage.to_string());
+        row.push(d.damage_per_hit.to_string());
+        result.push(row);
+    }
+    result
 }
 
 pub fn sort(sort_field: String, sort_dir: SortDirection, data: &mut Vec<DamageDealtToMobByPower>) {
@@ -51,6 +69,6 @@ pub fn sort(sort_field: String, sort_dir: SortDirection, data: &mut Vec<DamageDe
             SortDirection::DESC => data.sort_by(|a, b| b.damage_per_hit.cmp(&a.damage_per_hit)),
             SortDirection::ASC => data.sort_by(|a, b| a.damage_per_hit.cmp(&b.damage_per_hit)),
         },
-        _ => panic!("Unknown sort field provided"),
+        _ => println!("Unknown sort field provided: {}", sort_field),
     }
 }

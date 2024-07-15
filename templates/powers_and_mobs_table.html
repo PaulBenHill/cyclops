@@ -14,7 +14,7 @@ Mobs: <select name="mob_name" hx-get="/powers_and_mobs" hx-target="#pam_div">
   {% endfor %}
   </optgroup>
 </select>
-{% if powers_and_mobs is defined %}
+{% if table_rows is defined %}
 <table title="Damage Dealt By Power To Mobs" style="width: 100%;" id="ddbptm_table">
     <thead>
       {% for c in headers %}
@@ -26,17 +26,12 @@ Mobs: <select name="mob_name" hx-get="/powers_and_mobs" hx-target="#pam_div">
       {% endfor %}
     </thead>
     <tbody>
-        {% for row in powers_and_mobs %}
-        <tr>
-            <td>{{ row.target_name }}</td>
-            <td>{{ row.power_name }}</td>
-            <td>{{ row.hits }}</td>
-            <td>{{ row.misses }}</td>
-            <td>{{ row.chance_to_hit }}</td>
-            <td>{{ row.hit_percent }}</td>
-            <td>{{ row.total_damage }}</td>
-            <td>{{ row.damage_per_hit }}</td>
-        </tr>
+        {% for rows in table_rows %}
+          <tr>
+            {% for data in rows %}
+                  <td>{{data}}</td>
+            {% endfor %}
+          </tr>
         {% endfor %}
     </tbody>
 </table>

@@ -6,7 +6,10 @@ use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
-    db_actions, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, read_log_file_dir, powers_and_mobs_table::{self, *}, AppContext
+    db_actions, find_all_summaries, generate_index, get_last_modified_file_in_dir,
+    log_processing::{self, ParserJob, ProcessingError},
+    powers_and_mobs_table::{self, *},
+    read_log_file_dir, AppContext,
 };
 
 #[derive(Deserialize)]
@@ -154,14 +157,19 @@ async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>)
     match db_actions::get_damage_dealt_by_power_or_mob(&selected) {
         Some(mut data) => {
             if selected.sort_field.is_some() {
-                powers_and_mobs_table::sort(selected.sort_field.clone().unwrap(), selected.sort_dir.clone().unwrap(), &mut data);
+                powers_and_mobs_table::sort(
+                    selected.sort_field.clone().unwrap(),
+                    selected.sort_dir.clone().unwrap(),
+                    &mut data,
+                );
             }
             if selected.power_name.is_some() {
                 table_context.insert("power_name", &selected.power_name);
             } else if selected.mob_name.is_some() {
                 table_context.insert("mob_name", &selected.mob_name);
             }
-            table_context.insert("powers_and_mobs", &data);
+            let rows = powers_and_mobs_table::flatten(data);
+            table_context.insert("table_rows", &rows);
         }
         None => (),
     }
