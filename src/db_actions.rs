@@ -716,6 +716,11 @@ fn finalize_summaries(
     summary.select(Summary::as_select()).load(conn).unwrap()
 }
 
+pub fn get_summary(conn: &mut SqliteConnection, key: i32) -> Vec<Summary> {
+    use crate::schema::summary::dsl::*;
+    summary.filter(summary_key.eq(key)).load(conn).expect("Unable to load single summary")
+}
+
 pub fn get_summaries(conn: &mut SqliteConnection) -> Vec<Summary> {
     use crate::schema::summary::dsl::*;
     summary
@@ -1002,12 +1007,9 @@ pub fn select_damage_intervals(conn: &mut SqliteConnection) -> Vec<DamageInterva
         .expect("Unable to load damage report by power")
 }
 
-pub fn get_damage_intervals(
-    conn: &mut SqliteConnection,
-    key: i32,
-    interval: i32,
-) -> Vec<Vec<DamageIntervals>> {
+pub fn get_damage_intervals_query(conn: &mut SqliteConnection, key: i32, interval: i32) -> Vec<Vec<DamageIntervals>> {
     use crate::schema::damage_intervals::dsl::*;
+
     let intervals: Vec<DamageIntervals> = damage_intervals
         .filter(summary_key.eq(key))
         .load(conn)

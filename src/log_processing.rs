@@ -6,7 +6,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use chrono::DateTime;
 use diesel::SqliteConnection;
 use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
@@ -344,61 +343,6 @@ impl ParserJob {
         }
     }
 
-    fn generate_dps_report(
-        conn: &mut SqliteConnection,
-        key: i32,
-        interval: usize,
-        line_count: usize,
-    ) -> Vec<Vec<String>> {
-        let mut dps_reports: Vec<Vec<String>> = Vec::new();
-        let damage_intervals = db_actions::get_damage_intervals(conn, key, interval as i32);
-
-        for intervals in damage_intervals {
-            let first_interval = intervals.first().unwrap();
-            let last_interval = intervals.last().unwrap();
-
-            let mut end_line: usize = 0;
-            if end_line < line_count {
-                end_line = last_interval.line_number as usize;
-            } else {
-                end_line = line_count;
-            }
-
-            let total_damage: i32 = intervals.iter().map(|i| i.damage).sum();
-
-            let elapsed_seconds = DateTime::parse_from_rfc3339(last_interval.log_date.as_str())
-                .unwrap()
-                .timestamp()
-                - DateTime::parse_from_rfc3339(first_interval.log_date.as_str())
-                    .unwrap()
-                    .timestamp();
-
-            let elapsed_duration = Duration::from_secs(elapsed_seconds as u64).as_secs();
-            let pretty_elapsed = format!(
-                "{} min(s) {} second(s)",
-                elapsed_duration / 60,
-                elapsed_duration % 60
-            );
-
-            let mut dps = total_damage as i64;
-            if elapsed_seconds > 0 {
-                dps = dps / elapsed_seconds;
-            }
-
-            dps_reports.push(vec![
-                first_interval.line_number.to_string(),
-                end_line.to_string(),
-                intervals.len().to_string(),
-                elapsed_seconds.to_string(),
-                pretty_elapsed,
-                total_damage.to_string(),
-                dps.to_string(),
-            ]);
-        }
-
-        dps_reports
-    }
-
     fn generate_summary(
         conn: &mut SqliteConnection,
         tera: &Tera,
@@ -414,9 +358,6 @@ impl ParserJob {
         let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key);
         let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
 
-        let dps_reports =
-            Self::generate_dps_report(conn, summary.summary_key, dps_interval, line_count);
-
         let mut report_context = Context::new();
 
         report_context.insert("index", &format!("player{}", index + 1));
@@ -431,7 +372,7 @@ impl ParserJob {
         }
         report_context.insert("powers", &damage_by_power);
         report_context.insert("dps_interval", &dps_interval);
-        report_context.insert("dps_reports", &dps_reports);
+        report_context.insert("dps_report", &TableNames::DPSIntervals);
         report_context.insert("damage_dealt_by_type", &TableNames::DamageDealtByType);
         report_context.insert("damage_taken_by_type", &TableNames::DamageTakenByType);
         report_context.insert("damage_taken_by_mob", &TableNames::DamageTakenByMob);

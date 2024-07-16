@@ -397,31 +397,8 @@ NO DATA
 
 </script>
 <hr>
-<details>
-    <summary>
-        <h2>DPS using an interval of {{ dps_interval}} </h2>
-    </summary>
-<table title="DPS Report" style="width: 50%;" class="sortable" id="dps_table">
-    <thead>
-        <th>Starting Line</th>
-        <th>Ending Line</th>
-        <th>Total lines with damage</th>
-        <th>Elapsed Seconds</th>
-        <th>Elapsed Mins/Seconds</th>
-        <th>Total Damage</th>
-        <th>DPS</th>
-    </thead>
-    <tbody>
-        {% for row in dps_reports %}
-        <tr>
-            {% for data in row %}
-            <td>{{ data }}</td>
-            {% endfor %}
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-</details>
+  <h2 class="sub-title" hx-get="/damage_table?table_name={{dps_report}}" hx-target="#{{dps_report}}_div">DPS Using An Interval Of {{dps_interval}}<h2 class="sub-title" hx-get="" hx-target="#{{dps_report}}_table" hx-swap="delete"> [close]</h2></h2>
+  <div style="padding-top: 25px" id="{{dps_report}}_div" ></div>
 <hr>
 <div class="container">
 <div class="div-left">

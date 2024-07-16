@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
-    damage_dealt_by_type_table, damage_taken_by_mob_power_table, damage_taken_by_mob_table, damage_taken_by_type_table, db_actions::{self}, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, powers_and_mobs_table::{self, *}, read_log_file_dir, AppContext
+    damage_dealt_by_type_table, damage_taken_by_mob_power_table, damage_taken_by_mob_table, damage_taken_by_type_table, db_actions::{self}, dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, powers_and_mobs_table::{self, *}, read_log_file_dir, AppContext
 };
 
 #[derive(Deserialize)]
@@ -26,6 +26,7 @@ pub enum TableNames {
     DamageTakenByType,
     DamageTakenByMob,
     DamageTakenByMobPower,
+    DPSIntervals,
 }
 
 #[derive(Deserialize, Debug)]
@@ -176,6 +177,9 @@ async fn damage_table(req: HttpRequest, context: web::Data<AppContext>) -> impl 
                 }
                 TableNames::DamageTakenByMobPower => {
                     damage_taken_by_mob_power_table::process(&mut table_context, &query);
+                }
+                TableNames::DPSIntervals => {
+                    dps_interval_table::process(&context, &mut table_context, &query);
                 }
             }
             let result = context.tera.render("simple_table.html", &table_context);
