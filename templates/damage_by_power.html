@@ -1,0 +1,41 @@
+<div id="dbp_table">
+    <form>
+        <button id="merge_rows">Merge Rows</button>
+        <button id="delete_rows">Delete Rows</button>
+        <button id="delete_non_damage">Remove Non Damage Powers</button>
+        <button id="revert">Revert Changes</button>
+        <table title="Damage By Power" style="width: 100%;">
+            <thead>
+              {% for c in headers %}
+                  <th hx-get="/damage_by_power?sort_field={{c.0}}&sort_dir={{sort_dir}}" hx-target="#dbp_table">{{c.1}}</th>
+              {% endfor %}
+            </thead>
+            <tbody>
+                {% for row in table_rows %}
+                  <tr>
+                    <td><input type="checkbox" id="row_{{loop.index0}}" name="row_{{loop.index0}}" value="{{loop.index0}}"></td>
+                    <td>{{row.power_name}}</td>
+                    <td>{{row.activations}}</td>
+                    <td>{{row.hits}} ({{row.streak_breakers}})</td>
+                    <td>{{row.misses}}</td>
+                    <td>{{row.hit_percentage}}</td>
+                    <td>{{row.total_damage}}</td>
+                    <td>{{row.total_damage_percent}}</td>
+                    <td>{{row.dpa}}</td>
+                    <td>{{row.ate}}</td>
+                    <td>{{row.direct_damage}}</td>
+                    <td>{{row.dot_damage}}</td>
+                    <td>{{row.critical_damage}}</td>
+                    <td>{{row.critical_hits}}</td>
+                    <td>{{row.percent_hits_critical}}</td>
+                    <td>{{row.percent_damage_critical}}</td>
+                  </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+   </form>
+<a id="ate1"><sup>1</sup>For psuedo pets that do two types of damage. This value needs to be divided by two. Example:
+    Electrical Melee: Lightning Rod</a>
+<br>
+<a id="ate2"><sup>2</sup>Incarnate Judgements can exceed the target cap of 16</a>
+</div>

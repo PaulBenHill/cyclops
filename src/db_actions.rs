@@ -849,6 +849,21 @@ pub fn index_details(conn: &mut SqliteConnection) -> Vec<IndexDetails> {
         .expect("Unable to load index details")
 }
 
+pub fn get_total_damage(query: &DamageByPowerQuery) -> i32 {
+    use crate::schema::total_damage_report::dsl::*;
+    let db_path: PathBuf = query.db_path.clone().into();
+    let mut conn = get_file_conn(db_path);
+
+    let mut result: Vec<i32> = 
+         total_damage_report
+        .select(total_damage)
+        .filter(summary_key.eq(query.key))
+        .load(&mut conn)
+        .expect("Unable to load total damage report");
+
+    result.pop().unwrap()
+}
+
 pub fn get_total_damage_report(conn: &mut SqliteConnection, key: i32) -> TotalDamageReport {
     use crate::schema::total_damage_report::dsl::*;
     let mut result: Vec<TotalDamageReport> = total_damage_report
@@ -950,6 +965,7 @@ pub fn get_damage_taken_by_mob_power_query(query: &TableQuery) -> Option<Vec<Dam
     }
 }
 
+use crate::web::DamageByPowerQuery;
 use crate::web::PowersMobsData;
 use crate::web::TableQuery;
 pub fn get_damage_dealt_by_power_or_mob(
@@ -987,15 +1003,14 @@ pub fn get_damage_dealt_by_power_or_mob(
     }
 }
 
-pub fn get_damage_by_power_report(
-    conn: &mut SqliteConnection,
-    key: i32,
-) -> Vec<DamageReportByPower> {
+pub fn get_damage_by_power_report(query: &DamageByPowerQuery) -> Vec<DamageReportByPower> {
     use crate::schema::damage_report_by_power::dsl::*;
+    let db_path: PathBuf = query.db_path.clone().into();
+    let mut conn = get_file_conn(db_path);
 
     damage_report_by_power
-        .filter(summary_key.eq(key))
-        .load(conn)
+        .filter(summary_key.eq(query.key))
+        .load(&mut conn)
         .expect("Unable to load damage report by power")
 }
 

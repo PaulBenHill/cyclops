@@ -2,10 +2,7 @@
 <html>
     <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <link href="https://unpkg.com/tabulator-tables@5.2.1/dist/css/tabulator.min.css" rel="stylesheet">
   <script src="https://unpkg.com/htmx.org@2.0.0" integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw" crossorigin="anonymous"></script>
-  <script type="text/javascript" src="https://unpkg.com/tabulator-tables@5.2.1/dist/js/tabulator.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sorttable@1.0.2/sorttable.min.js"></script>
   <style>
     body {
       color: #e67e22;
@@ -13,31 +10,6 @@
       font-size: 100%;
       font-weight: bold;
       font-family: Arial;
-    }
-  
-  
-    .tabulator,
-    .tabulator .tabulator-header,
-    .tabulator .tabulator-header .tabulator-col,
-    .tabulator-row {
-      color: #e67e22;
-      background-color: #253237;
-      font-weight: bold !important;
-      font-family: Arial !important;
-    }
-  
-    .tabulator-row.tabulator-row-even {
-      color: black;
-      background: #659ce8;
-    }
-  
-    .tabulator-row.tabulator-selected {
-      color: black;
-      background: #825382;
-    }
-  
-    .tabulator-row.tabulator-selectable:hover {
-      background-color: #858484;
     }
   
     table {
@@ -51,56 +23,6 @@
     }
 
 
-/* Sortable tables */
-table.sortable a.sortheader {
-    background-color:#eee;
-    color:#666666;
-    font-weight: bold;
-    text-decoration: none;
-    display: block;
-}
-table.sortable span.sortarrow {
-    color: black;
-    text-decoration: none;
-}
-  
-    .sortable-table thead th {
-      cursor: pointer
-    }
-
-  
-    .sortable-table thead th:after {
-      padding-left: 7px
-    }
-  
-    .sortable-table thead th[data-sort-direction="0"]:after {
-      content: "\21D5"
-    }
-  
-    .sortable-table thead th[data-sort-direction="1"]:after {
-      content: "\25B4"
-    }
-  
-    .sortable-table thead th[data-sort-direction="-1"]:after {
-      content: "\25BE"
-    }
-  
-    .sortable-table.sortable-fa-icons thead th:after {
-      font-family: FontAwesome
-    }
-  
-    .sortable-table.sortable-fa-icons thead th[data-sort-direction="0"]:after {
-      content: "\f0dc"
-    }
-  
-    .sortable-table.sortable-fa-icons thead th[data-sort-direction="1"]:after {
-      content: "\f0de"
-    }
-  
-    .sortable-table.sortable-fa-icons thead th[data-sort-direction="-1"]:after {
-      content: "\f0dd"
-    }
-  
     th,
     td {
       text-align: left;
@@ -109,6 +31,15 @@ table.sortable span.sortarrow {
       background-color: #253237;
       font-size: 100%;
       font-weight: bold;
+    }
+
+    tbody tr:nth-child(odd) {
+      color: #d2c7c7;
+    }
+
+    
+    .select-items {
+      background-color: #d2c7c7;
     }
   
     details {
@@ -161,6 +92,7 @@ table.sortable span.sortarrow {
       opacity: 1;
       transition: opacity 1s ease-in;
     }
+
   </style>
 
   <title>{{summary.player_name}}: {{summary.log_date | date(format="%Y-%m-%d %H:%M")}}</title>
@@ -180,18 +112,23 @@ table.sortable span.sortarrow {
     </summary>
 <h3>Rewards-Mobs Defeated</h3>
 <table title="Session details" style="width:50%">
+  <thead>
     <th>Experience</th>
     <th>Influence</th>
     <th>Mobs defeated</th>
+  </thead>
+  <tbody>
     <tr>
         <td>{{ rewards_defeats.experience }}</td>
         <td>{{ rewards_defeats.influence }}</td>
         <td>{{ rewards_defeats.mobs_defeated }}</td>
     </tr>
+  </tbody>
 </table>
 
 <h3>Attack Summary</h3>
 <table title="Attack Summary">
+  <thead>
     <th>Total Attacks</th>
     <th>Total Hits (Streakbreakers)</th>
     <th>Total Misses</th>
@@ -202,6 +139,8 @@ table.sortable span.sortarrow {
     <th>Critical Hits</th>
     <th>Critical Hit Percentage</th>
     <th>Critical Damage Percentage</th>
+  </thead>
+  <tbody>
     <tr>
         <td>{{ total_damage.activations }}</td>
         <td>{{ total_damage.hits }} ({{total_damage.streak_breakers}})</td>
@@ -214,15 +153,19 @@ table.sortable span.sortarrow {
         <td>{{total_damage.critical_hit_percentage}} </td>
         <td>{{total_damage.critical_damage_percentage}} </td>
     </tr>
+   </tbody>
 </table>
 {% if damage_taken is defined %}
 <h3>Damage Taken</h3>
 <table title="Attack Summary">
+  <thead>
     <th>Hits</th>
     <th>Misses</th>
     <th>Percent Hit</th>
     <th>Total Damage Taken</th>
     <th>Average Damage Per Hit</th>
+  </thead>
+  <tbody>
     <tr>
         <td>{{ damage_taken.hits }}</td>
         <td>{{ damage_taken.misses }}</td>
@@ -230,172 +173,15 @@ table.sortable span.sortarrow {
         <td>{{ damage_taken.total_damage_taken }}</td>
         <td>{{ damage_taken.damage_per_hit }}</td>
     </tr>
+  </tbody>
 </table>
 {% else %}
 NO DATA
 {% endif %}
 </details>
 <hr>
-<details>
-    <summary>
-<h2>Attack Summary By Power</h2>
-    </summary>
-<div>
-    <button id="reactivity_merge">Merge Rows</button>
-    <button id="reactivity_delete">Delete Rows</button>
-    <button id="reactivity_remove_non">Remove Non Damage Powers</button>
-    <button id="reactivity_revert">Revert Changes</button>
-</div>
-<div id="powers_div"></div>
-<a id="ate1"><sup>1</sup>For psuedo pets that do two types of damage. This value needs to be divided by two. Example:
-    Electrical Melee: Lightning Rod</a>
-<br>
-<a id="ate2"><sup>2</sup>Incarnate Judgements can exceed the target cap of 16</a>
-</details>
-<script>
-    //define data
-    var tabledata_base = [
-        {% for power in powers %}
-    {
-        power: "{{ power.power_name | replace(from=":", to=":<br>")}}",
-            activations: "{{ power.activations }}",
-                hits: "{{ power.hits }} ({{power.streak_breakers}})",
-                    misses: "{{ power.misses }}",
-                        hit_percentage: "{{ power.hit_percentage }}",
-                            total_damage: "{{ power.power_total_damage }}",
-                                total_damage_percent: "{{ calc_percentage(numerator = power.power_total_damage, denominator = total_damage.total_damage) }}",
-                                    dpa: "{{ power.dpa }}",
-                                        ate: "{{ power.ate }}",
-                                            direct_damage: "{{ power.direct_damage }}",
-                                                dot_damage: "{{ power.dot_damage }}",
-                                                    critical_damage: "{{ power.critical_damage }}",
-                                                        critical_hits: "{{ power.critical_hits }}",
-                                                            percent_hits_critical: "{{ power.percent_hits_critical }}",
-                                                                percent_damage_critical: "{{ power.percent_damage_critical }}",
-                                                                    },
-    {% endfor %}
-    ];
-
-    var tabledata = Array.from(tabledata_base);
-    //Build Tabulator
-    var table = new Tabulator("#powers_div", {
-        height: "100%",
-        layout: "fitDataStretch",
-        reactiveData: true, //turn on data reactivity
-        selectable: true,
-        movableColumns: true,
-        movableRows: true,
-        data: tabledata, //load data into table
-        columns: [
-            { title: "Power", field: "power", sorter: "string", formatter: "html" },
-            { title: "Activations", field: "activations", sorter: "number" },
-            { title: "Hits<br>(Streakbreakers)", field: "hits", sorter: "number", formatter: "html" },
-            { title: "Misses", field: "misses", sorter: "number" },
-            { title: "Hit<br>Percentage", field: "hit_percentage", sorter: "number", formatter: "html" },
-            { title: "Total<br>Damage", field: "total_damage", sorter: "number" },
-            { title: "Total<br>Damage<br>%", field: "total_damage_percent", sorter: "number" },
-            { title: "Damage<br>Per<br>Activation", field: "dpa", sorter: "number", formatter: "html" },
-            { title: "Average<br>Targets<br>Effected<a href=\"#ate1\"><sup>1</sup></a><a href=\"#ate2\"><sup>2</sup></a>", field: "ate", sorter: "number", formatter: "html" },
-            { title: "Direct<br>Damage", field: "direct_damage", sorter: "number" },
-            { title: "DoT<br>Damage", field: "dot_damage", sorter: "number" },
-            { title: "Critcal<br>Damage", field: "critical_damage", sorter: "number" },
-            { title: "Critical<br>Hits", field: "critical_hits", sorter: "number" },
-            { title: "%<br>Hits<br>Critical", field: "percent_hits_critical", sorter: "string", formatter: "html"},
-            { title: "%<br>Damage<br>Critical", field: "percent_damage_critical", sorter: "number", formatter: "html" },
-        ],
-    });
-
-    document.getElementById("reactivity_remove_non").addEventListener("click", function () {
-        console.log("remove non damaging powers fired");
-        var temp = Array.from(tabledata);
-        for (r in tabledata) {
-                var index = tabledata.findIndex((element) => element.total_damage === "0");
-                console.log(index);
-                temp.splice(index, 1);
-        }
-        tabledata = Array.from(temp);
-        table.setData(tabledata);
-    });
-
-    document.getElementById("reactivity_revert").addEventListener("click", function () {
-        console.log("revert fired");
-        tabledata = Array.from(tabledata_base);
-        table.setData(tabledata);
-    });
-
-    //delete selected rows
-    document.getElementById("reactivity_delete").addEventListener("click", function () {
-        console.log("delete fired");
-        console.log(table.getSelectedData());
-        var selected = table.getSelectedData();
-        if (selected.length > 0) {
-            var temp = Array.from(tabledata);
-            for (r of selected) {
-                var index = temp.findIndex((element) => element.power === r.power);
-                temp.splice(index, 1);
-            }
-            tabledata = temp;
-            table.setData(temp);
-        }
-    });
-
-    //merge selected rows into a new row, add to the top
-    document.getElementById("reactivity_merge").addEventListener("click", function () {
-        console.log("merge fired");
-        console.log(table.getSelectedData());
-        var selected = table.getSelectedData();
-        if (selected.length > 1) {
-            var temp = Array.from(tabledata);
-            var new_row = {
-                power: "",
-                activations: 0,
-                hits: "",
-                misses: 0,
-                hit_percentage: "",
-                total_damage: 0,
-                total_damage_percent: 0,
-                dpa: 0,
-                ate: "",
-                direct_damage: 0,
-                dot_damage: 0,
-                critical_damage: 0,
-                critical_hits: 0,
-                percent_hits_critical: "",
-                percent_damage_critical: "",
-            };
-
-            for (r of selected) {
-                new_row.power += r.power + '<br>';
-                new_row.activations += Number(r.activations);
-                new_row.hits += r.hits + '<br>';
-                new_row.misses += Number(r.misses);
-                new_row.hit_percentage += r.hit_percentage + '<br>';
-                new_row.total_damage += Number(r.total_damage);
-                new_row.total_damage_percent += Number(r.total_damage_percent);
-                new_row.dpa += Number(r.dpa);
-                new_row.ate += r.ate + '<br>';
-                new_row.direct_damage += Number(r.direct_damage);
-                new_row.dot_damage += Number(r.dot_damage);
-                new_row.critical_damage += Number(r.critical_damage);
-                new_row.critical_hits += Number(r.critical_hits);
-                new_row.percent_hits_critical += r.percent_hits_critical + '<br>';
-                new_row.percent_damage_critical += r.percent_damage_critical + '<br>';
-                var index = temp.findIndex((element) => element.power === r.power);
-                temp.splice(index, 1);
-            }
-            new_row.power = new_row.power.substring(0, new_row.power.length - 4);
-            new_row.hits = new_row.hits.substring(0, new_row.hits.length - 4);
-            new_row.hit_percentage = new_row.hit_percentage.substring(0, new_row.hit_percentage.length - 4);
-            new_row.ate = new_row.ate.substring(0, new_row.ate.length - 4);
-            new_row.percent_hits_critical = new_row.percent_hits_critical.substring(0, new_row.percent_hits_critical.length - 4);
-            new_row.percent_damage_critical = new_row.percent_damage_critical.substring(0, new_row.percent_damage_critical.length - 4);
-            temp.unshift(new_row);
-            tabledata = temp;
-            table.setData(temp);
-        }
-    });
-
-</script>
+  <h2 class="sub-title" hx-get="/damage_by_power" hx-target="#dbp_div">Attack Summary By Power<h2 class="sub-title" hx-get="" hx-target="#dbp_table" hx-swap="delete"> [close]</h2></h2>
+  <div style="padding-top: 25px" id="dbp_div"></div>
 <hr>
   <h2 class="sub-title" hx-get="/damage_table?table_name={{dps_report}}" hx-target="#{{dps_report}}_div">DPS Using An Interval Of {{dps_interval}}<h2 class="sub-title" hx-get="" hx-target="#{{dps_report}}_table" hx-swap="delete"> [close]</h2></h2>
   <div style="padding-top: 25px" id="{{dps_report}}_div" ></div>

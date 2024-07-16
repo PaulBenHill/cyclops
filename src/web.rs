@@ -6,7 +6,13 @@ use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
-    damage_dealt_by_type_table, damage_taken_by_mob_power_table, damage_taken_by_mob_table, damage_taken_by_type_table, db_actions::{self}, dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, powers_and_mobs_table::{self, *}, read_log_file_dir, AppContext
+    damage_by_power_table, damage_dealt_by_type_table, damage_taken_by_mob_power_table,
+    damage_taken_by_mob_table, damage_taken_by_type_table,
+    db_actions::{self},
+    dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir,
+    log_processing::{self, ParserJob, ProcessingError},
+    powers_and_mobs_table::{self, *},
+    read_log_file_dir, AppContext,
 };
 
 #[derive(Deserialize)]
@@ -34,6 +40,14 @@ pub struct TableQuery {
     pub key: i32,
     pub db_path: String,
     pub table_name: Option<TableNames>,
+    pub sort_field: Option<String>,
+    pub sort_dir: Option<SortDirection>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct DamageByPowerQuery {
+    pub key: i32,
+    pub db_path: String,
     pub sort_field: Option<String>,
     pub sort_dir: Option<SortDirection>,
 }
@@ -157,6 +171,21 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
         Err(job) => create_job_response(&context, job),
     }
 }
+#[get("/damage_by_power")]
+async fn damage_by_power(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let query: web::Query<DamageByPowerQuery> = web::Query::from_query(req.query_string()).unwrap();
+
+    let mut table_context = Context::new();
+    damage_by_power_table::process(&mut table_context, &query);
+    let result = context.tera.render("damage_by_power.html", &table_context);
+    match result {
+        Ok(data) => HttpResponse::Ok().body(data),
+        Err(e) => {
+            println!("Could not render {}:{:?}", "damage_by_power.html", e);
+            HttpResponse::Ok().body("NO DATA")
+        }
+    }
+}
 
 #[get("/damage_table")]
 async fn damage_table(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
@@ -255,6 +284,7 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .service(parse_dir)
             .service(process_dir)
             .service(process_latest)
+            .service(damage_by_power)
             .service(damage_table)
             .service(powers_and_mobs_query)
             .service(

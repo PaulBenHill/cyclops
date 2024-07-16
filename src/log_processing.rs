@@ -3,7 +3,7 @@ use std::{
     fs::{self, File},
     io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write},
     path::PathBuf,
-    time::{Duration, Instant},
+    time::{Instant},
 };
 
 use diesel::SqliteConnection;
@@ -356,7 +356,6 @@ impl ParserJob {
         let rewards_defeats =
             db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
         let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key);
-        let damage_by_power = db_actions::get_damage_by_power_report(conn, summary.summary_key);
 
         let mut report_context = Context::new();
 
@@ -365,12 +364,11 @@ impl ParserJob {
 
         report_context.insert("summary", &summary);
         report_context.insert("data_file_name", &log_path);
-        report_context.insert("rewards_defeats", &rewards_defeats);
-        report_context.insert("total_damage", &total_damage);
+        report_context.insert("rewards_defeats", &db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name));
+        report_context.insert("total_damage", &db_actions::get_total_damage_report(conn, summary.summary_key));
         if let Some(damage_taken) = db_actions::get_damage_taken_report(conn, summary.summary_key) {
             report_context.insert("damage_taken", &damage_taken);
         }
-        report_context.insert("powers", &damage_by_power);
         report_context.insert("dps_interval", &dps_interval);
         report_context.insert("dps_report", &TableNames::DPSIntervals);
         report_context.insert("damage_dealt_by_type", &TableNames::DamageDealtByType);
