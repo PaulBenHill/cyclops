@@ -141,7 +141,6 @@ fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRo
 
                 let mut new_row = PowerRow::new();
                 for r in merge_rows {
-                    println!("{:?}", r.power_name);
                     if new_row.power_name == "" {
                         new_row.power_name = r.power_name;
                     } else {

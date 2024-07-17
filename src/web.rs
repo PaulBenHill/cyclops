@@ -185,15 +185,12 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
 async fn damage_by_power(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
      let qs_non_strict = serde_qs::Config::new(5, false);
      let query: DamageByPowerQuery = qs_non_strict.deserialize_str(&req.query_string()).unwrap();
-    println!("{:?}", query);
 
     let mut table_context = Context::new();
     damage_by_power_table::process(&mut table_context, &query);
     let result = context.tera.render("damage_by_power.html", &table_context);
     match result {
         Ok(data) => {
-            println!("=================");
-            println!("{}", data.len());
             HttpResponse::Ok().body(data)
         }
         Err(e) => {
