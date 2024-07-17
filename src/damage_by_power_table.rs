@@ -170,7 +170,19 @@ fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRo
             }
             None => rows.clone(),
         },
-        PowerTableActions::Delete => rows.into_iter().filter(|r| r.total_damage > 0).collect(),
+        PowerTableActions::Delete => match &query.power_row {
+            Some(indexes) => {
+                let mut final_list = rows.clone();
+                let mut retain_list: Vec<bool> = vec![true; rows.len()];
+                for i in indexes {
+                    let _ = std::mem::replace(&mut retain_list[*i as usize], false);
+                }
+                let mut index_iter = retain_list.iter();
+                final_list.retain(|_| *index_iter.next().unwrap());
+                final_list
+            }
+            None => rows.clone(),
+        },
     }
 }
 
