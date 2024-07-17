@@ -105,7 +105,7 @@ fn headers() -> Vec<(&'static str, &'static str)> {
     headers.push(("starting_line", "Starting Line"));
     headers.push(("ending_line", "Ending Line"));
     headers.push(("total_lines", "Total Lines"));
-    headers.push(("elapsed_seconds", "elapsed_seconds"));
+    headers.push(("elapsed_seconds", "Elapsed Seconds"));
     headers.push(("pretty_elapsed", "Elapsed Min(s)/Seconds(s)"));
     headers.push(("total_damage", "Total Damage"));
     headers.push(("dps", "DPS"));

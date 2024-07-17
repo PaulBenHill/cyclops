@@ -7,6 +7,7 @@ use tera::Context;
 
 use crate::db_actions;
 use crate::web::DamageByPowerQuery;
+use crate::web::PowerTableActions;
 use crate::web::SortDirection;
 
 use lazy_static::lazy_static;
@@ -15,7 +16,7 @@ lazy_static! {
     static ref ROW_STATE: Mutex<HashMap<i32, Vec<PowerRow>>> = Mutex::new(HashMap::new());
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 struct PowerRow {
     power_name: String,
     activations: i32,
@@ -35,7 +36,28 @@ struct PowerRow {
     percent_damage_critical: Option<i32>,
 }
 
-
+impl PowerRow {
+    fn new() -> PowerRow {
+        PowerRow {
+            power_name: "".to_string(),
+            activations: 0,
+            hits: 0,
+            streak_breakers: 0,
+            misses: 0,
+            hit_percentage: None,
+            total_damage: 0,
+            total_damage_percent: 0,
+            dpa: None,
+            ate: None,
+            direct_damage: 0,
+            dot_damage: 0,
+            critical_damage: 0,
+            critical_hits: 0,
+            percent_hits_critical: None,
+            percent_damage_critical: None,
+        }
+    }
+}
 
 pub fn process(tera_context: &mut Context, query: &DamageByPowerQuery) {
     match &query.sort_dir {
@@ -46,24 +68,146 @@ pub fn process(tera_context: &mut Context, query: &DamageByPowerQuery) {
         None => tera_context.insert("sort_dir", &SortDirection::DESC),
     };
 
-    let mut powers = generate_power_rows(query);
-    // match ROW_STATE.get_mut() {
-    //     Ok(row_map) => {
-    //         row_map.insert(query.key, powers);
-    //     }
-    //     Err(_) => println!("Unable to get row state. Very bad!"),
-    // }
-
-    tera_context.insert( "table_title", &"Attack Summary By Power");
+    tera_context.insert("table_title", &"Attack Summary By Power");
     tera_context.insert("headers", &headers());
+
+    let mut rows = retrieve_copy(query);
+
+    if query.action.is_some() {
+        rows = handle_action(query, rows);
+    }
+
     if query.sort_field.is_some() {
         sort(
             query.sort_field.clone().unwrap(),
             query.sort_dir.clone().unwrap(),
-            &mut powers,
+            &mut rows,
         );
     }
-    tera_context.insert("table_rows", &powers);
+
+    update_cache(query.key, rows.clone());
+
+    tera_context.insert("table_rows", &rows);
+}
+
+fn retrieve_copy(query: &DamageByPowerQuery) -> Vec<PowerRow> {
+    match ROW_STATE.lock() {
+        Ok(mut row_map) => match row_map.get_mut(&query.key) {
+            Some(rows) => rows.clone(),
+            None => {
+                let powers = generate_power_rows(query);
+                row_map.insert(query.key, powers.clone());
+                powers
+            }
+        },
+        Err(_) => {
+            println!("Unable to lock row cache. Very bad! Return empty list.");
+            return Vec::<PowerRow>::new();
+        }
+    }
+}
+
+fn update_cache(key: i32, rows: Vec<PowerRow>) {
+    match ROW_STATE.lock() {
+        Ok(mut row_map) => {
+            row_map.insert(key, rows);
+        }
+        Err(_) => {
+            println!("Unable to lock row cache. Very bad! Return empty list.");
+        }
+    }
+}
+
+fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRow> {
+    match query.action.as_ref().unwrap() {
+        PowerTableActions::Revert => generate_power_rows(query),
+        PowerTableActions::RemoveNonDamaging => {
+            rows.into_iter().filter(|r| r.total_damage > 0).collect()
+        }
+        PowerTableActions::Merge => match &query.power_row {
+            Some(indexes) => {
+                let mut final_list = rows.clone();
+                let merge_rows: Vec<PowerRow> = indexes
+                    .into_iter()
+                    .map(|i| final_list.get(*i as usize).unwrap().clone())
+                    .collect();
+
+                let mut retain_list: Vec<bool> = vec![true; rows.len()];
+                for i in indexes {
+                    let _ = std::mem::replace(&mut retain_list[*i as usize], false);
+                }
+                let mut index_iter = retain_list.iter();
+                final_list.retain(|_| *index_iter.next().unwrap());
+
+                let mut new_row = PowerRow::new();
+                for r in merge_rows {
+                    println!("{:?}", r.power_name);
+                    if new_row.power_name == "" {
+                        new_row.power_name = r.power_name;
+                    } else {
+                        new_row.power_name = format!("{},{}", new_row.power_name, r.power_name);
+                    }
+                    new_row.activations += r.activations;
+                    new_row.hits += r.hits;
+                    new_row.streak_breakers += r.streak_breakers;
+                    new_row.misses += r.misses;
+                    new_row.hit_percentage = calc_hit_percent(new_row.hits, new_row.misses);
+                    new_row.total_damage += r.total_damage;
+                    new_row.total_damage_percent += r.total_damage_percent;
+                    new_row.dpa = add_options(new_row.dpa, r.dpa);
+                    new_row.ate = add_options(new_row.ate, r.ate);
+                    new_row.direct_damage += r.direct_damage;
+                    new_row.dot_damage += r.dot_damage;
+                    new_row.critical_damage += r.critical_damage;
+                    new_row.critical_hits += r.critical_hits;
+                    new_row.percent_hits_critical =
+                        calc_hit_critical_percent(new_row.hits, new_row.critical_hits);
+                    new_row.percent_damage_critical =
+                        calc_damage_critical_percent(new_row.total_damage, new_row.critical_damage)
+                }
+                final_list.insert(0, new_row);
+                final_list
+            }
+            None => rows.clone(),
+        },
+        PowerTableActions::Delete => rows.into_iter().filter(|r| r.total_damage > 0).collect(),
+    }
+}
+
+fn calc_hit_percent(hits: i32, misses: i32) -> Option<i32> {
+    if hits > 0 {
+        let v = ((hits as f32 / ((hits + misses) as f32)) * 100.0).round() as i32;
+        Some(v)
+    } else {
+        None
+    }
+}
+
+fn calc_hit_critical_percent(hits: i32, critical_hits: i32) -> Option<i32> {
+    if hits > 0 && critical_hits > 0 {
+        return Some(((critical_hits as f32 / hits as f32) * 100.0).round() as i32);
+    }
+    None
+}
+
+fn calc_damage_critical_percent(total_damage: i32, critical_damage: i32) -> Option<i32> {
+    if total_damage > 0 && critical_damage > 0 {
+        return Some(((critical_damage as f32 / total_damage as f32) * 100.0).round() as i32);
+    }
+    None
+}
+
+fn add_options(first: Option<i32>, second: Option<i32>) -> Option<i32> {
+    match first {
+        Some(v1) => match second {
+            Some(v2) => Some(v1 + v2),
+            None => Some(v1),
+        },
+        None => match second {
+            Some(v2) => Some(v2),
+            None => None,
+        },
+    }
 }
 
 fn generate_power_rows(query: &DamageByPowerQuery) -> Vec<PowerRow> {
@@ -72,8 +216,9 @@ fn generate_power_rows(query: &DamageByPowerQuery) -> Vec<PowerRow> {
     let mut rows = Vec::<PowerRow>::new();
 
     for p in powers {
-        let total_damage_percent = (((p.power_total_damage as f32 / total_damage as f32) * 100.0).round()) as i32;
-        rows.push(PowerRow{
+        let total_damage_percent =
+            (((p.power_total_damage as f32 / total_damage as f32) * 100.0).round()) as i32;
+        rows.push(PowerRow {
             power_name: p.power_name,
             activations: p.activations,
             hits: p.hits,
@@ -145,8 +290,12 @@ fn sort(sort_field: String, sort_dir: SortDirection, data: &mut Vec<PowerRow>) {
             SortDirection::ASC => data.sort_by(|a, b| a.total_damage.cmp(&b.total_damage)),
         },
         "total_damage_percent" => match sort_dir {
-            SortDirection::DESC => data.sort_by(|a, b| b.total_damage_percent.cmp(&a.total_damage_percent)),
-            SortDirection::ASC => data.sort_by(|a, b| a.total_damage_percent.cmp(&b.total_damage_percent)),
+            SortDirection::DESC => {
+                data.sort_by(|a, b| b.total_damage_percent.cmp(&a.total_damage_percent))
+            }
+            SortDirection::ASC => {
+                data.sort_by(|a, b| a.total_damage_percent.cmp(&b.total_damage_percent))
+            }
         },
         "dpa" => match sort_dir {
             SortDirection::DESC => data.sort_by(|a, b| b.dpa.cmp(&a.dpa)),
@@ -173,12 +322,20 @@ fn sort(sort_field: String, sort_dir: SortDirection, data: &mut Vec<PowerRow>) {
             SortDirection::ASC => data.sort_by(|a, b| a.critical_hits.cmp(&b.critical_hits)),
         },
         "percent_hits_critical" => match sort_dir {
-            SortDirection::DESC => data.sort_by(|a, b| b.percent_hits_critical.cmp(&a.percent_hits_critical)),
-            SortDirection::ASC => data.sort_by(|a, b| a.percent_hits_critical.cmp(&b.percent_hits_critical)),
+            SortDirection::DESC => {
+                data.sort_by(|a, b| b.percent_hits_critical.cmp(&a.percent_hits_critical))
+            }
+            SortDirection::ASC => {
+                data.sort_by(|a, b| a.percent_hits_critical.cmp(&b.percent_hits_critical))
+            }
         },
         "percent_damage_critical" => match sort_dir {
-            SortDirection::DESC => data.sort_by(|a, b| b.percent_damage_critical.cmp(&a.percent_damage_critical)),
-            SortDirection::ASC => data.sort_by(|a, b| a.percent_damage_critical.cmp(&b.percent_damage_critical)),
+            SortDirection::DESC => {
+                data.sort_by(|a, b| b.percent_damage_critical.cmp(&a.percent_damage_critical))
+            }
+            SortDirection::ASC => {
+                data.sort_by(|a, b| a.percent_damage_critical.cmp(&b.percent_damage_critical))
+            }
         },
         _ => println!("Unknown sort field provided: {}", sort_field),
     }

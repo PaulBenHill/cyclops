@@ -11,7 +11,7 @@ use crate::{
     db_actions::{self},
     dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir,
     log_processing::{self, ParserJob, ProcessingError},
-    powers_and_mobs_table::{self, *},
+    powers_and_mobs_table::{self},
     read_log_file_dir, AppContext,
 };
 
@@ -44,12 +44,22 @@ pub struct TableQuery {
     pub sort_dir: Option<SortDirection>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum PowerTableActions {
+    Revert,
+    RemoveNonDamaging,
+    Merge,
+    Delete,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct DamageByPowerQuery {
     pub key: i32,
     pub db_path: String,
     pub sort_field: Option<String>,
     pub sort_dir: Option<SortDirection>,
+    pub action: Option<PowerTableActions>,
+    pub power_row: Option<Vec<u8>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -173,13 +183,19 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
 }
 #[get("/damage_by_power")]
 async fn damage_by_power(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    let query: web::Query<DamageByPowerQuery> = web::Query::from_query(req.query_string()).unwrap();
+     let qs_non_strict = serde_qs::Config::new(5, false);
+     let query: DamageByPowerQuery = qs_non_strict.deserialize_str(&req.query_string()).unwrap();
+    println!("{:?}", query);
 
     let mut table_context = Context::new();
     damage_by_power_table::process(&mut table_context, &query);
     let result = context.tera.render("damage_by_power.html", &table_context);
     match result {
-        Ok(data) => HttpResponse::Ok().body(data),
+        Ok(data) => {
+            println!("=================");
+            println!("{}", data.len());
+            HttpResponse::Ok().body(data)
+        }
         Err(e) => {
             println!("Could not render {}:{:?}", "damage_by_power.html", e);
             HttpResponse::Ok().body("NO DATA")

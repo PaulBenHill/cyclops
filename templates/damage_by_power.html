@@ -1,9 +1,9 @@
 <div id="dbp_table">
-    <form>
-        <button id="merge_rows">Merge Rows</button>
-        <button id="delete_rows">Delete Rows</button>
-        <button id="delete_non_damage">Remove Non Damage Powers</button>
-        <button id="revert">Revert Changes</button>
+    <form id="dbp_form" hx-get="/damage_by_power" hx-target="#dbp_table">
+        <button id="merge_rows" type="submit" name="action" value="Merge">Merge Rows</button>
+        <button id="delete_rows" type="submit" name="action" value="Delete">Delete Rows</button>
+        <button id="delete_non_damage" hx-get="/damage_by_power?action=RemoveNonDamaging" hx-target="#dbp_table">Remove Non Damaging Powers</button>
+        <button id="revert" hx-get="/damage_by_power?action=Revert" hx-target="#dbp_table">Revert Changes</button>
         <table title="Damage By Power" style="width: 100%;">
             <thead>
               {% for c in headers %}
@@ -13,8 +13,8 @@
             <tbody>
                 {% for row in table_rows %}
                   <tr>
-                    <td><input type="checkbox" id="row_{{loop.index0}}" name="row_{{loop.index0}}" value="{{loop.index0}}"></td>
-                    <td>{{row.power_name}}</td>
+                    <td><input form="dbp_form" type="checkbox" id="row_{{loop.index0}}" name="power_row[{{loop.index0}}]" value="{{loop.index0}}"></td>
+                    <td>{{row.power_name | replace(from=":", to=":<br>") | replace(from=",", to="<br><br>")}}</td>
                     <td>{{row.activations}}</td>
                     <td>{{row.hits}} ({{row.streak_breakers}})</td>
                     <td>{{row.misses}}</td>
