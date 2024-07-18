@@ -3,7 +3,7 @@ use std::{
     fs::{self, File},
     io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write},
     path::PathBuf,
-    time::{Instant},
+    time::Instant,
 };
 
 use diesel::SqliteConnection;
@@ -89,7 +89,6 @@ impl ParserJob {
                         &context.tera,
                         i + 1,
                         s,
-                        data_points.len(),
                         &file_path,
                         context.dps_interval,
                         &db_path,
@@ -348,15 +347,10 @@ impl ParserJob {
         tera: &Tera,
         index: usize,
         summary: &Summary,
-        line_count: usize,
         log_path: &PathBuf,
         dps_interval: usize,
         db_path: &PathBuf,
     ) -> String {
-        let rewards_defeats =
-            db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name);
-        let total_damage = db_actions::get_total_damage_report(conn, summary.summary_key);
-
         let mut report_context = Context::new();
 
         report_context.insert("index", &format!("player{}", index + 1));
