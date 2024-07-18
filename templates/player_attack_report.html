@@ -14,13 +14,19 @@
         e.remove();
       }
     }
-    function details_onclick(name) {
+    function summary_open(name) {
       const e = document.getElementById(name);
-      console.log("details");
       if (e != null) {
-        if (e.open == true) {
-          e.open = false;
+        if (e.hasAttribute('hidden'))  {
+          e.removeAttribute('hidden');
         }
+      }
+    }
+
+    function summary_close(name) {
+      const e = document.getElementById(name);
+      if (e != null) {
+          e.hidden = 'hidden';
       }
     }
   </script>
@@ -34,10 +40,8 @@
 <h3>Data Points: {{summary.last_line_number - summary.first_line_number}}</h3>
 <h3>File name: {{summary.log_file_name}}</h3>
 <hr>
-<details id="summary_details">
-    <summary>
-    <h2 class="sub-title">Summary<h2 class="sub-title" onclick="details_onclick('summary_details');">&nbsp;[close]</h2></h2>
-    </summary>
+<h2 class="sub-title"onclick="summary_open('summary_div');">Summary<h2 class="sub-title" onclick="summary_close('summary_div');">&nbsp;[close]</h2></h2>
+<div id="summary_div" hidden="hidden">
 <h3>Rewards-Mobs Defeated</h3>
 <table title="Session details" style="width:50%">
   <thead>
@@ -106,7 +110,7 @@
 {% else %}
 NO DATA
 {% endif %}
-</details>
+</div>
 <hr>
   <h2 id="dbp_header" class="sub-title" hx-get="/damage_by_power" hx-target="#dbp_div">Attack Summary By Power<h2 class="sub-title" onclick="close_table('dbp_table');"> [close]</h2></h2>
   <div style="padding-top: 25px" id="dbp_div"></div>
