@@ -8,9 +8,8 @@ use std::{
 
 use diesel::SqliteConnection;
 use serde::{Deserialize, Serialize};
-use tera::{Context, Tera};
 
-use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, web::TableNames, AppContext};
+use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, AppContext};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessingError {
