@@ -87,6 +87,7 @@ diesel::table! {
 
 diesel::table! {
     index_details (log_date) {
+        summary_key -> Integer,
         log_date-> Text,
         player_name -> Text,
         data_points -> Text,

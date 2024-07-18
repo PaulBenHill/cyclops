@@ -76,32 +76,30 @@ impl ParserJob {
                     &data_points,
                     &summaries,
                 );
-                let first_summary = summaries.get(0).unwrap();
-                let db_path = context.working_dir.
-                join(context.output_dir.
-                join(
-                    format!( "{}_{}", first_summary.player_name.
-                    replace(" ", "_"), first_summary.log_date[0..10].
-                    replace(" ", "_").replace("-", "_")))).join("summary.db");
-                for (i, s) in summaries.iter().enumerate() {
-                    let page_content = Self::generate_summary(
-                        conn,
-                        &context.tera,
-                        i + 1,
-                        s,
-                        &file_path,
-                        context.dps_interval,
-                        &db_path,
-                    );
-                    let page_name = format!("{}_{}.html", s.player_name, i);
-                    let mut report_file = match File::create(report_dir.join(page_name.clone())) {
-                        Ok(f) => f,
-                        Err(e) => panic!("Cannot create report page file: {:?}", e),
-                    };
-                    report_file
-                        .write_all(page_content.as_bytes())
-                        .expect(&format!("Unable to write file: {}", page_name));
-                }
+                // let first_summary = summaries.get(0).unwrap();
+                // let db_path = context.working_dir.
+                // join(context.output_dir.
+                // join(
+                //     format!( "{}_{}", first_summary.player_name.
+                //     replace(" ", "_"), first_summary.log_date[0..10].
+                //     replace(" ", "_").replace("-", "_")))).join("summary.db");
+                // for (i, s) in summaries.iter().enumerate() {
+                //     let page_content = Self::generate_summary(
+                //         conn,
+                //         &context.tera,
+                //         s,
+                //         context.dps_interval,
+                //         &db_path,
+                //     );
+                //     let page_name = format!("{}_{}.html", s.player_name, i);
+                //     let mut report_file = match File::create(report_dir.join(page_name.clone())) {
+                //         Ok(f) => f,
+                //         Err(e) => panic!("Cannot create report page file: {:?}", e),
+                //     };
+                //     report_file
+                //         .write_all(page_content.as_bytes())
+                //         .expect(&format!("Unable to write file: {}", page_name));
+                // }
             } else {
                 println!(
                     "No valid data found in {}.",
@@ -345,19 +343,15 @@ impl ParserJob {
     fn generate_summary(
         conn: &mut SqliteConnection,
         tera: &Tera,
-        index: usize,
         summary: &Summary,
-        log_path: &PathBuf,
         dps_interval: usize,
         db_path: &PathBuf,
     ) -> String {
         let mut report_context = Context::new();
 
-        report_context.insert("index", &format!("player{}", index + 1));
         report_context.insert("db_path", &db_path);
 
         report_context.insert("summary", &summary);
-        report_context.insert("data_file_name", &log_path);
         report_context.insert("rewards_defeats", &db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name));
         report_context.insert("total_damage", &db_actions::get_total_damage_report(conn, summary.summary_key));
         if let Some(damage_taken) = db_actions::get_damage_taken_report(conn, summary.summary_key) {

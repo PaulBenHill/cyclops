@@ -113,6 +113,7 @@ pub struct Summary {
 #[diesel(primary_key(log_date))]
 #[diesel(table_name = index_details)]
 pub struct IndexDetails {
+    pub summary_key: i32,
     pub log_date: String,
     pub player_name: String,
     pub data_points: String,

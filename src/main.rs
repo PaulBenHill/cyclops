@@ -22,6 +22,7 @@ mod models;
 mod parser_model;
 mod schema;
 mod web;
+mod player_summary_table;
 mod powers_and_mobs_table;
 mod damage_dealt_by_type_table;
 mod damage_taken_by_type_table;
@@ -129,20 +130,15 @@ fn find_all_summaries(output_path: &Path) -> Vec<SummaryEntry> {
     let walker = WalkDir::new(output_path).into_iter();
     for entry in walker.into_iter().filter_map(|e| e.ok()) {
         if entry.path().ends_with("summary.db") {
-            let mut conn =
-                db_actions::get_file_conn(fs::canonicalize(entry.path()).unwrap().to_path_buf());
+            let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
+            let mut conn = db_actions::get_file_conn(db_path.clone());
             let details = db_actions::index_details(&mut conn);
 
             let mut links: Vec<String> = Vec::new();
             let mut data_points: Vec<String> = Vec::new();
-            for (i, d) in details.iter().enumerate() {
-                let mut html_file = entry
-                .path()
-                .strip_prefix(output_path)
-                .unwrap()
-                .to_path_buf();
-                html_file.set_file_name(format!("{}_{}.html", d.player_name, i));
-                links.push(format!("<a href=\"{}\" target=\"_blank\">{}</a>", html_file.display(), d.player_name));
+            for d in &details {
+                links.push(format!(
+                    "<a href=\"/summary?key={}&db_path={}\" target=\"_blank\">{}</a>", d.summary_key, db_path.clone().display(), d.player_name));
                 data_points.push(d.data_points.clone());
             }
 

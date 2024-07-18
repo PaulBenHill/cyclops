@@ -973,7 +973,6 @@ pub fn get_damage_dealt_by_power_or_mob(
 ) -> Option<Vec<DamageDealtToMobByPower>> {
     use crate::schema::damage_dealt_to_mob_by_power::dsl::*;
     let db_path: PathBuf = query.db_path.clone().into();
-    println!("{:?}", db_path);
     let mut conn = get_file_conn(db_path);
 
     if query.power_name.is_some() {

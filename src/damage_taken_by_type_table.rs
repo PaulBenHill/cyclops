@@ -1,7 +1,7 @@
 use tera::Context;
 
 use crate::{
-    db_actions, models::{DamageDealtByType, DamageTakenByType}, web::{SortDirection, TableQuery}
+    db_actions, models::DamageTakenByType, web::{SortDirection, TableQuery}
 };
 
 pub fn process(context: &mut Context, query: &TableQuery) {

@@ -6,13 +6,7 @@ use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
-    damage_by_power_table, damage_dealt_by_type_table, damage_taken_by_mob_power_table,
-    damage_taken_by_mob_table, damage_taken_by_type_table,
-    db_actions::{self},
-    dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir,
-    log_processing::{self, ParserJob, ProcessingError},
-    powers_and_mobs_table::{self},
-    read_log_file_dir, AppContext,
+    damage_by_power_table, damage_dealt_by_type_table, damage_taken_by_mob_power_table, damage_taken_by_mob_table, damage_taken_by_type_table, db_actions::{self}, dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, player_summary_table::{self, SummaryQuery}, powers_and_mobs_table::{self}, read_log_file_dir, AppContext
 };
 
 #[derive(Deserialize)]
@@ -284,6 +278,20 @@ async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>)
     }
 }
 
+#[get("/summary")]
+async fn player_summary_query(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let query: web::Query<SummaryQuery> = web::Query::from_query(req.query_string()).unwrap();
+    let mut report_context = Context::new();
+
+    player_summary_table::process(&context, &mut report_context, &query);
+    let result = context.tera.render("player_attack_report.html", &report_context);
+    match result {
+        Ok(data) => HttpResponse::Ok().body(data),
+        Err(e) => panic!("Could not render {}:{:?}", "player_attack_report.html", e),
+    }
+}
+
+
 #[actix_web::main]
 pub async fn start(context: AppContext) -> std::io::Result<()> {
     let address = context.web_address.to_string();
@@ -295,6 +303,7 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .service(parse_dir)
             .service(process_dir)
             .service(process_latest)
+            .service(player_summary_query)
             .service(damage_by_power)
             .service(damage_table)
             .service(powers_and_mobs_query)

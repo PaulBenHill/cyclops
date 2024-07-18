@@ -58,6 +58,7 @@ order by da1.summary_key;
 -- View: index_details
 DROP VIEW IF EXISTS index_details;
 CREATE VIEW IF NOT EXISTS index_details AS select
+summary_key,
 substring(log_date, 0, 11) as log_date,
 player_name,
 (last_line_number-first_line_number) as data_points,
