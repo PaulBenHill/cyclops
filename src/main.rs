@@ -1,6 +1,5 @@
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
-use models::IndexDetails;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -38,6 +37,7 @@ const VERSION: &str = "1.0";
 #[derive(Clone, Debug)]
 struct AppContext {
     working_dir: PathBuf,
+    resources_dir: PathBuf,
     output_dir: PathBuf,
     dps_interval: usize,
     web_address: String,
@@ -247,6 +247,7 @@ fn initialize() -> (AppContext, Vec<PathBuf>) {
     );
     println!("The current directory is {}", working_dir.display());
 
+
     let args = args::Args::parse();
 
     let mut log_file_names: Vec<PathBuf> = Vec::new();
@@ -294,8 +295,11 @@ fn initialize() -> (AppContext, Vec<PathBuf>) {
 
     let tera = setup_tera();
 
+    let res_dir = working_dir.clone().join("resources");
+
     (AppContext {
         working_dir,
+        resources_dir: res_dir,
         output_dir,
         dps_interval,
         web_address: String::from(webserver_address),

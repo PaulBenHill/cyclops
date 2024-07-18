@@ -183,16 +183,14 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
 }
 #[get("/damage_by_power")]
 async fn damage_by_power(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-     let qs_non_strict = serde_qs::Config::new(5, false);
-     let query: DamageByPowerQuery = qs_non_strict.deserialize_str(&req.query_string()).unwrap();
+    let qs_non_strict = serde_qs::Config::new(5, false);
+    let query: DamageByPowerQuery = qs_non_strict.deserialize_str(&req.query_string()).unwrap();
 
     let mut table_context = Context::new();
     damage_by_power_table::process(&mut table_context, &query);
     let result = context.tera.render("damage_by_power.html", &table_context);
     match result {
-        Ok(data) => {
-            HttpResponse::Ok().body(data)
-        }
+        Ok(data) => HttpResponse::Ok().body(data),
         Err(e) => {
             println!("Could not render {}:{:?}", "damage_by_power.html", e);
             HttpResponse::Ok().body("NO DATA")
@@ -300,6 +298,10 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .service(damage_by_power)
             .service(damage_table)
             .service(powers_and_mobs_query)
+            .service(fs::Files::new(
+                "/resources",
+                context.resources_dir.to_owned(),
+            ))
             .service(
                 fs::Files::new("/", context.output_dir.to_owned())
                     .index_file("index.html")

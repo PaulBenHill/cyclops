@@ -1,71 +1,7 @@
 <html>
 
 <head>
-    <style>
-        body {
-            background-color: #1b283b;
-            font-size: 100%;
-            font-weight: bold;
-            font-family: Arial;
-            color: #e67e22;
-        }
-
-        table {
-            border-spacing: 0;
-            width: 100%;
-            border: 1px solid #ddd;
-        }
-
-        th,
-        td {
-            text-align: left;
-            padding: 5px;
-            border: 1px solid #ddd;
-            background-color: #253237;
-            font-size: 100%;
-            font-weight: bold;
-        }
-
-        a:visited {
-            color: green;
-        }
-
-        .sortable-table thead th {
-            cursor: pointer
-        }
-
-        .sortable-table thead th:after {
-            padding-left: 7px
-        }
-
-        .sortable-table thead th[data-sort-direction="0"]:after {
-            content: "\21D5"
-        }
-
-        .sortable-table thead th[data-sort-direction="1"]:after {
-            content: "\25B4"
-        }
-
-        .sortable-table thead th[data-sort-direction="-1"]:after {
-            content: "\25BE"
-        }
-
-        .sortable-table.sortable-fa-icons thead th:after {
-            font-family: FontAwesome
-        }
-
-        .sortable-table.sortable-fa-icons thead th[data-sort-direction="0"]:after {
-            content: "\f0dc"
-        }
-
-        .sortable-table.sortable-fa-icons thead th[data-sort-direction="1"]:after {
-            content: "\f0de"
-        }
-
-        .sortable-table.sortable-fa-icons thead th[data-sort-direction="-1"]:after {
-            content: "\f0dd"
-        }
-    </style>
+  <link rel="stylesheet" href="/resources/cyclops.css">
     <script>
         !function () { function t(t, e) { for (; (t = t.parentElement) && !t.classList.contains(e);); return t } function e(t) { return t = t.replace(/[^\d\.-]/g, ""), Number(t) } function n(t) { var e = document.createElement("span"); return e.innerHTML = t, e.textContent || e.innerText } function r(t, e, n) { for (var r = 0; r < n.length; r++)r == e ? n[e].setAttribute("data-sort-direction", t) : n[r].setAttribute("data-sort-direction", 0) } function a(t, e) { for (var n = t.getElementsByTagName("tbody")[0].getElementsByTagName("tr"), r = 0; r < n.length; r++)for (var a = n[r].getElementsByTagName("td"), i = 0; i < a.length; i++)a[i].innerHTML = e[r][i] } window.addEventListener("load", function () { for (var i = document.getElementsByClassName("sortable-table"), o = [], s = 0; s < i.length; s++)!function () { i[s].setAttribute("data-sort-index", s); for (var d = i[s].getElementsByTagName("tbody")[0].getElementsByTagName("tr"), l = 0; l < d.length; l++)for (var g = d[l].getElementsByTagName("td"), c = 0; c < g.length; c++)void 0 === o[s] && o.splice(s, 0, []), void 0 === o[s][l] && o[s].splice(l, 0, []), o[s][l].splice(c, 0, g[c].innerHTML); for (var u = i[s].getElementsByTagName("thead")[0].getElementsByTagName("tr")[0].getElementsByTagName("th"), m = 0; m < u.length; m++)!function () { var s = u[m].classList.contains("numeric-sort"); u[m].setAttribute("data-sort-direction", 0), u[m].setAttribute("data-sort-index", m), u[m].addEventListener("click", function () { var d = this.getAttribute("data-sort-direction"), l = this.getAttribute("data-sort-index"), g = t(this, "sortable-table").getAttribute("data-sort-index"); r(1 == d ? -1 : 1, l, u), o[g] = o[g].sort(function (t, r) { var a = n(t[l]), i = n(r[l]); return s && (a = e(a), i = e(i)), a === i ? 0 : 1 == d ? a > i ? -1 : 1 : a < i ? -1 : 1 }), a(i[g], o[g]) }) }() }() }) }();
     </script>
@@ -99,23 +35,24 @@
             <th class="numeric-sort">Data Points</th>
             <th class="numeric-sort">Source File</th>
         </thead>
+        <tbody>
         {% for i in indexes %}
         <tr>
-            <td>{{ i.log_date }}</td>
-            <td>
+            <td class="index-body">{{ i.log_date }}</td>
+            <td class="index-body">
             {% for l in i.links %}
                {{l}}<br>
             {% endfor %}
             </td>
-            <td>
+            <td class="index-body">
             {% for d in i.data_points %}
                {{d}}<br>
             {% endfor %}
             </td>
-            <td>{{ i.log_file }}</td>
+            <td class="index-body">{{ i.log_file }}</td>
         </tr>
         {% endfor %}
-        <tbody></tbody>
+        </tbody>
 </body>
 
 </html>
