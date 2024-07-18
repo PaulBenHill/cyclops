@@ -339,37 +339,6 @@ impl ParserJob {
                 .expect("Unable to write parsed.txt")
         }
     }
-
-    fn generate_summary(
-        conn: &mut SqliteConnection,
-        tera: &Tera,
-        summary: &Summary,
-        dps_interval: usize,
-        db_path: &PathBuf,
-    ) -> String {
-        let mut report_context = Context::new();
-
-        report_context.insert("db_path", &db_path);
-
-        report_context.insert("summary", &summary);
-        report_context.insert("rewards_defeats", &db_actions::get_rewards_defeats(conn, summary.summary_key, &summary.player_name));
-        report_context.insert("total_damage", &db_actions::get_total_damage_report(conn, summary.summary_key));
-        if let Some(damage_taken) = db_actions::get_damage_taken_report(conn, summary.summary_key) {
-            report_context.insert("damage_taken", &damage_taken);
-        }
-        report_context.insert("dps_interval", &dps_interval);
-        report_context.insert("dps_report", &TableNames::DPSIntervals);
-        report_context.insert("damage_dealt_by_type", &TableNames::DamageDealtByType);
-        report_context.insert("damage_taken_by_type", &TableNames::DamageTakenByType);
-        report_context.insert("damage_taken_by_mob", &TableNames::DamageTakenByMob);
-        report_context.insert("damage_taken_by_mob_power", &TableNames::DamageTakenByMobPower);
-
-        let result = tera.render("player_attack_report.html", &report_context);
-        match result {
-            Ok(data) => data,
-            Err(e) => panic!("Could not render {}:{:?}", "player_attack_report.html", e),
-        }
-    }
 }
 
 pub fn create_dir(dir_path: &PathBuf) {

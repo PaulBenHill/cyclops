@@ -40,8 +40,10 @@
 <h3>Data Points: {{summary.last_line_number - summary.first_line_number}}</h3>
 <h3>File name: {{summary.log_file_name}}</h3>
 <hr>
-<h2 class="sub-title"onclick="summary_open('summary_div');">Summary<h2 class="sub-title" onclick="summary_close('summary_div');">&nbsp;[close]</h2></h2>
-<div id="summary_div" hidden="hidden">
+<div style="padding-bottom: 25px;">
+<h2 class="sub-title" onclick="summary_open('summary_div');">Summary<h2 class="sub-title" onclick="summary_close('summary_div');">&nbsp;[close]</h2></h2>
+</div>
+<div id="summary_div" hidden="hidden" >
 <h3>Rewards-Mobs Defeated</h3>
 <table title="Session details" style="width:50%">
   <thead>
