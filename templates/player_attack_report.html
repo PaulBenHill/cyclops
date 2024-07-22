@@ -32,7 +32,7 @@
   </script>
 </head>
 
-<body>
+<body class="div-border">
 <h3>Name: {{summary.player_name}}</h3>
 <h3>Start Date: {{summary.log_date | date(format="%Y-%m-%d %H:%M:%S")}}</h3>
 <h3>Starting Line Number: {{summary.first_line_number}}</h3>
@@ -121,22 +121,22 @@ NO DATA
   <div style="padding-top: 25px" id="{{dps_report}}_div" ></div>
 <hr>
 <div class="container">
-<div class="div-left">
+<div class="div-half">
   <h2 class="sub-title" hx-get="/damage_table?table_name={{damage_dealt_by_type}}" hx-target="#{{damage_dealt_by_type}}_div">Damage Dealt By Type<h2 class="sub-title" onclick="close_table('{{damage_dealt_by_type}}_table');"> [close]</h2></h2>
   <div style="padding-top: 25px" id="{{damage_dealt_by_type}}_div" ></div>
 </div>
-<div class="div-right">
+<div class="div-half">
   <h2 class="sub-title" hx-get="/damage_table?table_name={{damage_taken_by_type}}" hx-target="#{{damage_taken_by_type}}_div">Damage Taken By Type<h2 class="sub-title" onclick="close_table('{{damage_taken_by_type}}_table');"> [close]</h2></h2>
   <div style="padding-top: 25px" id="{{damage_taken_by_type}}_div" ></div>
 </div>
 </div>
 <hr>
 <div class="container">
-<div class="div-left">
+<div class="div-half">
   <h2 class="sub-title" hx-get="/damage_table?table_name={{damage_taken_by_mob}}" hx-target="#{{damage_taken_by_mob}}_div">Damage Taken By Mob<h2 class="sub-title" onclick="close_table('{{damage_taken_by_mob}}_table');"> [close]</h2></h2>
   <div style="padding-top: 25px" id="{{damage_taken_by_mob}}_div" ></div>
 </div>
-<div class="div-right">
+<div class="div-half">
   <h2 class="sub-title" hx-get="/damage_table?table_name={{damage_taken_by_mob_power}}" hx-target="#{{damage_taken_by_mob_power}}_div">Damage Taken By Mob Power<h2 class="sub-title" onclick="close_table('{{damage_taken_by_mob_power}}_table');"> [close]</h2></h2>
   <div style="padding-top: 25px" id="{{damage_taken_by_mob_power}}_div" ></div>
 </div>
