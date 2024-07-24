@@ -25,7 +25,7 @@ th {
 
 td {
     border: 1px solid #ddd;
-}
+ }
 
 tbody tr:nth-child(even) {
     color: #d2c7c7c7;
@@ -56,4 +56,39 @@ a:visited {
 
 .index-container {
     height: auto;
+}
+
+.status-div {
+    vertical-align: top;
+}
+
+.status-label {
+    vertical-align: top;
+    font-size: 150%;
+}
+
+.status-textbox {
+    width: 100%;
+    color: #e67e22;
+    background-color: #1b283b;
+    border: none;
+    outline: none;
+    resize: none;
+}
+
+.search-container {
+    border: 1px solid #ddd;
+    display: inline;
+    padding: 5px 5px 5px 5px;
+    vertical-align: middle;
+    margin: 5px 5px 5px 5px;
+}
+
+.search-label {
+    vertical-align: middle;
+}
+
+.search-control {
+    vertical-align: middle;
+    padding: 5px 5px 5px 5px;
 }

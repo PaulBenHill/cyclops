@@ -6,7 +6,15 @@ use serde::{Deserialize, Serialize};
 use tera::Context;
 
 use crate::{
-    damage_by_power_table, damage_dealt_by_type_table, damage_taken_by_mob_power_table, damage_taken_by_mob_table, damage_taken_by_type_table, db_actions::{self}, dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir, log_processing::{self, ParserJob, ProcessingError}, player_summary_table::{self, SummaryQuery}, powers_and_mobs_table::{self}, read_log_file_dir, AppContext
+    damage_by_power_table, damage_dealt_by_type_table, damage_taken_by_mob_power_table,
+    damage_taken_by_mob_table, damage_taken_by_type_table,
+    db_actions::{self},
+    dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir,
+    index_handler,
+    log_processing::ParserJob,
+    player_summary_table::{self, SummaryQuery},
+    powers_and_mobs_table::{self},
+    AppContext,
 };
 
 #[derive(Deserialize)]
@@ -27,6 +35,20 @@ pub enum TableNames {
     DamageTakenByMob,
     DamageTakenByMobPower,
     DPSIntervals,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum ParseLog {
+    EntireDir,
+    LatestFile,
+    SingleFile,
+    Directory,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct ParseLogRequest {
+    pub action: ParseLog,
+    pub log_path: String,
 }
 
 #[derive(Deserialize, Debug)]
@@ -67,67 +89,32 @@ pub struct PowersMobsData {
     pub sort_dir: Option<SortDirection>,
 }
 
-fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
-    let mut parser_job = ParserJob {
-        files: Vec::new(),
-        processed: 0,
-        run_time: 0,
-        errors: Vec::new(),
-    };
-
-    let local_path = path_buf.to_owned();
-    match log_processing::verify_file(&local_path) {
-        Ok(path) => {
-            if path.is_file() {
-                parser_job.files.push(path.to_owned());
-            } else if path.is_dir() {
-                let mut files = read_log_file_dir(&path);
-                parser_job.files.append(&mut files);
-            }
-        }
-        Err(e) => {
-            parser_job.errors.push(ProcessingError {
-                file_name: path_buf.to_owned(),
-                message: e.to_string(),
-            });
-        }
-    }
-
-    Ok(parser_job)
-}
-
 fn create_job_response(context: &AppContext, job: ParserJob) -> impl Responder {
     let mut result_context = Context::new();
     result_context.insert("result", &job);
     result_context.insert("error_count", &job.errors.len());
     let result = context.tera.render("job_result.html", &result_context);
     match result {
-        Ok(data) => HttpResponse::Ok()
-            .insert_header((
-                "refresh",
-                format!("5;url=http://{}:{}", context.web_address, context.web_port),
-            ))
-            .insert_header(("no-cache", "no-cache"))
-            .body(data),
-        Err(e) => panic!("Could not render {}:{:?}", "index.html", e),
+        Ok(data) => HttpResponse::Ok().body(data),
+        Err(e) => HttpResponse::Ok().body("ERROR CHECK LOGS"),
     }
 }
 
-#[get("/process_file")]
-async fn process_file(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    let form: web::Query<FileFormData> = web::Query::from_query(req.query_string()).unwrap();
+#[get("parse_request")]
+async fn parse_request(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let form: web::Query<ParseLogRequest> = web::Query::from_query(req.query_string()).unwrap();
     println!("Latest Request: {:?}", form.log_path);
+    let stripped_path = PathBuf::from(form.log_path.replace("\"", ""));
 
-    let stripped_file = form.log_path.replace("\"", "");
-    match create_parser_job(stripped_file.into()) {
-        Ok(job) => {
-            let result = job.process_logs(&context);
+    match form.action {
+        ParseLog::EntireDir => process_all_files(&stripped_path, context),
+        ParseLog::LatestFile => {
 
-            let indexes = find_all_summaries(&context.output_dir);
-            generate_index(&context, &indexes);
-            create_job_response(&context, result)
+            let latest_file = get_last_modified_file_in_dir(&stripped_path.into());
+            process_all_files(&latest_file, context)
         }
-        Err(job) => create_job_response(&context, job),
+        ParseLog::SingleFile => process_all_files(&stripped_path, context),
+        ParseLog::Directory => process_all_files(&stripped_path, context),
     }
 }
 
@@ -137,7 +124,7 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
     println!("Latest Request: {:?}", form.log_path);
 
     let stripped_file = form.log_path.replace("\"", "");
-    match create_parser_job(get_last_modified_file_in_dir(&stripped_file.into())) {
+    match index_handler::create_parser_job(get_last_modified_file_in_dir(&stripped_file.into())) {
         Ok(job) => {
             let result = job.process_logs(&context);
 
@@ -149,22 +136,8 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
     }
 }
 
-#[get("/process_dir")]
-async fn process_dir(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    process_all_files(req, context)
-}
-
-#[get("/parse_dir")]
-async fn parse_dir(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    process_all_files(req, context)
-}
-
-fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    let form: web::Query<FileFormData> = web::Query::from_query(req.query_string()).unwrap();
-    println!("Request: {:?}", form.log_path);
-
-    let stripped_file = form.log_path.replace("\"", "");
-    match create_parser_job(stripped_file.into()) {
+fn process_all_files(log_path: &PathBuf, context: web::Data<AppContext>) -> impl Responder {
+    match index_handler::create_parser_job(log_path.into()) {
         Ok(job) => {
             let result = job.process_logs(&context);
 
@@ -175,6 +148,7 @@ fn process_all_files(req: HttpRequest, context: web::Data<AppContext>) -> impl R
         Err(job) => create_job_response(&context, job),
     }
 }
+
 #[get("/damage_by_power")]
 async fn damage_by_power(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let qs_non_strict = serde_qs::Config::new(5, false);
@@ -284,13 +258,14 @@ async fn player_summary_query(req: HttpRequest, context: web::Data<AppContext>) 
     let mut report_context = Context::new();
 
     player_summary_table::process(&context, &mut report_context, &query);
-    let result = context.tera.render("player_attack_report.html", &report_context);
+    let result = context
+        .tera
+        .render("player_attack_report.html", &report_context);
     match result {
         Ok(data) => HttpResponse::Ok().body(data),
         Err(e) => panic!("Could not render {}:{:?}", "player_attack_report.html", e),
     }
 }
-
 
 #[actix_web::main]
 pub async fn start(context: AppContext) -> std::io::Result<()> {
@@ -299,9 +274,7 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(context.clone()))
-            .service(process_file)
-            .service(parse_dir)
-            .service(process_dir)
+            .service(parse_request)
             .service(process_latest)
             .service(player_summary_query)
             .service(damage_by_power)

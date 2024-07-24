@@ -30,6 +30,7 @@ mod damage_taken_by_mob_table;
 mod damage_taken_by_mob_power_table;
 mod dps_interval_table;
 mod damage_by_power_table;
+mod index_handler;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";

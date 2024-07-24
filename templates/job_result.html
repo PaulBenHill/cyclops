@@ -1,38 +1,4 @@
-<html>
-
-<head>
-    <style>
-        body {
-            background-color: #1b283b;
-            font-size: 100%;
-            font-weight: bold;
-            font-family: Arial;
-            color: #e67e22;
-        }
-
-        table {
-            border-spacing: 0;
-            width: 100%;
-            border: 1px solid #ddd;
-        }
-
-        th,
-        td {
-            text-align: left;
-            padding: 5px;
-            border: 1px solid #ddd;
-            background-color: #253237;
-            font-size: 100%;
-            font-weight: bold;
-        }
-
-        a:visited {
-            color: green;
-        }
-        </style>
-</head>
-
-<body>
+<p>
     Processing Results:<br>
     Files found: {{ result.files | length }}<br>
     Files processed: {{ result.processed }}<br>
@@ -45,4 +11,4 @@
       {{ e.message }}<br>
     {% endfor %}
     {% endif %}
-</body>
+</p>
