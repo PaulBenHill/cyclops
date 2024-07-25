@@ -1,17 +1,13 @@
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
-use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::Write;
+use std::collections::HashMap;
 use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
 use tera::{Result, Value};
-use walkdir::WalkDir;
 
 mod parsers;
-use tera::{Context, Tera};
+use tera::Tera;
 
 use crate::log_processing::ParserJob;
 
@@ -72,9 +68,6 @@ fn main() {
        parser_job.process_logs(&app_context);
     }
     
-    //let indexes = find_all_summaries(&app_context.output_dir);
-    //generate_index(&app_context, &indexes);
-
     println!(
         "Starting web server at http://{}:{}",
         app_context.web_address, app_context.web_port
@@ -84,57 +77,6 @@ fn main() {
     }
 
     println!("Total run time took: {} second.", start.elapsed().as_secs());
-}
-
-fn generate_index(context: &AppContext, indexes: &Vec<SummaryEntry>) -> String {
-    let mut index_content = Context::new();
-    index_content.insert("indexes", &indexes);
-    let result = context.tera.render("index_table.html", &index_content);
-    match result {
-        Ok(data) => data,
-        Err(e) => panic!("Could not render {}:{:?}", "index_table.html", e),
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SummaryEntry {
-    log_file: String,
-    log_date: String,
-    links: Vec<String>,
-    data_points: Vec<String>
-}
-
-fn find_all_summaries(output_path: &Path) -> Vec<SummaryEntry> {
-    let mut entries: Vec<SummaryEntry> = Vec::new();
-    let walker = WalkDir::new(output_path).into_iter();
-    for entry in walker.into_iter().filter_map(|e| e.ok()) {
-        if entry.path().ends_with("summary.db") {
-            let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
-            let mut conn = db_actions::get_file_conn(db_path.clone());
-            let details = db_actions::index_details(&mut conn);
-
-            let mut links: Vec<String> = Vec::new();
-            let mut data_points: Vec<String> = Vec::new();
-            for d in &details {
-                links.push(format!(
-                    "<a href=\"/summary?key={}&db_path={}\" target=\"_blank\">{}</a>", d.summary_key, db_path.clone().display(), d.player_name));
-                data_points.push(d.data_points.clone());
-            }
-
-            let date = details.get(0).unwrap().log_date.to_owned();
-            let file = details.get(0).unwrap().file.to_owned();
-            let entry = SummaryEntry {
-                log_file: file,
-                log_date: date,
-                links: links,
-                data_points: data_points,
-            };
-            entries.push(entry);
-        }
-    }
-
-    entries.sort_by(|a, b| b.log_date.cmp(&a.log_date));
-    entries
 }
 
 fn setup_tera() -> Tera {

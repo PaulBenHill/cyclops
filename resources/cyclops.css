@@ -67,15 +67,6 @@ a:visited {
     font-size: 150%;
 }
 
-.status-textbox {
-    width: 100%;
-    color: #e67e22;
-    background-color: #1b283b;
-    border: none;
-    outline: none;
-    resize: none;
-}
-
 .search-container {
     border: 1px solid #ddd;
     display: inline;

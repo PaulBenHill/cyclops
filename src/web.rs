@@ -1,8 +1,14 @@
-use std::{collections::HashSet, path::{Path, PathBuf}};
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+};
 
 use actix_files as fs;
-use actix_web::{body, get, web::{self, Header}, App, HttpRequest, HttpResponse, HttpServer, Responder};
-use rusqlite::ffi::sqlite3_index_constraint;
+use actix_web::{
+    get,
+    web::{self},
+    App, HttpRequest, HttpResponse, HttpServer, Responder,
+};
 use serde::{Deserialize, Serialize};
 use tera::Context;
 
@@ -10,7 +16,7 @@ use crate::{
     damage_by_power_table, damage_dealt_by_type_table, damage_taken_by_mob_power_table,
     damage_taken_by_mob_table, damage_taken_by_type_table,
     db_actions::{self},
-    dps_interval_table, find_all_summaries, generate_index, get_last_modified_file_in_dir,
+    dps_interval_table, get_last_modified_file_in_dir,
     index_handler,
     log_processing::ParserJob,
     player_summary_table::{self, SummaryQuery},
@@ -96,7 +102,9 @@ fn create_job_response(context: &AppContext, job: ParserJob) -> impl Responder {
     result_context.insert("error_count", &job.errors.len());
     let result = context.tera.render("job_result.html", &result_context);
     match result {
-        Ok(data) => HttpResponse::Ok().insert_header(("HX-Trigger", "{\"newSummary\": \"fire\"}")).body(data),
+        Ok(data) => HttpResponse::Ok()
+            .insert_header(("HX-Trigger", "{\"newSummary\": \"fire\"}"))
+            .body(data),
         Err(e) => HttpResponse::Ok().body(format!("ERROR CHECK LOGS: {:?}", e)),
     }
 }
@@ -110,7 +118,6 @@ async fn parse_request(req: HttpRequest, context: web::Data<AppContext>) -> impl
     match form.action {
         ParseLog::EntireDir => process_all_files(&stripped_path, context),
         ParseLog::LatestFile => {
-
             let latest_file = get_last_modified_file_in_dir(&stripped_path.into());
             process_all_files(&latest_file, context)
         }
@@ -129,8 +136,8 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
         Ok(job) => {
             let result = job.process_logs(&context);
 
-            let indexes = find_all_summaries(&context.output_dir);
-            generate_index(&context, &indexes);
+            let indexes = index_handler::find_all_summaries(&context.output_dir);
+            index_handler::generate_index(&context, &indexes);
             create_job_response(&context, result)
         }
         Err(job) => create_job_response(&context, job),
@@ -142,8 +149,8 @@ fn process_all_files(log_path: &PathBuf, context: web::Data<AppContext>) -> impl
         Ok(job) => {
             let result = job.process_logs(&context);
 
-            let indexes = find_all_summaries(&context.output_dir);
-            generate_index(&context, &indexes);
+            let indexes = index_handler::find_all_summaries(&context.output_dir);
+            index_handler::generate_index(&context, &indexes);
             create_job_response(&context, result)
         }
         Err(job) => create_job_response(&context, job),
@@ -152,7 +159,7 @@ fn process_all_files(log_path: &PathBuf, context: web::Data<AppContext>) -> impl
 
 #[get("/")]
 async fn index(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    let indexes = find_all_summaries(&context.output_dir);
+    let indexes = index_handler::find_all_summaries(&context.output_dir);
 
     let mut log_dirs: HashSet<PathBuf> = HashSet::new();
     for i in indexes {
@@ -175,14 +182,12 @@ async fn index(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder
     }
 }
 
-
 #[get("/index_table")]
 async fn index_table(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let data = index_handler::load_summaries(&context);
 
     HttpResponse::Ok().body(data)
 }
-
 
 #[get("/damage_by_power")]
 async fn damage_by_power(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {

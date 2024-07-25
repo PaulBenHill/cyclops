@@ -6,30 +6,7 @@
   <link rel="stylesheet" href="/resources/cyclops.css">
 
   <title>{{summary.player_name}}: {{summary.log_date | date(format="%Y-%m-%d %H:%M")}}</title>
-  <script>
-    function close_table(name) {
-      const e = document.getElementById(name);
-
-      if (e != null) {
-        e.remove();
-      }
-    }
-    function summary_open(name) {
-      const e = document.getElementById(name);
-      if (e != null) {
-        if (e.hasAttribute('hidden'))  {
-          e.removeAttribute('hidden');
-        }
-      }
-    }
-
-    function summary_close(name) {
-      const e = document.getElementById(name);
-      if (e != null) {
-          e.hidden = 'hidden';
-      }
-    }
-  </script>
+  <script type="text/javascript" src="/resources/cyclops.js"></script>
 </head>
 
 <body class="div-border">
