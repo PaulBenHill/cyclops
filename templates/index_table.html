@@ -1,0 +1,16 @@
+        {% for i in indexes %}
+        <tr>
+            <td>{{ i.log_date }}</td>
+            <td>
+            {% for l in i.links %}
+               {{l}}<br>
+            {% endfor %}
+            </td>
+            <td>
+            {% for d in i.data_points %}
+               {{d}}<br>
+            {% endfor %}
+            </td>
+            <td>{{ i.log_file }}</td>
+        </tr>
+        {% endfor %}

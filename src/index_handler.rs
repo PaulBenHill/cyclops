@@ -1,7 +1,11 @@
 use std::path::PathBuf;
 
-use crate::{log_processing::{self, ParserJob, ProcessingError}, read_log_file_dir};
-
+use crate::{
+    find_all_summaries, generate_index,
+    log_processing::{self, ParserJob, ProcessingError},
+    read_log_file_dir,
+    AppContext
+};
 
 pub fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
     let mut parser_job = ParserJob {
@@ -30,4 +34,9 @@ pub fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
     }
 
     Ok(parser_job)
+}
+
+pub fn load_summaries(context: &AppContext) -> String {
+    let indexes = find_all_summaries(&context.output_dir);
+    generate_index(&context, &indexes)
 }

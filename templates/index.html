@@ -2,7 +2,7 @@
 
 <head>
   <link rel="stylesheet" href="/resources/cyclops.css">
-  <script src="https://unpkg.com/htmx.org@2.0.0" integrity="sha384-wS5l5IKJBvK6sPTKa2WZ1js3d947pvWXbPJ1OmWfEuxLgeHcEbjUUA5i9V5ZkpCw" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/htmx.org@2.0.1/dist/htmx.js" integrity="sha384-gpIh5aLQ0qmX8kZdyhsd6jA24uKLkqIr1WAGtantR4KsS97l/NRBvh8/8OYGThAf" crossorigin="anonymous"></script>
 </head>
 <body>
     <h2>Cyclops Summaries (v1.1):</h2>
@@ -51,27 +51,10 @@
             <th>Data Points</th>
             <th>Source File</th>
         </thead>
-        <tbody>
-        {% for i in indexes %}
-        <tr>
-            <td>{{ i.log_date }}</td>
-            <td>
-            {% for l in i.links %}
-               {{l}}<br>
-            {% endfor %}
-            </td>
-            <td>
-            {% for d in i.data_points %}
-               {{d}}<br>
-            {% endfor %}
-            </td>
-            <td>{{ i.log_file }}</td>
-        </tr>
-        {% endfor %}
+        <tbody id="summary-table" hx-get="/index_table" hx-target="#summary-table" hx-trigger="load, newSummary from:body">
         </tbody>
         </table>
         </div>
     </div>
 </body>
-
 </html>

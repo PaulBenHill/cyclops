@@ -1,7 +1,8 @@
-use std::path::PathBuf;
+use std::{collections::HashSet, path::{Path, PathBuf}};
 
 use actix_files as fs;
-use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{body, get, web::{self, Header}, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use rusqlite::ffi::sqlite3_index_constraint;
 use serde::{Deserialize, Serialize};
 use tera::Context;
 
@@ -95,8 +96,8 @@ fn create_job_response(context: &AppContext, job: ParserJob) -> impl Responder {
     result_context.insert("error_count", &job.errors.len());
     let result = context.tera.render("job_result.html", &result_context);
     match result {
-        Ok(data) => HttpResponse::Ok().body(data),
-        Err(e) => HttpResponse::Ok().body("ERROR CHECK LOGS"),
+        Ok(data) => HttpResponse::Ok().insert_header(("HX-Trigger", "{\"newSummary\": \"fire\"}")).body(data),
+        Err(e) => HttpResponse::Ok().body(format!("ERROR CHECK LOGS: {:?}", e)),
     }
 }
 
@@ -148,6 +149,40 @@ fn process_all_files(log_path: &PathBuf, context: web::Data<AppContext>) -> impl
         Err(job) => create_job_response(&context, job),
     }
 }
+
+#[get("/")]
+async fn index(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let indexes = find_all_summaries(&context.output_dir);
+
+    let mut log_dirs: HashSet<PathBuf> = HashSet::new();
+    for i in indexes {
+        let f = Path::new(&i.log_file);
+        if f.is_dir() {
+            log_dirs.insert(f.to_path_buf());
+        } else {
+            log_dirs.insert(f.parent().unwrap().to_path_buf());
+        }
+    }
+    let mut dir_list: Vec<PathBuf> = log_dirs.into_iter().collect();
+    dir_list.sort();
+
+    let mut index_context = Context::new();
+    index_context.insert("log_dirs", &dir_list);
+    let result = context.tera.render("index.html", &index_context);
+    match result {
+        Ok(data) => HttpResponse::Ok().body(data),
+        Err(e) => panic!("Could not render {}:{:?}", "index.html", e),
+    }
+}
+
+
+#[get("/index_table")]
+async fn index_table(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let data = index_handler::load_summaries(&context);
+
+    HttpResponse::Ok().body(data)
+}
+
 
 #[get("/damage_by_power")]
 async fn damage_by_power(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
@@ -274,6 +309,8 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(context.clone()))
+            .service(index)
+            .service(index_table)
             .service(parse_request)
             .service(process_latest)
             .service(player_summary_query)

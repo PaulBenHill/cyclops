@@ -72,8 +72,8 @@ fn main() {
        parser_job.process_logs(&app_context);
     }
     
-    let indexes = find_all_summaries(&app_context.output_dir);
-    generate_index(&app_context, &indexes);
+    //let indexes = find_all_summaries(&app_context.output_dir);
+    //generate_index(&app_context, &indexes);
 
     println!(
         "Starting web server at http://{}:{}",
@@ -86,35 +86,13 @@ fn main() {
     println!("Total run time took: {} second.", start.elapsed().as_secs());
 }
 
-fn generate_index(context: &AppContext, indexes: &Vec<SummaryEntry>) {
-    let mut index_file = match File::create(context.output_dir.join("index.html")) {
-        Ok(f) => f,
-        Err(e) => panic!("Cannot create summary.txt file: {:?}", e),
-    };
-
-    let mut log_dirs: HashSet<PathBuf> = HashSet::new();
-    for i in indexes {
-        let f = Path::new(&i.log_file);
-        if f.is_dir() {
-            log_dirs.insert(f.to_path_buf());
-        } else {
-            log_dirs.insert(f.parent().unwrap().to_path_buf());
-        }
-    }
-    let mut dir_list: Vec<PathBuf> = log_dirs.into_iter().collect();
-    dir_list.sort();
-
+fn generate_index(context: &AppContext, indexes: &Vec<SummaryEntry>) -> String {
     let mut index_content = Context::new();
     index_content.insert("indexes", &indexes);
-    index_content.insert("log_dirs", &dir_list);
-    let result = context.tera.render("index.html", &index_content);
+    let result = context.tera.render("index_table.html", &index_content);
     match result {
-        Ok(data) => {
-            index_file
-                .write_all(data.as_bytes())
-                .expect("Unable to write file.");
-        }
-        Err(e) => panic!("Could not render {}:{:?}", "index.html", e),
+        Ok(data) => data,
+        Err(e) => panic!("Could not render {}:{:?}", "index_table.html", e),
     }
 }
 
