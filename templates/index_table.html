@@ -1,7 +1,7 @@
     <div id="search-div" class="search-container">
         <label>Search By:</label>
         <select name="player_name" hx-get="/index_search?action=PlayerName" hx-target="#index_body">
-            <option disabled selected value>-- select a player --</option>
+            <option disabled selected value>{{ last_player_name | default(value="-- select a player --") | replace(from="_", to=" ")}}</option>
             {% if players is defined %}
               {% for p in players %}
                 <option value="{{p | replace(from=" ", to="_")}}">{{p}}</option>
@@ -10,7 +10,7 @@
             {% endif %}
         </select>
         <select name="log_path" hx-get="/index_search?action=LogDirectory" hx-target="#index_body">
-            <option disabled selected value>-- select an log directory --</option>
+            <option disabled selected value>{{ last_log_dir | default(value="-- select a log directory --") }}</option>
             {% if log_dirs is defined %}
               {% for d in log_dirs %}
               <option value="{{d}}">{{d}}</option>
@@ -18,6 +18,7 @@
               </optgroup>
             {% endif %}
         </select>
+        <button hx-get="/index_table" hx-target="#index_body">Reload Table</button>
     </div>
     <div>
     <table title="summaries" style="width: 100%;">
@@ -28,19 +29,20 @@
             <th>Source File</th>
         </thead>
         <tbody>
-        {% for i in indexes %}
+        {% for s in summaries %}
         <tr>
+            <td>{{s.log_date}}</td>
             <td>
-            {% for l in i.links %}
-               {{l}}<br>
+            {% for i in s.indexes %}
+                <a href="/summary?key={{i.summary_key}}&db_path={{s.db_path}}" target="_blank">{{i.player_name}}</a><br>
             {% endfor %}
             </td>
             <td>
-            {% for d in i.data_points %}
-               {{d}}<br>
+            {% for i in s.indexes %}
+               {{i.data_points}}<br>
             {% endfor %}
             </td>
-            <td>{{ i.log_file }}</td>
+            <td>{{ s.log_file }}</td>
         </tr>
         {% endfor %}
         </tbody>

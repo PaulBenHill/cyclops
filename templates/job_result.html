@@ -4,7 +4,7 @@
     Files found: {{ result.files | length }}<br>
     Files processed: {{ result.processed }}<br>
     Processing Time: {{ result.run_time }}<br>
-    Last file processed: <button class="log_file_button" hx-get="/index_search?log_path={{ result.last_file }}" hx-target="#summary-table">{{ result.last_file }}</button><br>
+    Last file processed: <button class="log_file_button" hx-get="/index_search?action=LogFile&log_file={{ result.last_file }}" hx-target="#index_body">{{ result.last_file }}</button><br>
     <br>
     {% if error_count > 0 %}
     ERROR(S):<br>

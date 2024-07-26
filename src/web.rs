@@ -96,12 +96,14 @@ pub struct PowersMobsData {
 pub enum IndexSearch {
     PlayerName,
     LogDirectory,
+    LogFile,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct IndexSearchQuery {
     pub player_name: Option<String>,
-    pub log_path: Option<String>,
+    pub log_path: Option<PathBuf>,
+    pub log_file: Option<PathBuf>,
     pub action: IndexSearch,
 }
 
@@ -146,7 +148,7 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
             let job_result = job.process_logs(&context);
 
             let result = index_handler::find_all_summaries(&context.output_dir);
-            index_handler::generate_index(&context, &result.0, &result.1, &result.2);
+            index_handler::generate_index(&context, None, None, &result.0, &result.1, &result.2);
             create_job_response(&context, job_result)
         }
         Err(job) => create_job_response(&context, job),
@@ -159,7 +161,7 @@ fn process_all_files(log_path: &PathBuf, context: web::Data<AppContext>) -> impl
             let job_result = job.process_logs(&context);
 
             let result = index_handler::find_all_summaries(&context.output_dir);
-            index_handler::generate_index(&context, &result.0, &result.1, &result.2);
+            index_handler::generate_index(&context, None, None, &result.0, &result.1, &result.2);
             create_job_response(&context, job_result)
         }
         Err(job) => create_job_response(&context, job),
@@ -192,11 +194,15 @@ async fn index_search(req: HttpRequest, context: web::Data<AppContext>) -> impl 
     match query.action {
         IndexSearch::PlayerName => {
             let player_name = query.player_name.clone().unwrap().replace("_", " ");
-            let data = index_handler::search_player_name(&player_name, &context);
+            let data = index_handler::search_by_player_name(&player_name, &context);
             HttpResponse::Ok().body(data)
         }
         IndexSearch::LogDirectory => {
-            let data = index_handler::load_summaries(&context);
+            let data = index_handler::search_by_directory(&query.log_path.clone().unwrap(), &context);
+            HttpResponse::Ok().body(data)
+        }
+        IndexSearch::LogFile => {
+            let data = index_handler::search_by_log_file(&query.log_file.clone().unwrap(), &context);
             HttpResponse::Ok().body(data)
         }
     }
