@@ -63,6 +63,8 @@ fn main() {
         processed: 0,
         run_time: 0,
         errors: Vec::new(),
+        completion_date: "".to_string(),
+        last_file: "".to_string(),
     };
     if !parser_job.files.is_empty() {
        parser_job.process_logs(&app_context);

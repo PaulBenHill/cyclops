@@ -1,6 +1,35 @@
+    <div id="search-div" class="search-container">
+        <label>Search By:</label>
+        <select name="player_name" hx-get="/index_search?action=PlayerName" hx-target="#index_body">
+            <option disabled selected value>-- select a player --</option>
+            {% if players is defined %}
+              {% for p in players %}
+                <option value="{{p | replace(from=" ", to="_")}}">{{p}}</option>
+              {% endfor %}
+              </optgroup>
+            {% endif %}
+        </select>
+        <select name="log_path" hx-get="/index_search?action=LogDirectory" hx-target="#index_body">
+            <option disabled selected value>-- select an log directory --</option>
+            {% if log_dirs is defined %}
+              {% for d in log_dirs %}
+              <option value="{{d}}">{{d}}</option>
+              {% endfor %}
+              </optgroup>
+            {% endif %}
+        </select>
+    </div>
+    <div>
+    <table title="summaries" style="width: 100%;">
+        <thead>
+            <th>Log Date</th>
+            <th>Players</th>
+            <th>Data Points</th>
+            <th>Source File</th>
+        </thead>
+        <tbody>
         {% for i in indexes %}
         <tr>
-            <td>{{ i.log_date }}</td>
             <td>
             {% for l in i.links %}
                {{l}}<br>
@@ -14,3 +43,6 @@
             <td>{{ i.log_file }}</td>
         </tr>
         {% endfor %}
+        </tbody>
+        </table>
+        </div>

@@ -34,28 +34,7 @@
         <label class="status-label" for="index-status">Status:</label>
     </div>
     </div>
-    <div class="div-border">
-    <div id="search-div" class="search-container">
-    <label>Search:</label>
-    <input class="search-control" type="search" 
-       name="index-search" placeholder="Begin Typing To Search Player Names..." 
-       hx-post="/index-search" 
-       hx-trigger="input changed delay:500ms, search" 
-       hx-target="#index-table" 
-       hx-indicator=".htmx-indicator">
-    </div>
-    <div id="index-table">
-    <table title="summaries" style="width: 100%;">
-        <thead>
-            <th>Log Date</th>
-            <th>Players</th>
-            <th>Data Points</th>
-            <th>Source File</th>
-        </thead>
-        <tbody id="summary-table" hx-get="/index_table" hx-target="#summary-table" hx-trigger="load, newSummary from:body">
-        </tbody>
-        </table>
-        </div>
+    <div id="index_body" class="div-border" hx-get="/index_table" hx-target="#index_body" hx-trigger="load, newSummary from:body">
     </div>
 </body>
 </html>

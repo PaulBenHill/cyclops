@@ -1,7 +1,4 @@
-use std::{
-    collections::HashSet,
-    path::{Path, PathBuf},
-};
+use std::path::PathBuf;
 
 use actix_files as fs;
 use actix_web::{
@@ -16,8 +13,7 @@ use crate::{
     damage_by_power_table, damage_dealt_by_type_table, damage_taken_by_mob_power_table,
     damage_taken_by_mob_table, damage_taken_by_type_table,
     db_actions::{self},
-    dps_interval_table, get_last_modified_file_in_dir,
-    index_handler,
+    dps_interval_table, get_last_modified_file_in_dir, index_handler,
     log_processing::ParserJob,
     player_summary_table::{self, SummaryQuery},
     powers_and_mobs_table::{self},
@@ -96,6 +92,19 @@ pub struct PowersMobsData {
     pub sort_dir: Option<SortDirection>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum IndexSearch {
+    PlayerName,
+    LogDirectory,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct IndexSearchQuery {
+    pub player_name: Option<String>,
+    pub log_path: Option<String>,
+    pub action: IndexSearch,
+}
+
 fn create_job_response(context: &AppContext, job: ParserJob) -> impl Responder {
     let mut result_context = Context::new();
     result_context.insert("result", &job);
@@ -134,11 +143,11 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
     let stripped_file = form.log_path.replace("\"", "");
     match index_handler::create_parser_job(get_last_modified_file_in_dir(&stripped_file.into())) {
         Ok(job) => {
-            let result = job.process_logs(&context);
+            let job_result = job.process_logs(&context);
 
-            let indexes = index_handler::find_all_summaries(&context.output_dir);
-            index_handler::generate_index(&context, &indexes);
-            create_job_response(&context, result)
+            let result = index_handler::find_all_summaries(&context.output_dir);
+            index_handler::generate_index(&context, &result.0, &result.1, &result.2);
+            create_job_response(&context, job_result)
         }
         Err(job) => create_job_response(&context, job),
     }
@@ -147,11 +156,11 @@ async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> imp
 fn process_all_files(log_path: &PathBuf, context: web::Data<AppContext>) -> impl Responder {
     match index_handler::create_parser_job(log_path.into()) {
         Ok(job) => {
-            let result = job.process_logs(&context);
+            let job_result = job.process_logs(&context);
 
-            let indexes = index_handler::find_all_summaries(&context.output_dir);
-            index_handler::generate_index(&context, &indexes);
-            create_job_response(&context, result)
+            let result = index_handler::find_all_summaries(&context.output_dir);
+            index_handler::generate_index(&context, &result.0, &result.1, &result.2);
+            create_job_response(&context, job_result)
         }
         Err(job) => create_job_response(&context, job),
     }
@@ -159,22 +168,10 @@ fn process_all_files(log_path: &PathBuf, context: web::Data<AppContext>) -> impl
 
 #[get("/")]
 async fn index(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    let indexes = index_handler::find_all_summaries(&context.output_dir);
-
-    let mut log_dirs: HashSet<PathBuf> = HashSet::new();
-    for i in indexes {
-        let f = Path::new(&i.log_file);
-        if f.is_dir() {
-            log_dirs.insert(f.to_path_buf());
-        } else {
-            log_dirs.insert(f.parent().unwrap().to_path_buf());
-        }
-    }
-    let mut dir_list: Vec<PathBuf> = log_dirs.into_iter().collect();
-    dir_list.sort();
+    let result = index_handler::find_all_summaries(&context.output_dir);
 
     let mut index_context = Context::new();
-    index_context.insert("log_dirs", &dir_list);
+    index_context.insert("log_dirs", &result.1);
     let result = context.tera.render("index.html", &index_context);
     match result {
         Ok(data) => HttpResponse::Ok().body(data),
@@ -185,8 +182,24 @@ async fn index(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder
 #[get("/index_table")]
 async fn index_table(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let data = index_handler::load_summaries(&context);
-
     HttpResponse::Ok().body(data)
+}
+
+#[get("/index_search")]
+async fn index_search(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let query: web::Query<IndexSearchQuery> = web::Query::from_query(req.query_string()).unwrap();
+
+    match query.action {
+        IndexSearch::PlayerName => {
+            let player_name = query.player_name.clone().unwrap().replace("_", " ");
+            let data = index_handler::search_player_name(&player_name, &context);
+            HttpResponse::Ok().body(data)
+        }
+        IndexSearch::LogDirectory => {
+            let data = index_handler::load_summaries(&context);
+            HttpResponse::Ok().body(data)
+        }
+    }
 }
 
 #[get("/damage_by_power")]
@@ -316,6 +329,7 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .app_data(web::Data::new(context.clone()))
             .service(index)
             .service(index_table)
+            .service(index_search)
             .service(parse_request)
             .service(process_latest)
             .service(player_summary_query)

@@ -25,7 +25,7 @@ th {
 
 td {
     border: 1px solid #ddd;
- }
+}
 
 tbody tr:nth-child(even) {
     color: #d2c7c7c7;
@@ -82,4 +82,15 @@ a:visited {
 .search-control {
     vertical-align: middle;
     padding: 5px 5px 5px 5px;
+}
+
+.log_file_button {
+    background: none !important;
+    border: none;
+    padding: 0 !important;
+    text-decoration: underline;
+    cursor: pointer;
+    color: #069;
+    font-weight: bold;
+    font-size: 100%;
 }

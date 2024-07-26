@@ -6,6 +6,7 @@ use std::{
     time::Instant,
 };
 
+use chrono::Local;
 use diesel::SqliteConnection;
 use serde::{Deserialize, Serialize};
 
@@ -25,9 +26,11 @@ impl fmt::Display for ProcessingError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParserJob {
+    pub completion_date: String,
     pub files: Vec<PathBuf>,
     pub processed: usize,
     pub run_time: u64,
+    pub last_file: String,
     pub errors: Vec<ProcessingError>,
 }
 
@@ -75,30 +78,6 @@ impl ParserJob {
                     &data_points,
                     &summaries,
                 );
-                // let first_summary = summaries.get(0).unwrap();
-                // let db_path = context.working_dir.
-                // join(context.output_dir.
-                // join(
-                //     format!( "{}_{}", first_summary.player_name.
-                //     replace(" ", "_"), first_summary.log_date[0..10].
-                //     replace(" ", "_").replace("-", "_")))).join("summary.db");
-                // for (i, s) in summaries.iter().enumerate() {
-                //     let page_content = Self::generate_summary(
-                //         conn,
-                //         &context.tera,
-                //         s,
-                //         context.dps_interval,
-                //         &db_path,
-                //     );
-                //     let page_name = format!("{}_{}.html", s.player_name, i);
-                //     let mut report_file = match File::create(report_dir.join(page_name.clone())) {
-                //         Ok(f) => f,
-                //         Err(e) => panic!("Cannot create report page file: {:?}", e),
-                //     };
-                //     report_file
-                //         .write_all(page_content.as_bytes())
-                //         .expect(&format!("Unable to write file: {}", page_name));
-                // }
             } else {
                 println!(
                     "No valid data found in {}.",
@@ -112,6 +91,12 @@ impl ParserJob {
             self.processed += 1;
         }
         self.run_time = start.elapsed().as_secs();
+        let local_time = Local::now();
+        self.completion_date = format!("{}", local_time.format("%a %b %e %T %Y"));
+        let last_file = self.files.last().unwrap();
+        self.last_file = String::from(last_file.as_os_str().to_str().unwrap());
+
+
         println!("File(s) processing time took: {} second.", self.run_time);
 
         println!("Starting file count: {}", self.files.len());
