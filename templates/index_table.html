@@ -34,7 +34,7 @@
             <td>{{s.log_date}}</td>
             <td>
             {% for i in s.indexes %}
-                <a href="/summary?key={{i.summary_key}}&db_path={{s.db_path}}" target="_blank">{{i.player_name}}</a><br>
+                <a href="/summary?key={{i.summary_key}}&db_path={{s.db_path}}" target="_blank" title="{{i.player_name}}">{{i.player_name}}</a><br>
             {% endfor %}
             </td>
             <td>

@@ -31,6 +31,11 @@ tbody tr:nth-child(even) {
     color: #d2c7c7c7;
 }
 
+a:link {
+    color: rgb(112, 128, 144);
+    cursor: pointer;
+    text-decoration: underline;
+}
 a:visited {
     color: green;
 }
@@ -90,7 +95,7 @@ a:visited {
     padding: 0 !important;
     text-decoration: underline;
     cursor: pointer;
-    color: #069;
+    color: rgb(112, 128, 144);
     font-weight: bold;
     font-size: 100%;
 }
