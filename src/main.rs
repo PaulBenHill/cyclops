@@ -85,7 +85,6 @@ fn setup_tera() -> Tera {
     match Tera::new(&format!("{}{}*.html", TEMPLATES, std::path::MAIN_SEPARATOR)) {
         Ok(mut t) => {
             t.autoescape_on(vec![]);
-            t.register_function("calc_percentage", calc_percentage);
             t
         }
         Err(e) => panic!("Unable to load templates: {:?}", e),
@@ -131,31 +130,6 @@ fn read_log_file_dir(dir: &PathBuf) -> Vec<PathBuf> {
         }
         Err(e) => panic!("Cannot determine directory name: {:?}:{:?}", dir, e),
     }
-}
-
-pub fn calc_percentage(args: &HashMap<String, Value>) -> Result<Value> {
-    let numerator = match args.get("numerator") {
-        Some(value) => match value {
-            Value::Number(n) => n.as_f64().expect("Unable to convert numerator to float"),
-            _ => 0.0,
-        },
-        None => 0.0,
-    };
-
-    let denominator = match args.get("denominator") {
-        Some(value) => match value {
-            Value::Number(n) => n.as_f64().expect("Unable to convert denominator to float"),
-            _ => 0.0,
-        },
-        None => 0.0,
-    };
-
-    if numerator != 0.0 && denominator != 0.0 {
-        let result = ((numerator / denominator) * 100.0).round();
-        return Ok(Value::from(result as i64));
-    }
-
-    Ok(Value::Null)
 }
 
 fn initialize() -> (AppContext, Vec<PathBuf>) {
