@@ -61,9 +61,9 @@ Usage: cyclops.exe [OPTIONS]
       cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere -a 192.111.222.1 -p 8080
 
 
-## Web server
+## Web server [http://127.0.0.1:11227](http://127.0.0.1:11227)
 
-  The application will start a HTTP web server on [http://127.0.0.1:11227](http://127.0.0.1:11227) by default. Navigate to [http://127.0.0.1:11227](http://127.0.0.1:11227) to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name. See below: Index.html
+  The application will start a HTTP web server on http://127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name. See below: Index.html
 
   Click on the player name to see that character's summary. The summary page has each play session separated by tabs for the selected log file. See below: Summary.html
 
@@ -75,7 +75,7 @@ Usage: cyclops.exe [OPTIONS]
 
     
 ### Index.html
-      Default landing page of the web server. Default: [http://127.0.0.1:11227](http://127.0.0.1:11227)
+      Default landing page of the web server. Default: http://127.0.0.1:11227
       - Lists all summaries for each session. You can have multiple characters in the same log. Or multiple sessions of the same character.  
       - What is a session?
         - A session covers the log time period between each login.
