@@ -4,7 +4,6 @@ use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
 
-mod parsers;
 use tera::Tera;
 
 use crate::log_processing::ParserJob;
@@ -13,18 +12,8 @@ mod args;
 mod db_actions;
 mod log_processing;
 mod models;
-mod parser_model;
 mod schema;
 mod web;
-mod player_summary_table;
-mod powers_and_mobs_table;
-mod damage_dealt_by_type_table;
-mod damage_taken_by_type_table;
-mod damage_taken_by_mob_table;
-mod damage_taken_by_mob_power_table;
-mod dps_interval_table;
-mod damage_by_power_table;
-mod index_handler;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";

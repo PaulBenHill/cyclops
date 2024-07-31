@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use crate::parser_model::*;
+use crate::log_processing::parser_model::*;
 
 lazy_static! {
     static ref TEST_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) ").unwrap();

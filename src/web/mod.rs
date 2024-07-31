@@ -4,17 +4,24 @@ use actix_files as fs;
 use actix_web::{
     get, web::{self}, App, HttpRequest, HttpResponse, HttpServer, Responder
 };
+use player_summary_table::SummaryQuery;
 use serde::{Deserialize, Serialize};
 use tera::Context;
 
+mod damage_by_power_table;
+mod player_summary_table;
+mod powers_and_mobs_table;
+mod damage_dealt_by_type_table;
+mod damage_taken_by_type_table;
+mod damage_taken_by_mob_table;
+mod damage_taken_by_mob_power_table;
+mod dps_interval_table;
+mod index_handler;
+
 use crate::{
-    damage_by_power_table, damage_dealt_by_type_table, damage_taken_by_mob_power_table,
-    damage_taken_by_mob_table, damage_taken_by_type_table,
     db_actions::{self},
-    dps_interval_table, get_last_modified_file_in_dir, index_handler,
+    get_last_modified_file_in_dir,
     log_processing::{self, ParserJob},
-    player_summary_table::{self, SummaryQuery},
-    powers_and_mobs_table::{self},
     AppContext,
 };
 

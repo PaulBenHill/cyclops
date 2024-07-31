@@ -4,10 +4,14 @@ use std::{
 
 use chrono::Local;
 use diesel::SqliteConnection;
+use parser_model::FileDataPoint;
 use serde::{Deserialize, Serialize};
 use lazy_static::lazy_static;
 
-use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, AppContext};
+use crate::{db_actions, models::Summary, AppContext};
+
+pub mod parser_model;
+mod parsers;
 
 lazy_static! {
     static ref PARSER_JOB_QUEUE: Mutex<VecDeque<ParserJob>> = Mutex::new(VecDeque::new());

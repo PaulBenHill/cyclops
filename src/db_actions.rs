@@ -17,7 +17,7 @@ use crate::models::{
     DamageAction, DamageIntervals, DamageReportByPower, DefeatedTarget, HitOrMiss,
     PlayerActivation, Reward, Summary, TotalDamageReport,
 };
-use crate::parser_model::*;
+use crate::log_processing::parser_model::*;
 use crate::schema::{
     damage_action, defeated_targets, hit_or_miss, player_activation, reward, summary,
 };
