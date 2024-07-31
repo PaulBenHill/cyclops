@@ -63,7 +63,7 @@ Usage: cyclops.exe [OPTIONS]
 
 ## Web server
 
-  The application will start a HTTP web server on http://127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name. See below: Index.html
+  The application will start a HTTP web server on [http://127.0.0.1:11227](http://127.0.0.1:11227) by default. Navigate to [http://127.0.0.1:11227](http://127.0.0.1:11227) to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name. See below: Index.html
 
   Click on the player name to see that character's summary. The summary page has each play session separated by tabs for the selected log file. See below: Summary.html
 
@@ -74,35 +74,22 @@ Usage: cyclops.exe [OPTIONS]
   If you want at the files directly look in the, Report Directory, printed during the application run. Default location is the "output" directory where you ran the application. Example: Report directory: "D:\\cyclops\\output\\beta.data.staff.ice.stalker.1.29"  
 
     
-## Summaries
-
-Summaries are dynamically generated when you click on the player name on the index page. There is a report directory for each log file, but it's only there to store the data. The format of each report directory is the first player name found in the log, combined with the log date.
-  Example: Night_Pixie_2024_1_1
-
-## Inside the report directory  
-      Summary of the report session.   
-        - What is a session? Each time you log in or out. Or use /local START PARSE or /local END PARSE a new session is assumed.  
-        - You can have multiple characters in the same log. Or multiple sessions of the same character.  
-        - Copy of the source chat log. Example: chatlog_2024_02_08.txt  
-        - dps.csv - Raw dps data using for the dps report in CSV format.  
-        - parsed.txt - Log files parsed into internal format. Useful for finding missed log messages. Look for, Unparsed.
-        - summary.db - An Sqlite version 3.2+ database of all the data currently collected. Everything is tied together by the summary_key field in the table, Summary.
-      
 ### Index.html
-      Default landing page of the web server. Default: http://127.0.0.1:11227
-      - Lists all summaries in your "output" directory.
-      - You can upload new logs for processing.
+      Default landing page of the web server. Default: [http://127.0.0.1:11227](http://127.0.0.1:11227)
+      - Lists all summaries for each session. You can have multiple characters in the same log. Or multiple sessions of the same character.  
+      - What is a session?
+        - A session covers the log time period between each login.
+        - Or the time period between each use of /local STARTPARSE $name or /local ENDPARSE $name
+          - STARTPARSE is mostly used for repeative tests like Pylons.
       - Actions:
-        - Drop down will list any directory you have previous uploaded files.
+        - Drop down lists any directory you have previous uploaded.
         - Parse Directory - Parse every file in the select directory.
         - Parse Newest File In Directory - Parse the last file modified. Usually this is the last played session.
         - Text field is for copying the full path of the file or directory for uploading. You MUST provide the full path.
           - Use Control+Shift+C in the File Explorer to get the full path.
         Parse File - Parse a single file.
         Parse Directory - Parse all files in a directory. Afterwards, the directory will appear in the drop down list.
-
-          
-
+        
 ### Summary.html  
         - Attack Summary - Global totals for this session
         - Attack Summary By Power - Combat totals per power
@@ -117,10 +104,30 @@ Summaries are dynamically generated when you click on the player name on the ind
         - Damage Taken By Mob Power - Detailed break down of damage dealt to the player by each mob's power.
         - Damage Dealt To Mob Power - Detailed break down of damage dealty by each player power for each mob damaged.
 
+## Report directory is where the data is stored to generate the summaries
+        - Copy of the source chat log. Example: chatlog_2024_02_08.txt.
+        - Copy of each session broken out as a separate file.
+          - <0 indexed session id>_player_name_<session line number start>.txt.
+            - Example: 0_Elena_Taiga_20.txt
+          - Used for double checking numbers
+          - I would be forever grateful if you doubled checked numbers that looked off.
+        - dps.csv - Raw dps data using for the dps report in CSV format.  
+        - parsed.txt - Log files parsed into internal format. Useful for finding missed log messages. Look for, Unparsed.
+        - summary.db - An Sqlite version 3.2+ database of all the data currently collected. Everything is tied together by the summary_key field in the table, Summary.
+
 
 ### Notes
         - I round all numbers to the nearest whole number. Using rounding functions, not truncation. This does introduce small difference between the tool values and what you would get if you added the log values up manually. Around +/- 2%.
         - If you want to investigate the database directly. A good tool is https://www.sqlitestudio.pl/
+
+### Super geeky technical stuff
+        - [Github repo](https://github.com/PaulBenHill/cyclops)
+        - Stuff used
+          - Rust language for the back end
+          - HTMX JS library for the UI
+          - Tera for templating
+          - Actix for the web server
+          - Sqlite for the database
 
 
 
