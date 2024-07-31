@@ -1,4 +1,4 @@
-# BETA RELEASE - Cyclops - City of Heroes log parser
+# BETA RELEASE - Cyclops 1.1 - City of Heroes log parser
 ## I am open to suggestions for data you want to see. 
 
 
@@ -6,7 +6,7 @@
 Application for parsing game chat logs into analysis reports.
 
 ## Preparation
-Please, follow setup instructions otherwiase you will log incomplete or no data at all. You will have to this once for any character you want to parse.
+Please, follow setup instructions otherwiase you will log no or incomplete data. You will have to this once for any character you want to parse.
 
 Under Option->Windows->Chat, Set "Log Chat" to Enabled, hit, Apply Now.
 ![window chat log settings](chat_log_settings.png)
@@ -50,7 +50,7 @@ Usage: cyclops.exe [OPTIONS]
   -h, --help Print help  
   -V, --version   
 
-  Everything below is optional. The defeault behavior is to start the web server.
+  Everything below is optional. The defeault behavior is to start the web server. See next section.
     Examples:  
       cyclops --logdir d:\coh\accounts\fake\Logs  
       cyclops --logdir='d:\coh\accounts\fake\Logs','d:\coh\accounts\fake2\Logs'
@@ -63,24 +63,24 @@ Usage: cyclops.exe [OPTIONS]
 
 ## Web server
 
-  After log processing the application will start a HTTP web server on http://127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name. See below: Index.html
+  The application will start a HTTP web server on http://127.0.0.1:11227 by default. Navigate to http://127.0.0.1:11227 to see an index page off all your processed log files. There will be four columns, date of the log file, player names that appear in the log, number of data points per summary, and the log file name. See below: Index.html
 
-  Click on the date of the log to go to the details page. The summary page has each play session separated by tabs for the selected log file. See below: Summary.html
+  Click on the player name to see that character's summary. The summary page has each play session separated by tabs for the selected log file. See below: Summary.html
 
-  When you are done using the tool. Press Control-C in the command window to terminate the application. I plan to make this more user friendly in the future.
+  When you are done using the tool. Press Control-C in the command window to terminate the application. Or close the command box. I plan to make this more user friendly in the future.
 
 ## Report Directory
 
-  If you want at the files directly look in the, Report Directory, printed during the application run. Default location is the "output" directory where you ran the application. Example: Report directory: "D:\\cyclops\\output\\beta.data.staff.ice.stalker.1.29.txt"  
+  If you want at the files directly look in the, Report Directory, printed during the application run. Default location is the "output" directory where you ran the application. Example: Report directory: "D:\\cyclops\\output\\beta.data.staff.ice.stalker.1.29"  
 
-## Report directory structure:  
-    Directory name is designed to limit the chance of you overwriting log files when the chat file name is the same from different accounts.  
-      \<player name\>\_\<log file date\>
-      Example: night_pixie_2024_02_08
+    
+## Summaries
+
+Summaries are dynamically generated when you click on the player name on the index page. There is a report directory for each log file, but it's only there to store the data. The format of each report directory is the first player name found in the log, combined with the log date.
+  Example: Night_Pixie_2024_1_1
 
 ## Inside the report directory  
       Summary of the report session.   
-        - summary.html - Contains all the sessions in a log file as tabs.
         - What is a session? Each time you log in or out. Or use /local START PARSE or /local END PARSE a new session is assumed.  
         - You can have multiple characters in the same log. Or multiple sessions of the same character.  
         - Copy of the source chat log. Example: chatlog_2024_02_08.txt  
