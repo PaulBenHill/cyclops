@@ -20,7 +20,7 @@ pub struct SummaryEntry {
     pub indexes: Vec<IndexDetails>,
 }
 
-pub fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
+pub fn create_parser_job(path_buf: &PathBuf) -> Result<ParserJob, ParserJob> {
     let mut parser_job = ParserJob {
         files: Vec::new(),
         processed: 0,
@@ -39,16 +39,17 @@ pub fn create_parser_job(path_buf: PathBuf) -> Result<ParserJob, ParserJob> {
                 let mut files = read_log_file_dir(&path);
                 parser_job.files.append(&mut files);
             }
+            Ok(parser_job)
         }
         Err(e) => {
             parser_job.errors.push(ProcessingError {
                 file_name: path_buf.to_owned(),
                 message: e.to_string(),
             });
+            Err(parser_job)
         }
     }
 
-    Ok(parser_job)
 }
 
 pub fn load_summaries(context: &AppContext) -> String {

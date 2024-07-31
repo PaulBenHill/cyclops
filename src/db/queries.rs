@@ -2,20 +2,13 @@
 use std::path::PathBuf;
 
 use diesel::SqliteConnection;
-use diesel::connection::SimpleConnection;
-use diesel::dsl::not;
 use diesel::prelude::*;
 
 use crate::db::get_file_conn;
-use crate::log_processing::parser_model::*;
 use crate::models::{
-    DamageAction, DamageDealtByType, DamageDealtToMobByPower, DamageIntervals, DamageReportByPower,
-    DamageTaken, DamageTakenByMob, DamageTakenByMobPower, DamageTakenByType, DefeatedTarget,
-    HitOrMiss, IndexDetails, PlayerActivation, Reward, RewardsDefeats, Summary, TotalDamageReport,
-};
-
-use crate::schema::{
-    damage_action, defeated_targets, hit_or_miss, player_activation, reward, summary,
+    DamageDealtByType, DamageDealtToMobByPower, DamageIntervals, DamageReportByPower,
+    DamageTaken, DamageTakenByMob, DamageTakenByMobPower, DamageTakenByType, 
+    IndexDetails, RewardsDefeats, Summary, TotalDamageReport,
 };
 
 pub fn get_summary(conn: &mut SqliteConnection, key: i32) -> Vec<Summary> {

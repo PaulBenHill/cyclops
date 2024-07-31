@@ -31,12 +31,8 @@ struct AppContext {
 }
 
 // Todos
-// File processing in index page
-//  status updates
 // charts
 // windows dialog projects exist
-// logdir multiple
-// file or log dir not required
 fn main() {
     println!("################################");
     println!("Cyclops CoX Log Parsing tool {}", VERSION);

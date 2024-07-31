@@ -2,25 +2,26 @@ use std::path::PathBuf;
 
 use actix_files as fs;
 use actix_web::{
-    get, web::{self}, App, HttpRequest, HttpResponse, HttpServer, Responder
+    get,
+    web::{self},
+    App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
 use player_summary_table::SummaryQuery;
 use serde::{Deserialize, Serialize};
 use tera::Context;
 
 mod damage_by_power_table;
-mod player_summary_table;
-mod powers_and_mobs_table;
 mod damage_dealt_by_type_table;
-mod damage_taken_by_type_table;
-mod damage_taken_by_mob_table;
 mod damage_taken_by_mob_power_table;
+mod damage_taken_by_mob_table;
+mod damage_taken_by_type_table;
 mod dps_interval_table;
 mod index_handler;
+mod player_summary_table;
+mod powers_and_mobs_table;
 
 use crate::{
-    db::{queries::{get_damage_dealt_by_power_or_mob, get_damaging_powers, get_mobs_damaged}},
-    get_last_modified_file_in_dir,
+    db, get_last_modified_file_in_dir,
     log_processing::{self, ParserJob},
     AppContext,
 };
@@ -42,10 +43,8 @@ pub enum TableNames {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum ParseLog {
-    EntireDir,
+    ParsePath,
     LatestFile,
-    SingleFile,
-    Directory,
 }
 
 #[derive(Deserialize, Debug)]
@@ -138,23 +137,23 @@ async fn parse_request(req: HttpRequest, context: web::Data<AppContext>) -> impl
     let stripped_path = PathBuf::from(form.log_path.replace("\"", ""));
 
     match form.action {
-        ParseLog::EntireDir => queue_parser_job(&stripped_path, context),
+        ParseLog::ParsePath => match index_handler::create_parser_job(&stripped_path) {
+            Ok(job) => {
+                log_processing::add_job(job.clone());
+                create_job_start(&context, &job)
+            }
+            Err(e) => create_job_result(&context, &e),
+        },
         ParseLog::LatestFile => {
-            let latest_file = get_last_modified_file_in_dir(&stripped_path.into());
-            queue_parser_job(&latest_file, context)
+            let latest_file = get_last_modified_file_in_dir(&stripped_path);
+            match index_handler::create_parser_job(&latest_file) {
+                Ok(job) => {
+                    log_processing::add_job(job.clone());
+                    create_job_start(&context, &job)
+                }
+                Err(e) => create_job_result(&context, &e),
+            }
         }
-        ParseLog::SingleFile => queue_parser_job(&stripped_path, context),
-        ParseLog::Directory => queue_parser_job(&stripped_path, context),
-    }
-}
-
-fn queue_parser_job(log_path: &PathBuf, context: web::Data<AppContext>) -> impl Responder {
-    match index_handler::create_parser_job(log_path.into()) {
-        Ok(job) => {
-            log_processing::add_job(job.clone());
-            create_job_start(&context, &job)
-        }
-        Err(job) => create_job_result(&context, &job),
     }
 }
 
@@ -162,7 +161,7 @@ fn queue_parser_job(log_path: &PathBuf, context: web::Data<AppContext>) -> impl 
 async fn execute_job(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     match log_processing::get_job() {
         Some(job) => create_job_result(&context, &job.process_logs(&context)),
-        None => HttpResponse::NoContent().into()
+        None => HttpResponse::NoContent().into(),
     }
 }
 
@@ -269,12 +268,12 @@ async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>)
     let mut table_context = Context::new();
     table_context.insert(
         "damaging_powers",
-        &get_damaging_powers(&selected),
+        &db::queries::get_damaging_powers(&selected),
     );
-    table_context.insert("mobs_damaged", &get_mobs_damaged(&selected));
+    table_context.insert("mobs_damaged", &db::queries::get_mobs_damaged(&selected));
     table_context.insert("headers", &powers_and_mobs_table::headers());
 
-    match get_damage_dealt_by_power_or_mob(&selected) {
+    match db::queries::get_damage_dealt_by_power_or_mob(&selected) {
         Some(mut data) => {
             if selected.sort_field.is_some() {
                 powers_and_mobs_table::sort(
