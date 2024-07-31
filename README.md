@@ -121,7 +121,7 @@ Usage: cyclops.exe [OPTIONS]
         - If you want to investigate the database directly. A good tool is https://www.sqlitestudio.pl/
 
 ### Super geeky technical stuff
-        - [Github repo](https://github.com/PaulBenHill/cyclops)
+        - https://github.com/PaulBenHill/cyclops
         - Stuff used
           - Rust language for the back end
           - HTMX JS library for the UI
