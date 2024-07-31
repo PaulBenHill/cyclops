@@ -170,6 +170,7 @@ pub fn get_damage_dealt_by_power_or_mob(
                         .eq(query.key)
                         .and(power_name.eq(query.power_name.clone().unwrap().replace("_", " "))),
                 )
+                .order(total_damage.desc())
                 .load::<DamageDealtToMobByPower>(&mut conn)
                 .expect("Unable to load damage report by power"),
         )
@@ -181,6 +182,7 @@ pub fn get_damage_dealt_by_power_or_mob(
                         .eq(query.key)
                         .and(target_name.eq(query.mob_name.clone().unwrap().replace("_", " "))),
                 )
+                .order(total_damage.desc())
                 .load::<DamageDealtToMobByPower>(&mut conn)
                 .expect("Unable to load damage report by power"),
         )
@@ -275,6 +277,7 @@ pub fn get_damaging_powers(query: &PowersMobsData) -> Vec<String> {
         .distinct()
         .filter(summary_key.eq(query.key))
         .filter(source_type.eq_any(source_types))
+        .order(power_name.asc())
         .load::<String>(&mut conn);
 
     match result {
@@ -295,6 +298,7 @@ pub fn get_mobs_damaged(query: &PowersMobsData) -> Vec<String> {
         .distinct()
         .filter(summary_key.eq(query.key))
         .filter(source_type.eq_any(source_types))
+        .order(target_name.asc())
         .load::<String>(&mut conn);
 
     match result {
