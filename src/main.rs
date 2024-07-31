@@ -1,10 +1,8 @@
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
-use std::collections::HashMap;
 use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
-use tera::{Result, Value};
 
 mod parsers;
 use tera::Tera;

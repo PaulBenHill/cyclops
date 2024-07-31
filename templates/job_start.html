@@ -1,0 +1,8 @@
+<div id="job_start" hx-get="/execute_job" hx-trigger="every 600ms" hx-target="#status-div">
+<h2>Started parsing...</h2>
+<p>
+File(s) count: {{file_count}}<br>
+Estimate about 3 seconds per file.<br>
+ETA: {{file_count * 3}} seconds.
+</p>
+</div>

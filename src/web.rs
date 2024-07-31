@@ -2,9 +2,7 @@ use std::path::PathBuf;
 
 use actix_files as fs;
 use actix_web::{
-    get,
-    web::{self},
-    App, HttpRequest, HttpResponse, HttpServer, Responder,
+    get, web::{self}, App, HttpRequest, HttpResponse, HttpServer, Responder
 };
 use serde::{Deserialize, Serialize};
 use tera::Context;
@@ -14,7 +12,7 @@ use crate::{
     damage_taken_by_mob_table, damage_taken_by_type_table,
     db_actions::{self},
     dps_interval_table, get_last_modified_file_in_dir, index_handler,
-    log_processing::ParserJob,
+    log_processing::{self, ParserJob},
     player_summary_table::{self, SummaryQuery},
     powers_and_mobs_table::{self},
     AppContext,
@@ -107,7 +105,7 @@ pub struct IndexSearchQuery {
     pub action: IndexSearch,
 }
 
-fn create_job_response(context: &AppContext, job: ParserJob) -> impl Responder {
+fn create_job_result(context: &AppContext, job: &ParserJob) -> HttpResponse {
     let mut result_context = Context::new();
     result_context.insert("result", &job);
     result_context.insert("error_count", &job.errors.len());
@@ -120,6 +118,17 @@ fn create_job_response(context: &AppContext, job: ParserJob) -> impl Responder {
     }
 }
 
+fn create_job_start(context: &AppContext, job: &ParserJob) -> HttpResponse {
+    let mut result_context = Context::new();
+    result_context.insert("job", &job);
+    result_context.insert("file_count", &job.files.len());
+    let result = context.tera.render("job_start.html", &result_context);
+    match result {
+        Ok(data) => HttpResponse::Ok().body(data),
+        Err(e) => HttpResponse::Ok().body(format!("ERROR CHECK LOGS: {:?}", e)),
+    }
+}
+
 #[get("parse_request")]
 async fn parse_request(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let form: web::Query<ParseLogRequest> = web::Query::from_query(req.query_string()).unwrap();
@@ -127,44 +136,31 @@ async fn parse_request(req: HttpRequest, context: web::Data<AppContext>) -> impl
     let stripped_path = PathBuf::from(form.log_path.replace("\"", ""));
 
     match form.action {
-        ParseLog::EntireDir => process_all_files(&stripped_path, context),
+        ParseLog::EntireDir => queue_parser_job(&stripped_path, context),
         ParseLog::LatestFile => {
             let latest_file = get_last_modified_file_in_dir(&stripped_path.into());
-            process_all_files(&latest_file, context)
+            queue_parser_job(&latest_file, context)
         }
-        ParseLog::SingleFile => process_all_files(&stripped_path, context),
-        ParseLog::Directory => process_all_files(&stripped_path, context),
+        ParseLog::SingleFile => queue_parser_job(&stripped_path, context),
+        ParseLog::Directory => queue_parser_job(&stripped_path, context),
     }
 }
 
-#[get("/process_latest")]
-async fn process_latest(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    let form: web::Query<FileFormData> = web::Query::from_query(req.query_string()).unwrap();
-    println!("Latest Request: {:?}", form.log_path);
-
-    let stripped_file = form.log_path.replace("\"", "");
-    match index_handler::create_parser_job(get_last_modified_file_in_dir(&stripped_file.into())) {
-        Ok(job) => {
-            let job_result = job.process_logs(&context);
-
-            let result = index_handler::find_all_summaries(&context.output_dir);
-            index_handler::generate_index(&context, None, None, &result.0, &result.1, &result.2);
-            create_job_response(&context, job_result)
-        }
-        Err(job) => create_job_response(&context, job),
-    }
-}
-
-fn process_all_files(log_path: &PathBuf, context: web::Data<AppContext>) -> impl Responder {
+fn queue_parser_job(log_path: &PathBuf, context: web::Data<AppContext>) -> impl Responder {
     match index_handler::create_parser_job(log_path.into()) {
         Ok(job) => {
-            let job_result = job.process_logs(&context);
-
-            let result = index_handler::find_all_summaries(&context.output_dir);
-            index_handler::generate_index(&context, None, None, &result.0, &result.1, &result.2);
-            create_job_response(&context, job_result)
+            log_processing::add_job(job.clone());
+            create_job_start(&context, &job)
         }
-        Err(job) => create_job_response(&context, job),
+        Err(job) => create_job_result(&context, &job),
+    }
+}
+
+#[get("/execute_job")]
+async fn execute_job(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    match log_processing::get_job() {
+        Some(job) => create_job_result(&context, &job.process_logs(&context)),
+        None => HttpResponse::NoContent().into()
     }
 }
 
@@ -198,11 +194,13 @@ async fn index_search(req: HttpRequest, context: web::Data<AppContext>) -> impl 
             HttpResponse::Ok().body(data)
         }
         IndexSearch::LogDirectory => {
-            let data = index_handler::search_by_directory(&query.log_path.clone().unwrap(), &context);
+            let data =
+                index_handler::search_by_directory(&query.log_path.clone().unwrap(), &context);
             HttpResponse::Ok().body(data)
         }
         IndexSearch::LogFile => {
-            let data = index_handler::search_by_log_file(&query.log_file.clone().unwrap(), &context);
+            let data =
+                index_handler::search_by_log_file(&query.log_file.clone().unwrap(), &context);
             HttpResponse::Ok().body(data)
         }
     }
@@ -336,8 +334,8 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .service(index)
             .service(index_table)
             .service(index_search)
+            .service(execute_job)
             .service(parse_request)
-            .service(process_latest)
             .service(player_summary_query)
             .service(damage_by_power)
             .service(damage_table)

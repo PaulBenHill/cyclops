@@ -1,16 +1,17 @@
 use std::{
-    fmt,
-    fs::{self, File},
-    io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write},
-    path::PathBuf,
-    time::Instant,
+    collections::VecDeque, fmt, fs::{self, File}, io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write}, path::PathBuf, sync::Mutex, time::Instant
 };
 
 use chrono::Local;
 use diesel::SqliteConnection;
 use serde::{Deserialize, Serialize};
+use lazy_static::lazy_static;
 
 use crate::{db_actions, models::Summary, parser_model::FileDataPoint, parsers, AppContext};
+
+lazy_static! {
+    static ref PARSER_JOB_QUEUE: Mutex<VecDeque<ParserJob>> = Mutex::new(VecDeque::new());
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProcessingError {
@@ -32,6 +33,18 @@ pub struct ParserJob {
     pub run_time: u64,
     pub last_file: String,
     pub errors: Vec<ProcessingError>,
+}
+
+pub fn add_job(job: ParserJob) {
+  let mut queue = PARSER_JOB_QUEUE.lock().unwrap();
+
+  queue.push_back(job);
+}
+
+pub fn get_job() -> Option<ParserJob> {
+  let mut queue = PARSER_JOB_QUEUE.lock().unwrap();
+
+  queue.pop_front()
 }
 
 impl ParserJob {
