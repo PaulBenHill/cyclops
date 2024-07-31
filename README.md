@@ -78,6 +78,7 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
   - Search
     - List only summaries for a selected player
     - List only summaries from a selected directory
+    - Reload summary table contents
         
 ### Summary.html 
 - Attack Summary - Global totals for this session
