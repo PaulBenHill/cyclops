@@ -8,7 +8,7 @@ use parser_model::FileDataPoint;
 use serde::{Deserialize, Serialize};
 use lazy_static::lazy_static;
 
-use crate::{db_actions, models::Summary, AppContext};
+use crate::{db::{self, event_processing::write_to_database}, models::Summary, AppContext};
 
 pub mod parser_model;
 mod parsers;
@@ -56,7 +56,7 @@ impl ParserJob {
         let start = Instant::now();
 
         for file in &self.files[..] {
-            let conn = &mut db_actions::establish_connection(); // In memory db, fresh db on each call
+            let conn = &mut db::establish_connection(); // In memory db, fresh db on each call
             let file_path = match verify_file(&file) {
                 Ok(f) => f,
                 Err(e) => {
@@ -78,7 +78,7 @@ impl ParserJob {
             let processing_result = Self::process_lines(conn, file.to_path_buf(), lines);
             if processing_result.0 {
                 let data_points = processing_result.1;
-                let summaries = db_actions::get_summaries(conn);
+                let summaries = db::queries::get_summaries(conn);
 
                 let report_dir = Self::create_report_dir(
                     &context.working_dir,
@@ -86,7 +86,7 @@ impl ParserJob {
                     &file,
                     &summaries.first().unwrap().player_name.replace(" ", "_"),
                 );
-                db_actions::copy_db(conn, report_dir.join("summary.db"));
+                db::copy_db(conn, report_dir.join("summary.db"));
                 Self::write_data_files(
                     conn,
                     &report_dir,
@@ -237,7 +237,7 @@ impl ParserJob {
 
         if has_data {
             // write to database
-            db_actions::write_to_database(
+            write_to_database(
                 conn,
                 file.into_os_string().into_string().unwrap(),
                 &data_points,
@@ -273,7 +273,7 @@ impl ParserJob {
             Err(e) => panic!("Cannot create dps.csv file: {:?}", e),
         };
 
-        let dps_intervals = db_actions::select_damage_intervals(conn);
+        let dps_intervals = db::queries::select_damage_intervals(conn);
         let mut wtr = csv::Writer::from_writer(dps_file);
         for dp in dps_intervals {
             if let Err(e) = wtr.serialize(&dp) {

@@ -3,7 +3,7 @@ use std::time::Duration;
 use chrono::DateTime;
 use tera::Context;
 
-use crate::db_actions;
+use crate::db;
 use crate::web::SortDirection;
 use crate::web::TableQuery;
 use crate::AppContext;
@@ -43,12 +43,12 @@ pub fn process(app_context: &AppContext, tera_context: &mut Context, query: &Tab
 }
 
 fn generate_dps_report(context: &AppContext, query: &TableQuery) -> Vec<Interval> {
-    let mut conn1 = db_actions::get_file_conn(query.db_path.clone().into());
-    let binding = db_actions::get_summary(&mut conn1, query.key);
+    let mut conn1 = db::get_file_conn(query.db_path.clone().into());
+    let binding = db::queries::get_summary(&mut conn1, query.key);
     let summary = binding.get(0).unwrap();
-    let mut conn2 = db_actions::get_file_conn(query.db_path.clone().into());
+    let mut conn2 = db::get_file_conn(query.db_path.clone().into());
     let damage_intervals =
-        db_actions::get_damage_intervals_query(&mut conn2, query.key, context.dps_interval as i32);
+        db::queries::get_damage_intervals_query(&mut conn2, query.key, context.dps_interval as i32);
     let line_count = summary.last_line_number - summary.first_line_number;
 
     let mut result = Vec::<Interval>::new();

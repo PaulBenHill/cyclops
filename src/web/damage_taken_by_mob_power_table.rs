@@ -1,6 +1,6 @@
 use tera::Context;
 
-use crate::db_actions;
+use crate::db;
 use crate::models::DamageTakenByMobPower;
 use crate::web::TableQuery;
 use crate::web::SortDirection;
@@ -13,7 +13,7 @@ pub fn process(context: &mut Context, query: &TableQuery) {
         },
         None => context.insert("sort_dir", &SortDirection::DESC),
     };
-    match db_actions::get_damage_taken_by_mob_power_query(&query) {
+    match db::queries::get_damage_taken_by_mob_power_query(&query) {
         Some(mut data) => {
             context.insert("table_title", "Damage Taken By Mob");
             context.insert("table_name", &query.table_name);

@@ -9,7 +9,7 @@ use tera::Context;
 use walkdir::WalkDir;
 
 use crate::{
-    db_actions, log_processing::{self, ParserJob, ProcessingError}, models::IndexDetails, read_log_file_dir, AppContext
+    db, log_processing::{self, ParserJob, ProcessingError}, models::IndexDetails, read_log_file_dir, AppContext
 };
 
 #[derive(Serialize, Deserialize)]
@@ -83,8 +83,8 @@ pub fn find_summaries_by_log_file(
     for entry in walker.into_iter().filter_map(|e| e.ok()) {
         if entry.path().ends_with("summary.db") {
             let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
-            let mut conn = db_actions::get_file_conn(db_path.clone());
-            let details = db_actions::index_details(&mut conn);
+            let mut conn = db::get_file_conn(db_path.clone());
+            let details = db::queries::index_details(&mut conn);
 
             let mut entry = SummaryEntry {
                 log_file: details.get(0).unwrap().file.to_owned(),
@@ -129,8 +129,8 @@ pub fn find_summaries_by_player_name(
     for entry in walker.into_iter().filter_map(|e| e.ok()) {
         if entry.path().ends_with("summary.db") {
             let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
-            let mut conn = db_actions::get_file_conn(db_path.clone());
-            let details = db_actions::index_details(&mut conn);
+            let mut conn = db::get_file_conn(db_path.clone());
+            let details = db::queries::index_details(&mut conn);
 
             let mut entry = SummaryEntry {
                 log_file: details.get(0).unwrap().file.to_owned(),
@@ -174,8 +174,8 @@ pub fn find_summaries_by_directory(
     for entry in walker.into_iter().filter_map(|e| e.ok()) {
         if entry.path().ends_with("summary.db") {
             let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
-            let mut conn = db_actions::get_file_conn(db_path.clone());
-            let details = db_actions::index_details(&mut conn);
+            let mut conn = db::get_file_conn(db_path.clone());
+            let details = db::queries::index_details(&mut conn);
 
             let mut entry = SummaryEntry {
                 log_file: details.get(0).unwrap().file.to_owned(),
@@ -216,8 +216,8 @@ pub fn find_all_summaries(output_path: &Path) -> (Vec<String>, Vec<PathBuf>, Vec
     for entry in walker.into_iter().filter_map(|e| e.ok()) {
         if entry.path().ends_with("summary.db") {
             let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
-            let mut conn = db_actions::get_file_conn(db_path.clone());
-            let details = db_actions::index_details(&mut conn);
+            let mut conn = db::get_file_conn(db_path.clone());
+            let details = db::queries::index_details(&mut conn);
 
             let mut entry = SummaryEntry {
                 log_file: details.get(0).unwrap().file.to_owned(),

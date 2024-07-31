@@ -1,7 +1,7 @@
 use tera::Context;
 
 use crate::{
-    db_actions, models::DamageDealtByType, web::{SortDirection, TableQuery}
+    db, models::DamageDealtByType, web::{SortDirection, TableQuery}
 };
 
 pub fn process(context: &mut Context, query: &TableQuery) {
@@ -12,7 +12,7 @@ pub fn process(context: &mut Context, query: &TableQuery) {
         },
         None => context.insert("sort_dir", &SortDirection::DESC),
     };
-    match db_actions::get_damage_dealt_by_type_query(&query) {
+    match db::queries::get_damage_dealt_by_type_query(&query) {
         Some(mut data) => {
             context.insert("table_title", "Damage Dealt By Type");
             context.insert("table_name", &query.table_name);

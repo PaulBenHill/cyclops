@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use tera::Context;
 
-use crate::db_actions;
+use crate::db;
 use crate::web::DamageByPowerQuery;
 use crate::web::PowerTableActions;
 use crate::web::SortDirection;
@@ -222,8 +222,8 @@ fn add_options(first: Option<i32>, second: Option<i32>) -> Option<i32> {
 }
 
 fn generate_power_rows(query: &DamageByPowerQuery) -> Vec<PowerRow> {
-    let powers = db_actions::get_damage_by_power_report(query);
-    let total_damage = db_actions::get_total_damage(query);
+    let powers = db::queries::get_damage_by_power_report(query);
+    let total_damage = db::queries::get_total_damage(query);
     let mut rows = Vec::<PowerRow>::new();
 
     for p in powers {

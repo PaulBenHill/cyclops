@@ -19,7 +19,7 @@ mod dps_interval_table;
 mod index_handler;
 
 use crate::{
-    db_actions::{self},
+    db::{queries::{get_damage_dealt_by_power_or_mob, get_damaging_powers, get_mobs_damaged}},
     get_last_modified_file_in_dir,
     log_processing::{self, ParserJob},
     AppContext,
@@ -269,12 +269,12 @@ async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>)
     let mut table_context = Context::new();
     table_context.insert(
         "damaging_powers",
-        &db_actions::get_damaging_powers(&selected),
+        &get_damaging_powers(&selected),
     );
-    table_context.insert("mobs_damaged", &db_actions::get_mobs_damaged(&selected));
+    table_context.insert("mobs_damaged", &get_mobs_damaged(&selected));
     table_context.insert("headers", &powers_and_mobs_table::headers());
 
-    match db_actions::get_damage_dealt_by_power_or_mob(&selected) {
+    match get_damage_dealt_by_power_or_mob(&selected) {
         Some(mut data) => {
             if selected.sort_field.is_some() {
                 powers_and_mobs_table::sort(

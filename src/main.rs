@@ -9,11 +9,11 @@ use tera::Tera;
 use crate::log_processing::ParserJob;
 
 mod args;
-mod db_actions;
 mod log_processing;
 mod models;
 mod schema;
 mod web;
+pub mod db;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
