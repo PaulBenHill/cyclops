@@ -18,11 +18,6 @@ use crate::{
     AppContext,
 };
 
-#[derive(Deserialize)]
-struct FileFormData {
-    log_path: String,
-}
-
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum SortDirection {
     ASC,
