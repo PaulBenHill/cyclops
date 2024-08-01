@@ -81,7 +81,7 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
     - List only summaries from a selected directory
     - Reload summary table contents
         
-### Summary.html 
+### Summary
 - Attack Summary - Global totals for this session
 - Attack Summary By Power - Combat totals per power
   - Merge rows together that you think are related. Like procs.
@@ -94,6 +94,7 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - Damage Taken By Mob - General summary of damage dealt to the player by each mob.
 - Damage Taken By Mob Power - Detailed break down of damage dealt to the player by each mob's power.
 - Damage Dealt To Mob Power - Detailed break down of damage dealty by each player power for each mob damaged.
+- Damage by Power or Mob - Select either a power or mob and see what damage was done filtered for a specific power or mob.
 
 ## Report directory is where the data is stored to generate the summaries
 - Copy of the source chat log. Example: chatlog_2024_02_08.txt.
