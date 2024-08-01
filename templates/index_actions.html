@@ -2,9 +2,14 @@
     <label for="path">Choose a directory:</label><br>
     <select name="log_path" id="log_path">
         <optgroup label="Existing Log Directories">
-            {% for p in log_dirs %}
-            <option value="{{p}}">{{p}}</option>
-            {% endfor %}
+            {% if log_dirs is undefined %}
+            <option disabled selected value>-- Parsed Log Directories --</option>
+            {%endif %}
+            {% if log_dirs is defined %}
+              {% for p in log_dirs %}
+                <option value="{{p}}">{{p}}</option>
+              {% endfor %}
+            {%endif %}
         </optgroup>
     </select>
     <br>

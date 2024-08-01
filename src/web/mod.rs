@@ -21,9 +21,7 @@ mod player_summary_table;
 mod powers_and_mobs_table;
 
 use crate::{
-    db, get_last_modified_file_in_dir,
-    log_processing::{self, ParserJob},
-    AppContext,
+    db, get_last_modified_file_in_dir, log_processing::{self, ParserJob}, AppContext
 };
 
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -181,7 +179,9 @@ async fn refresh_actions(_: HttpRequest, context: web::Data<AppContext>) -> impl
     let cache = index_handler::find_all_summaries(&context.output_dir);
 
     let mut index_context = Context::new();
-    index_context.insert("log_dirs", &cache.log_dirs);
+    if cache.log_dirs.len() > 0 {
+        index_context.insert("log_dirs", &cache.log_dirs);
+    }
     let result = context.tera.render("index_actions.html", &index_context);
     match result {
         Ok(data) => HttpResponse::Ok()

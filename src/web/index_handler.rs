@@ -1,5 +1,8 @@
 use std::{
-    collections::HashSet, fs, path::{Path, PathBuf}, sync::Mutex
+    collections::HashSet,
+    fs,
+    path::{Path, PathBuf},
+    sync::Mutex,
 };
 
 use lazy_static::lazy_static;
@@ -40,8 +43,7 @@ impl IndexCache {
         names: HashSet<String>,
         mut summaries: Vec<SummaryEntry>,
     ) -> &mut Self {
-        let mut sorted_summaries: Vec<SummaryEntry> = summaries.into_iter().filter(|s| s.indexes.len() > 0).collect();
-        sorted_summaries.sort_by(|a, b| b.log_date.cmp(&a.log_date));
+        summaries.sort_by(|a, b| b.log_date.cmp(&a.log_date));
 
         let mut player_vec: Vec<String> = names.into_iter().collect();
         player_vec.sort();
@@ -55,7 +57,7 @@ impl IndexCache {
 
         self.log_dirs.append(&mut path_vec);
         self.player_names.append(&mut player_vec);
-        self.summaries.append(&mut sorted_summaries);
+        self.summaries.append(&mut summaries);
 
         self
     }
@@ -106,130 +108,89 @@ pub fn load_summaries(context: &AppContext) -> String {
 }
 
 pub fn search_by_player_name(player_name: &String, context: &AppContext) -> String {
-    let cache = find_summaries_by_player_name(&player_name, &context.output_dir);
-    generate_index(&context, Some(player_name), None, cache)
+    let cache = INDEX_CACHE.lock().unwrap();
+
+    let mut filtered_cache = IndexCache::new();
+
+    for i in &cache.summaries {
+        let mut filtered_indexes: Vec<IndexDetails> = Vec::new();
+        for d in &i.indexes {
+            if player_name.eq(&d.player_name) {
+                filtered_indexes.push(d.clone());
+            }
+        }
+        if filtered_indexes.len() > 0 {
+            let entry = SummaryEntry {
+                log_file: i.log_file.clone(),
+                log_date: i.log_date.clone(),
+                db_path: i.db_path.clone(), 
+                indexes: filtered_indexes,
+            };
+            filtered_cache.summaries.push(entry);
+        }
+    }
+    filtered_cache.log_dirs.append(&mut cache.log_dirs.clone());
+    filtered_cache.player_names.append(&mut cache.player_names.clone());
+
+    generate_index(&context, Some(player_name), None, filtered_cache)
 }
 
 pub fn search_by_directory(log_dir: &PathBuf, context: &AppContext) -> String {
-    let cache = find_summaries_by_directory(&log_dir, &context.output_dir);
-    generate_index(&context, None, Some(log_dir), cache)
+    let cache = INDEX_CACHE.lock().unwrap();
+
+    let mut filtered_cache = IndexCache::new();
+
+    for i in &cache.summaries {
+        let mut filtered_indexes: Vec<IndexDetails> = Vec::new();
+        for d in &i.indexes {
+            let parent = Path::new(&d.file).parent().unwrap().to_path_buf();
+            if parent.eq(log_dir) {
+                filtered_indexes.push(d.clone());
+            }
+        }
+        if filtered_indexes.len() > 0 {
+            let entry = SummaryEntry {
+                log_file: i.log_file.clone(),
+                log_date: i.log_date.clone(),
+                db_path: i.db_path.clone(), 
+                indexes: filtered_indexes,
+            };
+            filtered_cache.summaries.push(entry);
+        }
+    }
+    filtered_cache.log_dirs.append(&mut cache.log_dirs.clone());
+    filtered_cache.player_names.append(&mut cache.player_names.clone());
+
+    generate_index(&context, None,Some( log_dir), filtered_cache)
 }
 
 pub fn search_by_log_file(log_file: &PathBuf, context: &AppContext) -> String {
-    let cache = find_summaries_by_log_file(&log_file, &context.output_dir);
-    generate_index(&context, None, None, cache)
-}
+    let cache = INDEX_CACHE.lock().unwrap();
 
-pub fn find_summaries_by_log_file(file_name: &PathBuf, output_path: &Path) -> IndexCache {
-    let mut cache = INDEX_CACHE.lock().unwrap();
+    let mut filtered_cache = IndexCache::new();
 
-    let mut player_set = HashSet::<String>::new();
-    let mut log_dirs: HashSet<PathBuf> = HashSet::new();
-    let mut entries = Vec::<SummaryEntry>::new();
-    let walker = WalkDir::new(output_path).into_iter();
-
-    for entry in walker.into_iter().filter_map(|e| e.ok()) {
-        if entry.path().ends_with("summary.db") {
-            let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
-            let mut conn = db::get_file_conn(db_path.clone());
-            let details = db::queries::index_details(&mut conn);
-
-            let mut entry = SummaryEntry {
-                log_file: details.get(0).unwrap().file.to_owned(),
-                log_date: details.get(0).unwrap().log_date.to_owned(),
-                db_path: entry.path().to_path_buf(),
-                indexes: Vec::new(),
-            };
-            for d in &details {
-                player_set.insert(d.player_name.clone());
-                let index_file = Path::new(&d.file).to_path_buf();
-                let parent = index_file.parent().unwrap().to_path_buf();
-                log_dirs.insert(parent.clone());
-
-                if index_file.eq(file_name) {
-                    entry.indexes.push(d.clone());
-                }
+    for i in &cache.summaries {
+        let mut filtered_indexes: Vec<IndexDetails> = Vec::new();
+        for d in &i.indexes {
+            let index_file = Path::new(&d.file).to_path_buf();
+            if index_file.eq(log_file) {
+                filtered_indexes.push(d.clone());
             }
-
-            entries.push(entry);
+        }
+        if filtered_indexes.len() > 0 {
+            let entry = SummaryEntry {
+                log_file: i.log_file.clone(),
+                log_date: i.log_date.clone(),
+                db_path: i.db_path.clone(), 
+                indexes: filtered_indexes,
+            };
+            filtered_cache.summaries.push(entry);
         }
     }
+    filtered_cache.log_dirs.append(&mut cache.log_dirs.clone());
+    filtered_cache.player_names.append(&mut cache.player_names.clone());
 
-    cache.update(log_dirs, player_set, entries).clone()
-}
-
-pub fn find_summaries_by_player_name(name: &String, output_path: &Path) -> IndexCache {
-    let mut cache = INDEX_CACHE.lock().unwrap();
-
-    let mut player_set = HashSet::<String>::new();
-    let mut log_dirs: HashSet<PathBuf> = HashSet::new();
-    let mut entries = Vec::<SummaryEntry>::new();
-    let walker = WalkDir::new(output_path).into_iter();
-
-    for entry in walker.into_iter().filter_map(|e| e.ok()) {
-        if entry.path().ends_with("summary.db") {
-            let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
-            let mut conn = db::get_file_conn(db_path.clone());
-            let details = db::queries::index_details(&mut conn);
-
-            let mut entry = SummaryEntry {
-                log_file: details.get(0).unwrap().file.to_owned(),
-                log_date: details.get(0).unwrap().log_date.to_owned(),
-                db_path: entry.path().to_path_buf(),
-                indexes: Vec::new(),
-            };
-            for d in &details {
-                player_set.insert(d.player_name.clone());
-                let f = Path::new(&d.file);
-                log_dirs.insert(f.parent().unwrap().to_path_buf());
-
-                if d.player_name.eq(name) {
-                    entry.indexes.push(d.clone());
-                }
-            }
-
-            entries.push(entry);
-        }
-    } 
-
-    cache.update(log_dirs, player_set, entries).clone()
-}
-
-pub fn find_summaries_by_directory(log_dir: &PathBuf, output_path: &Path) -> IndexCache {
-    let mut cache = INDEX_CACHE.lock().unwrap();
-
-    let mut player_set = HashSet::<String>::new();
-    let mut log_dirs: HashSet<PathBuf> = HashSet::new();
-    let mut entries = Vec::<SummaryEntry>::new();
-    let walker = WalkDir::new(output_path).into_iter();
-
-    for entry in walker.into_iter().filter_map(|e| e.ok()) {
-        if entry.path().ends_with("summary.db") {
-            let db_path = fs::canonicalize(entry.path()).unwrap().to_path_buf();
-            let mut conn = db::get_file_conn(db_path.clone());
-            let details = db::queries::index_details(&mut conn);
-
-            let mut entry = SummaryEntry {
-                log_file: details.get(0).unwrap().file.to_owned(),
-                log_date: details.get(0).unwrap().log_date.to_owned(),
-                db_path: entry.path().to_path_buf(),
-                indexes: Vec::new(),
-            };
-            for d in &details {
-                player_set.insert(d.player_name.clone());
-                let parent = Path::new(&d.file).parent().unwrap().to_path_buf();
-                log_dirs.insert(parent.clone());
-
-                if parent.eq(log_dir) {
-                    entry.indexes.push(d.clone());
-                }
-            }
-
-            entries.push(entry);
-        }
-    }
-
-    cache.update(log_dirs, player_set, entries).clone()
+    generate_index(&context, None, None, filtered_cache)
 }
 
 pub fn find_all_summaries(output_path: &Path) -> IndexCache {
