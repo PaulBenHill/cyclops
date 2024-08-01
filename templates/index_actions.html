@@ -1,0 +1,19 @@
+<form hx-get="parse_request" hx-target="#status-div">
+    <label for="path">Choose a directory:</label><br>
+    <select name="log_path" id="log_path">
+        <optgroup label="Existing Log Directories">
+            {% for p in log_dirs %}
+            <option value="{{p}}">{{p}}</option>
+            {% endfor %}
+        </optgroup>
+    </select>
+    <br>
+    <button type="submit" name="action" value="ParsePath">Parse Directory</button>
+    <button type="submit" name="action" value="LatestFile">Parse Newest File In Directory</button>
+</form>
+<form hx-get="parse_request" hx-target="#status-div">
+    <label>Input the full path for a log file or directory (Use Control+Shift+C for full path):</label><br>
+    <input type="text" name="log_path" id="log_path" size="50"><br>
+    <button type="submit" name="action" value="ParsePath">Parse File</button>
+    <button type="submit" name="action" value="ParsePath">Parse Directory</button>
+</form>

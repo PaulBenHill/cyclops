@@ -9,32 +9,13 @@
 <body>
     <h2>Cyclops Summaries (v1.1):</h2>
     <div class="container index-container">
-    <div class="div-half div-border">
-    <form hx-get="parse_request" hx-target="#status-div">
-        <label for="path">Choose a directory:</label><br>
-        <select name="log_path" id="log_path">
-            <optgroup label="Existing Log Directories">
-                {% for p in log_dirs %}
-                <option value="{{p}}">{{p}}</option>
-                {% endfor %}
-            </optgroup>
-        </select>
-        <br>
-        <button type="submit" name="action" value="ParsePath">Parse Directory</button>
-        <button type="submit" name="action" value="LatestFile">Parse Newest File In Directory</button>
-    </form>
-    <form hx-get="parse_request" hx-target="#status-div">
-        <label>Input the full path for a log file or directory (Use Control+Shift+C for full path):</label><br>
-        <input type="text" name="log_path" id="log_path" size="50"><br>
-        <button type="submit" name="action" value="ParsePath">Parse File</button>
-        <button type="submit" name="action" value="ParsePath">Parse Directory</button>
-    </form>
+    <div id="index_actions" hx-get="/refresh_actions" hx-target="this" hx-trigger="load, newSummary from:body" class="div-half div-border">
     </div>
     <div id="status-div" class="div-half div-border status-div">
         <label class="status-label" for="index-status">Status:</label>
     </div>
     </div>
-    <div id="index_body" class="div-border" hx-get="/index_table" hx-target="#index_body" hx-trigger="load, newSummary from:body">
+    <div id="index_body" class="div-border" hx-get="/index_table" hx-target="#index_body" hx-trigger="refreshTable from:body">
     </div>
 </body>
 </html>

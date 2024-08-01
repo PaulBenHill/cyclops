@@ -167,13 +167,26 @@ async fn execute_job(_: HttpRequest, context: web::Data<AppContext>) -> impl Res
 
 #[get("/")]
 async fn index(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    let result = index_handler::find_all_summaries(&context.output_dir);
+    index_handler::find_all_summaries(&context.output_dir);
 
-    let mut index_context = Context::new();
-    index_context.insert("log_dirs", &result.1);
-    let result = context.tera.render("index.html", &index_context);
+    let result = context.tera.render("index.html", &Context::new());
     match result {
         Ok(data) => HttpResponse::Ok().body(data),
+        Err(e) => panic!("Could not render {}:{:?}", "index.html", e),
+    }
+}
+
+#[get("/refresh_actions")]
+async fn refresh_actions(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let cache = index_handler::find_all_summaries(&context.output_dir);
+
+    let mut index_context = Context::new();
+    index_context.insert("log_dirs", &cache.log_dirs);
+    let result = context.tera.render("index_actions.html", &index_context);
+    match result {
+        Ok(data) => HttpResponse::Ok()
+            .insert_header(("HX-Trigger", "{\"refreshTable\": \"load\"}"))
+            .body(data),
         Err(e) => panic!("Could not render {}:{:?}", "index.html", e),
     }
 }
@@ -333,6 +346,7 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(context.clone()))
             .service(index)
+            .service(refresh_actions)
             .service(index_table)
             .service(index_search)
             .service(execute_job)
