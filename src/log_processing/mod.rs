@@ -1,5 +1,5 @@
 use std::{
-    collections::VecDeque, fmt, fs::{self, File}, io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write}, path::PathBuf, sync::Mutex, time::Instant
+    collections::VecDeque, fmt, fs::{self, File}, io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write}, mem, path::PathBuf, sync::Mutex, time::Instant
 };
 
 use chrono::Local;
@@ -14,7 +14,7 @@ pub mod parser_model;
 mod parsers;
 
 lazy_static! {
-    static ref PARSER_JOB_QUEUE: Mutex<VecDeque<ParserJob>> = Mutex::new(VecDeque::new());
+    static ref PARSER_JOB_QUEUE: Mutex<Option<ParserJob>> = Mutex::new(None);
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,13 +42,16 @@ pub struct ParserJob {
 pub fn add_job(job: ParserJob) {
   let mut queue = PARSER_JOB_QUEUE.lock().unwrap();
 
-  queue.push_back(job);
+  let _ = mem::replace(&mut *queue, Some(job));
 }
 
 pub fn get_job() -> Option<ParserJob> {
   let mut queue = PARSER_JOB_QUEUE.lock().unwrap();
 
-  queue.pop_front()
+  let job_option = mem::replace(&mut *queue, None);
+
+
+  job_option
 }
 
 impl ParserJob {

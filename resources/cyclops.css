@@ -43,6 +43,7 @@ a:visited {
 
 .sub-title {
     display: inline;
+    cursor: pointer;
 }
 
 .close-header {
