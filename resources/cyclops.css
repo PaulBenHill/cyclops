@@ -21,6 +21,7 @@ th {
     border: 1px solid #ddd;
     color: #add6e6de;
     background-color: #21216c24;
+    cursor: pointer;
 }
 
 td {
