@@ -1,5 +1,5 @@
 use std::{
-    collections::VecDeque, fmt, fs::{self, File}, io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write}, mem, path::PathBuf, sync::Mutex, time::Instant
+     fmt, fs::{self, File}, io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write}, mem, path::{Path, PathBuf}, sync::Mutex, time::Instant
 };
 
 use chrono::Local;
@@ -354,12 +354,13 @@ pub fn create_dir(dir_path: &PathBuf) {
     }
 }
 
-pub fn verify_file(path_buf: &PathBuf) -> Result<&PathBuf, ProcessingError> {
-    if path_buf.is_file() || path_buf.is_dir() {
-        Ok(path_buf)
+pub fn verify_file<P: AsRef<Path>>(path_buf: P) -> Result<PathBuf, ProcessingError> {
+    let path = path_buf.as_ref();
+    if path.is_file() || path.is_dir() {
+        Ok(path.to_path_buf())
     } else {
         Err(ProcessingError {
-            file_name: path_buf.clone(),
+            file_name: path.to_path_buf(),
             message: "Unable to verify file existence. Might be invalid file name or permissions"
                 .to_owned(),
         })

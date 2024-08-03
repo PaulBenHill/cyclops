@@ -1,12 +1,11 @@
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
+use log_processing::ParserJob;
 use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
 
 use tera::Tera;
-
-use crate::log_processing::ParserJob;
 
 mod args;
 mod log_processing;
@@ -74,7 +73,7 @@ fn setup_tera() -> Tera {
     }
 }
 
-fn get_last_modified_file_in_dir(dir: &PathBuf) -> PathBuf {
+fn get_last_modified_file_in_dir<D: AsRef<Path>>(dir: D) -> PathBuf {
     std::fs::read_dir(dir)
         .expect("Couldn't access local directory")
         .flatten() // Remove failed
@@ -87,7 +86,7 @@ fn get_last_modified_file_in_dir(dir: &PathBuf) -> PathBuf {
         .unwrap()
 }
 
-fn read_log_file_dir(dir: &PathBuf) -> Vec<PathBuf> {
+fn read_log_file_dir<D: AsRef<Path>>(dir: D) -> Vec<PathBuf> {
     match fs::canonicalize(&dir) {
         Ok(path) => {
             if path.exists() && path.is_dir() {
@@ -107,11 +106,11 @@ fn read_log_file_dir(dir: &PathBuf) -> Vec<PathBuf> {
             } else {
                 panic!(
                     "Log file directory does not exist or is not a directory: {:?}",
-                    dir
+                    dir.as_ref()
                 );
             }
         }
-        Err(e) => panic!("Cannot determine directory name: {:?}:{:?}", dir, e),
+        Err(e) => panic!("Cannot determine directory name: {:?}:{:?}", dir.as_ref(), e),
     }
 }
 

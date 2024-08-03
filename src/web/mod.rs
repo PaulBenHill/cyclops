@@ -1,14 +1,13 @@
-use std::path::PathBuf;
-
 use actix_files as fs;
 use actix_web::{
     get,
     web::{self},
     App, HttpRequest, HttpResponse, HttpServer, Responder,
 };
+use index_handler::{IndexSearch, IndexSearchQuery};
 use player_summary_table::SummaryQuery;
-use serde::{Deserialize, Serialize};
 use tera::Context;
+use web_structs_enums::{DamageByPowerQuery, ParseLog, ParseLogRequest, PowersMobsData, SortDirection, TableNames, TableQuery};
 
 mod damage_by_power_table;
 mod damage_dealt_by_type_table;
@@ -19,90 +18,11 @@ mod dps_interval_table;
 mod index_handler;
 mod player_summary_table;
 mod powers_and_mobs_table;
+pub mod web_structs_enums;
 
 use crate::{
     db, get_last_modified_file_in_dir, log_processing::{self, ParserJob}, AppContext
 };
-
-#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub enum SortDirection {
-    ASC,
-    DESC,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum TableNames {
-    DamageDealtByType,
-    DamageTakenByType,
-    DamageTakenByMob,
-    DamageTakenByMobPower,
-    DPSIntervals,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum ParseLog {
-    ParsePath,
-    LatestFile,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ParseLogRequest {
-    pub action: ParseLog,
-    pub log_path: String,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct TableQuery {
-    pub key: i32,
-    pub db_path: String,
-    pub table_name: Option<TableNames>,
-    pub sort_field: Option<String>,
-    pub sort_dir: Option<SortDirection>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum PowerTableActions {
-    Revert,
-    RemoveNonDamaging,
-    Merge,
-    Delete,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct DamageByPowerQuery {
-    pub key: i32,
-    pub db_path: String,
-    pub sort_field: Option<String>,
-    pub sort_dir: Option<SortDirection>,
-    pub action: Option<PowerTableActions>,
-    pub power_row: Option<Vec<u8>>,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct PowersMobsData {
-    pub key: i32,
-    pub db_path: String,
-    pub table_name: Option<TableNames>,
-    pub power_name: Option<String>,
-    pub mob_name: Option<String>,
-    pub sort_field: Option<String>,
-    pub sort_dir: Option<SortDirection>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub enum IndexSearch {
-    PlayerName,
-    LogDirectory,
-    LogFile,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct IndexSearchQuery {
-    pub player_name: Option<String>,
-    pub log_path: Option<PathBuf>,
-    pub log_file: Option<PathBuf>,
-    pub action: IndexSearch,
-}
 
 fn create_job_result(context: &AppContext, job: &ParserJob) -> HttpResponse {
     let mut result_context = Context::new();
@@ -132,7 +52,7 @@ fn create_job_start(context: &AppContext, job: &ParserJob) -> HttpResponse {
 async fn parse_request(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let form: web::Query<ParseLogRequest> = web::Query::from_query(req.query_string()).unwrap();
     println!("Latest Request: {:?}", form.log_path);
-    let stripped_path = PathBuf::from(form.log_path.replace("\"", ""));
+    let stripped_path = form.log_path.replace("\"", "");
 
     match form.action {
         ParseLog::ParsePath => match index_handler::create_parser_job(&stripped_path) {

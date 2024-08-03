@@ -10,6 +10,9 @@ use crate::models::{
     DamageTaken, DamageTakenByMob, DamageTakenByMobPower, DamageTakenByType, 
     IndexDetails, RewardsDefeats, Summary, TotalDamageReport,
 };
+use crate::web::web_structs_enums::DamageByPowerQuery;
+use crate::web::web_structs_enums::PowersMobsData;
+use crate::web::web_structs_enums::TableQuery;
 
 pub fn get_summary(conn: &mut SqliteConnection, key: i32) -> Vec<Summary> {
     use crate::schema::summary::dsl::*;
@@ -152,9 +155,6 @@ pub fn get_damage_taken_by_mob_power_query(
     }
 }
 
-use crate::web::DamageByPowerQuery;
-use crate::web::PowersMobsData;
-use crate::web::TableQuery;
 pub fn get_damage_dealt_by_power_or_mob(
     query: &PowersMobsData,
 ) -> Option<Vec<DamageDealtToMobByPower>> {

@@ -21,6 +21,21 @@ lazy_static! {
     static ref INDEX_CACHE: Mutex<IndexCache> = Mutex::new(IndexCache::new());
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub enum IndexSearch {
+    PlayerName,
+    LogDirectory,
+    LogFile,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct IndexSearchQuery {
+    pub player_name: Option<String>,
+    pub log_path: Option<PathBuf>,
+    pub log_file: Option<PathBuf>,
+    pub action: IndexSearch,
+}
+
 #[derive(Clone)]
 pub struct IndexCache {
     pub log_dirs: Vec<PathBuf>,
@@ -71,7 +86,7 @@ pub struct SummaryEntry {
     pub indexes: Vec<IndexDetails>,
 }
 
-pub fn create_parser_job(path_buf: &PathBuf) -> Result<ParserJob, ParserJob> {
+pub fn create_parser_job<P: AsRef<Path>>(path_buf: P) -> Result<ParserJob, ParserJob> {
     let mut parser_job = ParserJob {
         files: Vec::new(),
         processed: 0,
@@ -81,8 +96,7 @@ pub fn create_parser_job(path_buf: &PathBuf) -> Result<ParserJob, ParserJob> {
         last_file: "".to_string(),
     };
 
-    let local_path = path_buf.to_owned();
-    match log_processing::verify_file(&local_path) {
+    match log_processing::verify_file(&path_buf) {
         Ok(path) => {
             if path.is_file() {
                 parser_job.files.push(path.to_owned());
@@ -94,7 +108,7 @@ pub fn create_parser_job(path_buf: &PathBuf) -> Result<ParserJob, ParserJob> {
         }
         Err(e) => {
             parser_job.errors.push(ProcessingError {
-                file_name: path_buf.to_owned(),
+                file_name: path_buf.as_ref().to_path_buf(),
                 message: e.to_string(),
             });
             Err(parser_job)

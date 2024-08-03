@@ -6,11 +6,12 @@ use serde::Serialize;
 use tera::Context;
 
 use crate::db;
-use crate::web::DamageByPowerQuery;
-use crate::web::PowerTableActions;
-use crate::web::SortDirection;
 
 use lazy_static::lazy_static;
+
+use super::web_structs_enums::DamageByPowerQuery;
+use super::web_structs_enums::PowerTableActions;
+use super::web_structs_enums::SortDirection;
 
 lazy_static! {
     static ref ROW_STATE: Mutex<HashMap<i32, Vec<PowerRow>>> = Mutex::new(HashMap::new());

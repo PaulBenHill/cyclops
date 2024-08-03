@@ -1,7 +1,6 @@
-use crate::{
-    models::DamageDealtToMobByPower,
-    web::SortDirection,
-};
+use crate::models::DamageDealtToMobByPower;
+
+use super::web_structs_enums::SortDirection;
 
 pub fn headers() -> Vec<(&'static str, &'static str)> {
     let mut headers = Vec::<(&'static str, &'static str)>::new();
