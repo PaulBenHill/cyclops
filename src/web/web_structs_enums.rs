@@ -52,6 +52,7 @@ pub struct DamageByPowerQuery {
     pub sort_dir: Option<SortDirection>,
     pub action: Option<PowerTableActions>,
     pub power_row: Option<Vec<u8>>,
+    pub mob_level: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

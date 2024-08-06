@@ -4,6 +4,16 @@
         <button id="delete_rows" type="submit" name="action" value="Delete">Delete Rows</button>
         <button id="delete_non_damage" hx-get="/damage_by_power?action=RemoveNonDamaging" hx-target="#dbp_table">Remove Non Damaging Powers</button>
         <button id="revert" hx-get="/damage_by_power?action=Revert" hx-target="#dbp_table">Revert Changes</button>
+        Mob Level: <select name="mob_level" hx-get="/damage_by_power" hx-target="#dbp_table">
+            {% for l in mob_levels %}
+              {% if mob_level == l.level %}
+                <option value="{{l.level}}" selected>level: {{l.level}} - HP: {{l.hp}}</option>
+              {% else %}
+                <option value="{{l.level}}">level: {{l.level}} - HP: {{l.hp}}</option>
+              {% endif %}
+            {% endfor %}
+          </optgroup>
+        </select>
         <table title="Damage By Power" style="width: 100%;">
             <thead>
               {% for c in headers %}
@@ -13,7 +23,7 @@
             <tbody>
                 {% for row in table_rows %}
                   <tr>
-                    <td><input form="dbp_form" type="checkbox" id="row_{{loop.index0}}" name="power_row[{{loop.index0}}]" value="{{loop.index0}}"></td>
+                    <td><input class="pam-checkbox" form="dbp_form" type="checkbox" id="row_{{loop.index0}}" name="power_row[{{loop.index0}}]" value="{{loop.index0}}"></td>
                     <td>{{row.power_name | replace(from=":", to=":<br>") | replace(from=",", to="<br><br>")}}</td>
                     <td>{{row.activations}}</td>
                     <td>{{row.hits}} ({{row.streak_breakers}})</td>
@@ -22,6 +32,8 @@
                     <td>{{row.total_damage}}</td>
                     <td>{{row.total_damage_percent}}</td>
                     <td>{{row.dpa}}</td>
+                    <td>{{row.dph}}</td>
+                    <td>{{row.overkill}}</td>
                     <td>{{row.ate}}</td>
                     <td>{{row.direct_damage}}</td>
                     <td>{{row.dot_damage}}</td>

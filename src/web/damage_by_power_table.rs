@@ -6,6 +6,8 @@ use serde::Serialize;
 use tera::Context;
 
 use crate::db;
+use crate::game_data;
+use crate::game_data::get_mob_hp;
 
 use lazy_static::lazy_static;
 
@@ -28,6 +30,8 @@ struct PowerRow {
     total_damage: i32,
     total_damage_percent: i32,
     dpa: Option<i32>,
+    dph: Option<i32>,
+    overkill: Option<i32>,
     ate: Option<i32>,
     direct_damage: i32,
     dot_damage: i32,
@@ -49,6 +53,8 @@ impl PowerRow {
             total_damage: 0,
             total_damage_percent: 0,
             dpa: None,
+            dph: None,
+            overkill: None,
             ate: None,
             direct_damage: 0,
             dot_damage: 0,
@@ -71,8 +77,26 @@ pub fn process(tera_context: &mut Context, query: &DamageByPowerQuery) {
 
     tera_context.insert("table_title", &"Attack Summary By Power");
     tera_context.insert("headers", &headers());
+    if query.mob_level.is_some() {
+        tera_context.insert("mob_level", &i32::from_str_radix(&query.mob_level.as_ref().unwrap(), 10).unwrap());
+    } else {
+        tera_context.insert("mob_level", &54);
+    } 
+    tera_context.insert("mob_levels", &game_data::MINION_HP_TABLE.as_slice());
 
     let mut rows = retrieve_copy(query);
+
+    match &query.mob_level {
+        Some(level) => {
+            rows.iter_mut()
+                .for_each(|r| r.overkill = calc_overkill(r.dph, get_mob_hp(&level).into()));
+        }
+        None => {
+            rows.iter_mut().for_each(|r| {
+                r.overkill = calc_overkill(r.dph, get_mob_hp(&"54".to_string()).into())
+            });
+        }
+    }
 
     if query.action.is_some() {
         rows = handle_action(query, rows);
@@ -147,6 +171,8 @@ fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRo
                     } else {
                         new_row.power_name = format!("{},{}", new_row.power_name, r.power_name);
                     }
+                    // Careful here, make sure the new row data is updated before using it
+                    // in a later calculation
                     new_row.activations += r.activations;
                     new_row.hits += r.hits;
                     new_row.streak_breakers += r.streak_breakers;
@@ -154,8 +180,10 @@ fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRo
                     new_row.hit_percentage = calc_hit_percent(new_row.hits, new_row.misses);
                     new_row.total_damage += r.total_damage;
                     new_row.total_damage_percent += r.total_damage_percent;
-                    new_row.dpa = add_options(new_row.dpa, r.dpa);
-                    new_row.ate = add_options(new_row.ate, r.ate);
+                    new_row.dpa = calc_dpa(new_row.activations, new_row.total_damage);
+                    new_row.dph = calc_dph(new_row.hits, new_row.total_damage);
+                    new_row.overkill = calc_overkill(new_row.dph, get_mob_hp(&query.mob_level.as_ref().unwrap()));
+                    new_row.ate = avg_ate(new_row.ate, r.ate);
                     new_row.direct_damage += r.direct_damage;
                     new_row.dot_damage += r.dot_damage;
                     new_row.critical_damage += r.critical_damage;
@@ -195,6 +223,45 @@ fn calc_hit_percent(hits: i32, misses: i32) -> Option<i32> {
     }
 }
 
+fn calc_dpa(activations: i32, total_damage: i32) -> Option<i32> {
+    if activations > 0 && total_damage > 0 {
+        let v = total_damage / activations;
+        Some(v)
+    } else {
+        None
+    }
+}
+
+fn calc_dph(hits: i32, total_damage: i32) -> Option<i32> {
+    if hits > 0 && total_damage > 0 {
+        let v = (total_damage as f32 / hits as f32).round() as i32;
+        Some(v)
+    } else {
+        None
+    }
+}
+
+fn calc_overkill(dph: Option<i32>, mob_hp: i32) -> Option<i32> {
+    if dph.is_some() && dph.unwrap() > 0 {
+        Some(((dph.unwrap() as f32 / mob_hp as f32) * 100.0).round() as i32)
+    } else {
+        None
+    }
+}
+
+fn avg_ate(first: Option<i32>, second: Option<i32>) -> Option<i32> {
+    match first {
+        Some(v1) => match second {
+            Some(v2) => Some(((v1 as f32 + v2 as f32) / 2.0).round() as i32),
+            None => Some(v1),
+        },
+        None => match second {
+            Some(v2) => Some(v2),
+            None => None,
+        },
+    }
+}
+
 fn calc_hit_critical_percent(hits: i32, critical_hits: i32) -> Option<i32> {
     if hits > 0 && critical_hits > 0 {
         return Some(((critical_hits as f32 / hits as f32) * 100.0).round() as i32);
@@ -207,19 +274,6 @@ fn calc_damage_critical_percent(total_damage: i32, critical_damage: i32) -> Opti
         return Some(((critical_damage as f32 / total_damage as f32) * 100.0).round() as i32);
     }
     None
-}
-
-fn add_options(first: Option<i32>, second: Option<i32>) -> Option<i32> {
-    match first {
-        Some(v1) => match second {
-            Some(v2) => Some(v1 + v2),
-            None => Some(v1),
-        },
-        None => match second {
-            Some(v2) => Some(v2),
-            None => None,
-        },
-    }
 }
 
 fn generate_power_rows(query: &DamageByPowerQuery) -> Vec<PowerRow> {
@@ -240,6 +294,8 @@ fn generate_power_rows(query: &DamageByPowerQuery) -> Vec<PowerRow> {
             total_damage: p.power_total_damage,
             total_damage_percent: total_damage_percent,
             dpa: p.dpa,
+            dph: p.dph,
+            overkill: None,
             ate: p.ate,
             direct_damage: p.direct_damage,
             dot_damage: p.dot_damage,
@@ -264,6 +320,8 @@ fn headers() -> Vec<(&'static str, &'static str)> {
     headers.push(("total_damage", "Total Damage"));
     headers.push(("total_damage_percent", "Total Damage Percent"));
     headers.push(("dpa", "Damage Per Activation"));
+    headers.push(("dph", "Damage Per Hit"));
+    headers.push(("overkill", "Overkill Percent"));
     headers.push(("ate", "Average Targets Affected"));
     headers.push(("direct_damage", "Direct Damage"));
     headers.push(("dot_damage", "DoT Damage"));

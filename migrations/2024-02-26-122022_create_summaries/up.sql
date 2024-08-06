@@ -77,6 +77,14 @@ sum(misses) misses,
 ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100) as hit_percentage,
 sum(power_total_damage) as power_total_damage,
 (sum(power_total_damage)/activations) as dpa,
+(CASE WHEN 
+sum(hits) IS NOT NULL AND sum(hits) > 0
+THEN
+sum(power_total_damage)/sum(hits)
+ELSE
+NULL
+END
+) as dph,
 (ROUND(1.0 * sum(hits + misses) / activations)) as ate,
 sum(direct_damage) as direct_damage,
 sum(dot_damage) as dot_damage,

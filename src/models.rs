@@ -204,6 +204,8 @@ pub struct DamageReportByPower {
     #[diesel(sql_type = Nullable<Integer>)]
     pub dpa: Option<i32>,
     #[diesel(sql_type = Nullable<Integer>)]
+    pub dph: Option<i32>,
+    #[diesel(sql_type = Nullable<Integer>)]
     pub ate: Option<i32>,
     pub direct_damage: i32,
     pub dot_damage: i32,

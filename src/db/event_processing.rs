@@ -356,18 +356,22 @@ pub fn write_to_database(
                     source_type: String::from("PlayerPet"),
                     source_name: String::from(pet_name),
                 });
-                hits_misses.push(crate::models::HitOrMiss {
-                    summary_key: key,
-                    line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc3339(),
-                    hit: 1,
-                    chance_to_hit: 100,
-                    source_type: String::from("PlayerPet"),
-                    source_name: String::from(pet_name),
-                    target_name: damage_dealt.target.clone(),
-                    power_name: damage_dealt.power_name.clone(),
-                    streakbreaker: 0,
-                });
+                // Initially put in for damage patches
+                // but it's causes issues with damage per hits
+                // on pseudopets that record their hit rolls correctly
+                // Lightning Rod
+                // hits_misses.push(crate::models::HitOrMiss {
+                //     summary_key: key,
+                //     line_number: data_position.line_number as i32,
+                //     log_date: data_position.date.to_rfc3339(),
+                //     hit: 1,
+                //     chance_to_hit: 100,
+                //     source_type: String::from("PlayerPet"),
+                //     source_name: String::from(pet_name),
+                //     target_name: damage_dealt.target.clone(),
+                //     power_name: damage_dealt.power_name.clone(),
+                //     streakbreaker: 0,
+                // });
                 if damage_dealt.power_name.contains("Chance for")
                     || damage_dealt.power_name.contains("Spider's Bite")
                 {

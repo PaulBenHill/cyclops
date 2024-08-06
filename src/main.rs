@@ -13,6 +13,7 @@ mod models;
 mod schema;
 mod web;
 pub mod db;
+mod game_data;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
@@ -121,7 +122,6 @@ fn initialize() -> (AppContext, Vec<PathBuf>) {
         CURRENT_PLATFORM, COMPILED_ON
     );
     println!("The current directory is {}", working_dir.display());
-
 
     let args = args::Args::parse();
 
