@@ -12,6 +12,7 @@ pub fn headers() -> Vec<(&'static str, &'static str)> {
     headers.push(("hit_percent", "Hit Percent"));
     headers.push(("total_damage", "Total Damage"));
     headers.push(("damage_per_hit", "Damage Per Hit"));
+    headers.push(("overkill", "Overkill"));
 
     headers
 }
@@ -29,6 +30,7 @@ pub fn flatten(data: Vec<DamageDealtToMobByPower>) -> Vec<Vec<String>> {
         row.push(d.hit_percent.to_string());
         row.push(d.total_damage.to_string());
         row.push(d.damage_per_hit.to_string());
+        row.push(d.overkill.to_string());
         result.push(row);
     }
     result
@@ -68,6 +70,18 @@ pub fn sort(sort_field: String, sort_dir: SortDirection, data: &mut Vec<DamageDe
             SortDirection::DESC => data.sort_by(|a, b| b.damage_per_hit.cmp(&a.damage_per_hit)),
             SortDirection::ASC => data.sort_by(|a, b| a.damage_per_hit.cmp(&b.damage_per_hit)),
         },
+        "overkill" => match sort_dir {
+            SortDirection::DESC => data.sort_by(|a, b| b.overkill.cmp(&a.overkill)),
+            SortDirection::ASC => data.sort_by(|a, b| a.overkill.cmp(&b.overkill)),
+        },
         _ => println!("Unknown sort field provided: {}", sort_field),
+    }
+}
+
+pub fn calc_overkill(dph: i32, mob_hp: i32) -> i32 {
+    if dph > 0 {
+        ((dph as f32 / mob_hp as f32) * 100.0).round() as i32
+    } else {
+        0
     }
 }

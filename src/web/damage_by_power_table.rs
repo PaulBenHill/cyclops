@@ -371,6 +371,14 @@ fn sort(sort_field: String, sort_dir: SortDirection, data: &mut Vec<PowerRow>) {
             SortDirection::DESC => data.sort_by(|a, b| b.dpa.cmp(&a.dpa)),
             SortDirection::ASC => data.sort_by(|a, b| a.dpa.cmp(&b.dpa)),
         },
+        "dph" => match sort_dir {
+            SortDirection::DESC => data.sort_by(|a, b| b.dph.cmp(&a.dph)),
+            SortDirection::ASC => data.sort_by(|a, b| a.dph.cmp(&b.dph)),
+        },
+        "overkill" => match sort_dir {
+            SortDirection::DESC => data.sort_by(|a, b| b.overkill.cmp(&a.overkill)),
+            SortDirection::ASC => data.sort_by(|a, b| a.overkill.cmp(&b.overkill)),
+        },
         "ate" => match sort_dir {
             SortDirection::DESC => data.sort_by(|a, b| b.ate.cmp(&a.ate)),
             SortDirection::ASC => data.sort_by(|a, b| a.ate.cmp(&b.ate)),

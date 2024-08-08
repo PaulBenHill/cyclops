@@ -225,6 +225,7 @@ diesel::table! {
         hit_percent -> Integer,
         total_damage -> Integer,
         damage_per_hit -> Integer,
+        overkill -> Integer,
     }
 }
 

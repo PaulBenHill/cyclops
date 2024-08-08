@@ -444,7 +444,8 @@ THEN
 0
 ELSE
 ROUND(1.0 * total_damage / hits)
-END) as damage_per_hit
+END) as damage_per_hit,
+0 as overkill
 from
 (select
 da1.summary_key,

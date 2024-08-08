@@ -1,17 +1,52 @@
 <div class="table-section" id="pam_table">
-Damaging Powers: <select name="power_name" hx-get="/powers_and_mobs" hx-target="#pam_div" hx-swap="show:top" >
-    <option disabled selected value>{{ power_name | default(value="-- select a power --") | replace(from="_", to=" ")}}</option>
+Damaging Powers: <select id="power_select" 
+                         name="power_name"
+                         hx-get="/powers_and_mobs"
+                         hx-target="#pam_div"
+                         hx-include="#mob_level_select"
+                         hx-swap="show:top">
+  <optgroup>
+    {% if power_name is defined %}
+    <option selected value="{{power_name}}">{{ power_name | replace(from="_", to=" ")}}</option>
+    {% else %}
+    <option disabled selected value>-- select a power --</option>
+    {% endif %}
   {% for p in damaging_powers %}
     <option value="{{p | replace(from=" ", to="_")}}">{{p}}</option>
   {% endfor %}
   </optgroup>
+  </select>
+Mobs: <select id="mob_name_select" 
+              name="mob_name"
+              hx-get="/powers_and_mobs"
+              hx-target="#pam_div"
+              hx-include="#mob_level_select"
+              hx-swap="show:top">
+  <optgroup>
+    {% if mob_name is defined %}
+    <option selected value="{{mob_name}}">{{ mob_name | replace(from="_", to=" ")}}</option>
+    {% else %}
+    <option disabled selected value>-- select a power --</option>
+    {% endif %}
+    {% for m in mobs_damaged %}
+      <option value="{{m | replace(from=" ", to="_")}}">{{m}}</option>
+    {% endfor %}
+  </optgroup>
 </select>
-Mobs: <select name="mob_name" hx-get="/powers_and_mobs" hx-target="#pam_div" hx-swap="show:top">
-    
-    <option disabled selected value>{{ mob_name | default(value="-- select a mob --")  | replace(from="_", to=" ")}}</option>
-  {% for m in mobs_damaged %}
-    <option value="{{m | replace(from=" ", to="_")}}">{{m}}</option>
-  {% endfor %}
+Minion Level: <select id="mob_level_select" 
+                      name="mob_level"
+                      hx-get="/powers_and_mobs"
+                      hx-target="#pam_div"
+                      hx-include="#power_select, #mob_name_select"
+                      hx-swap="show:top">
+  <optgroup>
+    {% for l in mob_levels %}
+      {% if mob_level == l.level %}
+        <option value="{{l.level}}" selected>level: {{l.level}} - HP: {{l.hp}}</option>
+      {% else %}
+        <option value="{{l.level}}">level: {{l.level}} - HP: {{l.hp}}</option>
+      {% endif %}
+    {% endfor %}
   </optgroup>
 </select>
 {% if table_rows is defined %}

@@ -4,7 +4,7 @@
         <button id="delete_rows" type="submit" name="action" value="Delete">Delete Rows</button>
         <button id="delete_non_damage" hx-get="/damage_by_power?action=RemoveNonDamaging" hx-target="#dbp_table">Remove Non Damaging Powers</button>
         <button id="revert" hx-get="/damage_by_power?action=Revert" hx-target="#dbp_table">Revert Changes</button>
-        Mob Level: <select name="mob_level" hx-get="/damage_by_power" hx-target="#dbp_table">
+        Minion Level: <select name="mob_level" hx-get="/damage_by_power" hx-target="#dbp_table">
             {% for l in mob_levels %}
               {% if mob_level == l.level %}
                 <option value="{{l.level}}" selected>level: {{l.level}} - HP: {{l.hp}}</option>

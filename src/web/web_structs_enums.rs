@@ -55,13 +55,14 @@ pub struct DamageByPowerQuery {
     pub mob_level: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct PowersMobsData {
     pub key: i32,
     pub db_path: String,
     pub table_name: Option<TableNames>,
     pub power_name: Option<String>,
     pub mob_name: Option<String>,
+    pub mob_level: Option<String>,
     pub sort_field: Option<String>,
     pub sort_dir: Option<SortDirection>,
 }

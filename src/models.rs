@@ -367,4 +367,5 @@ pub struct DamageDealtToMobByPower {
     pub hit_percent: i32,
     pub total_damage: i32,
     pub damage_per_hit: i32,
+    pub overkill: i32,
 }

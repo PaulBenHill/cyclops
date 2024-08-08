@@ -162,7 +162,7 @@ pub fn get_damage_dealt_by_power_or_mob(
     let db_path: PathBuf = query.db_path.clone().into();
     let mut conn = get_file_conn(db_path);
 
-    if query.power_name.is_some() {
+    if query.power_name.is_some() && !query.power_name.as_ref().unwrap().is_empty() {
         Some(
             damage_dealt_to_mob_by_power
                 .filter(
@@ -174,7 +174,7 @@ pub fn get_damage_dealt_by_power_or_mob(
                 .load::<DamageDealtToMobByPower>(&mut conn)
                 .expect("Unable to load damage report by power"),
         )
-    } else if query.mob_name.is_some() {
+    } else if query.mob_name.is_some() && !query.mob_name.as_ref().unwrap().is_empty() {
         Some(
             damage_dealt_to_mob_by_power
                 .filter(
