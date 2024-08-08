@@ -1,6 +1,59 @@
-use crate::models::DamageDealtToMobByPower;
+use tera::Context;
 
-use super::web_structs_enums::SortDirection;
+use crate::{db, game_data::{self, get_mob_hp}, models::DamageDealtToMobByPower};
+
+use super::web_structs_enums::{PowersMobsData, SortDirection};
+
+pub fn process(tera_context: &mut Context, query: &PowersMobsData) {
+    match &query.sort_dir {
+        Some(dir) => match dir {
+            SortDirection::ASC => tera_context.insert("sort_dir", &SortDirection::DESC),
+            SortDirection::DESC => tera_context.insert("sort_dir", &SortDirection::ASC),
+        },
+        None => tera_context.insert("sort_dir", &SortDirection::DESC),
+    }
+
+    tera_context.insert(
+        "damaging_powers",
+        &db::queries::get_damaging_powers(&query),
+    );
+    tera_context.insert("mobs_damaged", &db::queries::get_mobs_damaged(&query));
+    tera_context.insert("mob_levels", &game_data::MINION_HP_TABLE.as_slice());
+    tera_context.insert("headers", &headers());
+    if query.mob_level.is_some() {
+        tera_context.insert("mob_level", &i32::from_str_radix(&query.mob_level.as_ref().unwrap(), 10).unwrap());
+    } else {
+        tera_context.insert("mob_level", &54);
+    } 
+
+    match db::queries::get_damage_dealt_by_power_or_mob(&query) {
+        Some(mut data) => {
+            let mob_level = query.mob_level.as_ref().unwrap();
+            data.iter_mut()
+                .for_each(|r| r.overkill = 
+                           calc_overkill(r.damage_per_hit,
+                           get_mob_hp(&mob_level).into()));
+
+            if query.sort_field.is_some() {
+                sort(
+                    query.sort_field.clone().unwrap(),
+                    query.sort_dir.clone().unwrap(),
+                    &mut data,
+                );
+            }
+
+            if query.power_name.is_some() && !query.power_name.as_ref().unwrap().is_empty() {
+                tera_context.insert("power_name", &query.power_name);
+            } else if query.mob_name.is_some() && !query.mob_name.as_ref().unwrap().is_empty() {
+                tera_context.insert("mob_name", &query.mob_name);
+            }
+            let rows = flatten(data);
+            tera_context.insert("table_rows", &rows);
+        }
+        None => (),
+    }
+
+}
 
 pub fn headers() -> Vec<(&'static str, &'static str)> {
     let mut headers = Vec::<(&'static str, &'static str)>::new();

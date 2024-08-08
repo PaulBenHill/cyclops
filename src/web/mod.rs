@@ -6,7 +6,6 @@ use actix_web::{
 };
 use index_handler::{IndexSearch, IndexSearchQuery};
 use player_summary_table::SummaryQuery;
-use powers_and_mobs_table::calc_overkill;
 use tera::Context;
 use web_structs_enums::{DamageByPowerQuery, ParseLog, ParseLogRequest, PowersMobsData, SortDirection, TableNames, TableQuery};
 
@@ -22,7 +21,7 @@ mod powers_and_mobs_table;
 pub mod web_structs_enums;
 
 use crate::{
-    db, game_data::{self, get_mob_hp}, get_last_modified_file_in_dir, log_processing::{self, ParserJob}, AppContext
+    get_last_modified_file_in_dir, log_processing::{self, ParserJob}, AppContext
 };
 
 fn create_job_result(context: &AppContext, job: &ParserJob) -> HttpResponse {
@@ -197,57 +196,10 @@ async fn damage_table(req: HttpRequest, context: web::Data<AppContext>) -> impl 
 
 #[get("/powers_and_mobs")]
 async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
-    let selected: web::Query<PowersMobsData> = web::Query::from_query(req.query_string()).unwrap();
+    let query: web::Query<PowersMobsData> = web::Query::from_query(req.query_string()).unwrap();
 
     let mut table_context = Context::new();
-    table_context.insert(
-        "damaging_powers",
-        &db::queries::get_damaging_powers(&selected),
-    );
-    table_context.insert("mobs_damaged", &db::queries::get_mobs_damaged(&selected));
-    table_context.insert("mob_levels", &game_data::MINION_HP_TABLE.as_slice());
-    table_context.insert("headers", &powers_and_mobs_table::headers());
-    if selected.mob_level.is_some() {
-        table_context.insert("mob_level", &i32::from_str_radix(&selected.mob_level.as_ref().unwrap(), 10).unwrap());
-    } else {
-        table_context.insert("mob_level", &54);
-    } 
-
-    match db::queries::get_damage_dealt_by_power_or_mob(&selected) {
-        Some(mut data) => {
-            let mob_level = selected.mob_level.as_ref().unwrap();
-            data.iter_mut()
-                .for_each(|r| r.overkill = 
-                           calc_overkill(r.damage_per_hit,
-                           get_mob_hp(&mob_level).into()));
-
-            if selected.sort_field.is_some() {
-                powers_and_mobs_table::sort(
-                    selected.sort_field.clone().unwrap(),
-                    selected.sort_dir.clone().unwrap(),
-                    &mut data,
-                );
-            }
-
-            if selected.power_name.is_some() && !selected.power_name.as_ref().unwrap().is_empty() {
-                table_context.insert("power_name", &selected.power_name);
-            } else if selected.mob_name.is_some() && !selected.mob_name.as_ref().unwrap().is_empty() {
-                table_context.insert("mob_name", &selected.mob_name);
-            }
-            let rows = powers_and_mobs_table::flatten(data);
-            table_context.insert("table_rows", &rows);
-        }
-        None => (),
-    }
-
-    match &selected.sort_dir {
-        Some(dir) => match dir {
-            SortDirection::ASC => table_context.insert("sort_dir", &SortDirection::DESC),
-            SortDirection::DESC => table_context.insert("sort_dir", &SortDirection::ASC),
-        },
-        None => table_context.insert("sort_dir", &SortDirection::DESC),
-    }
-
+    powers_and_mobs_table::process(&mut table_context, &query);
     let result = context
         .tera
         .render("powers_and_mobs_table.html", &table_context);
