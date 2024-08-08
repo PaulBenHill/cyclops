@@ -54,9 +54,9 @@ Minion Level: <select id="mob_level_select"
     <thead>
       {% for c in headers %}
         {% if power_name is defined %}
-          <th hx-get="/powers_and_mobs?sort_field={{c.0}}&power_name={{power_name}}&sort_dir={{sort_dir}}&mob_level={{mob_level}}" hx-target="#pam_div">{{c.1}}</th>
+          <th hx-get="/powers_and_mobs?sort_field={{c.0}}&sort_dir={{sort_dir}}" hx-target="#pam_div" hx-include="#power_select, #mob_level_select">{{c.1}}</th>
         {% else %}
-          <th hx-get="/powers_and_mobs?sort_field={{c.0}}&mob_name={{mob_name}}&sort_dir={{sort_dir}}&mob_level={{mob_level}}" hx-target="#pam_div">{{c.1}}</th>
+          <th hx-get="/powers_and_mobs?sort_field={{c.0}}&sort_dir={{sort_dir}}" hx-include="#mob_name_select, #mob_level_select" hx-target="#pam_div">{{c.1}}</th>
         {% endif %}
       {% endfor %}
     </thead>

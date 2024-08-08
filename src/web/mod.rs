@@ -200,6 +200,7 @@ async fn powers_and_mobs_query(req: HttpRequest, context: web::Data<AppContext>)
 
     let mut table_context = Context::new();
     powers_and_mobs_table::process(&mut table_context, &query);
+
     let result = context
         .tera
         .render("powers_and_mobs_table.html", &table_context);
