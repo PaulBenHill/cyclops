@@ -7,7 +7,11 @@
             {%endif %}
             {% if log_dirs is defined %}
               {% for p in log_dirs %}
-                <option value="{{p}}">{{p}}</option>
+                {% if last_path is defined and last_path == p %}
+                  <option selected value="{{p}}">{{p}}</option>
+                {% else %}
+                  <option value="{{p}}">{{p}}</option>
+                {% endif %}
               {% endfor %}
             {%endif %}
         </optgroup>

@@ -97,9 +97,11 @@ async fn index(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder
 #[get("/refresh_actions")]
 async fn refresh_actions(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let cache = index_handler::find_all_summaries(&context.output_dir);
+    let last_path = index_handler::get_last_path();
 
     let mut index_context = Context::new();
     if cache.log_dirs.len() > 0 {
+        index_context.insert("last_path", &last_path);
         index_context.insert("log_dirs", &cache.log_dirs);
     }
     let result = context.tera.render("index_actions.html", &index_context);

@@ -11,14 +11,12 @@ use tera::Context;
 use walkdir::WalkDir;
 
 use crate::{
-    db,
-    log_processing::{self, ParserJob, ProcessingError},
-    models::IndexDetails,
-    read_log_file_dir, AppContext,
+    db, log_processing::{self, ParserJob, ProcessingError}, models::IndexDetails, read_log_file_dir, AppContext
 };
 
 lazy_static! {
     static ref INDEX_CACHE: Mutex<IndexCache> = Mutex::new(IndexCache::new());
+    static ref LAST_PATH: Mutex<Option<PathBuf>> = Mutex::new(None);
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -100,9 +98,11 @@ pub fn create_parser_job<P: AsRef<Path>>(path_buf: P) -> Result<ParserJob, Parse
         Ok(path) => {
             if path.is_file() {
                 parser_job.files.push(path.to_owned());
+                update_last_path(path.parent().unwrap().to_path_buf());
             } else if path.is_dir() {
                 let mut files = read_log_file_dir(&path);
                 parser_job.files.append(&mut files);
+                update_last_path(path);
             }
             Ok(parser_job)
         }
@@ -113,6 +113,20 @@ pub fn create_parser_job<P: AsRef<Path>>(path_buf: P) -> Result<ParserJob, Parse
             });
             Err(parser_job)
         }
+    }
+}
+
+fn update_last_path( path: PathBuf) {
+    let mut state = LAST_PATH.lock().unwrap();
+    let _ = std::mem::replace(&mut *state, Some(path));
+}
+
+pub fn get_last_path() -> Option<PathBuf> {
+    let option = LAST_PATH.lock();
+
+    match option {
+        Ok(g) => g.as_ref().clone().cloned(),
+        Err(_) => None,
     }
 }
 
