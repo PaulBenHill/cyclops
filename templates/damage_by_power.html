@@ -1,6 +1,7 @@
 <div id="dbp_table">
     <form id="dbp_form" hx-get="/damage_by_power" hx-target="#dbp_table">
         <button id="merge_rows" type="submit" name="action" value="Merge">Merge Rows</button>
+        <button id="merge_rows_guess" type="submit" name="action" value="MergeGuess">Merge Rows Best Guess</button>
         <button id="delete_rows" type="submit" name="action" value="Delete">Delete Rows</button>
         <button id="delete_non_damage" hx-get="/damage_by_power?action=RemoveNonDamaging" hx-target="#dbp_table">Remove Non Damaging Powers</button>
         <button id="revert" hx-get="/damage_by_power?action=Revert" hx-target="#dbp_table">Revert Changes</button>

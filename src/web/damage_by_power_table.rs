@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use serde::Deserialize;
 use serde::Serialize;
+use strsim::jaro_winkler;
 use tera::Context;
 
 use crate::db;
@@ -78,10 +79,13 @@ pub fn process(tera_context: &mut Context, query: &DamageByPowerQuery) {
     tera_context.insert("table_title", &"Attack Summary By Power");
     tera_context.insert("headers", &headers());
     if query.mob_level.is_some() {
-        tera_context.insert("mob_level", &i32::from_str_radix(&query.mob_level.as_ref().unwrap(), 10).unwrap());
+        tera_context.insert(
+            "mob_level",
+            &i32::from_str_radix(&query.mob_level.as_ref().unwrap(), 10).unwrap(),
+        );
     } else {
         tera_context.insert("mob_level", &54);
-    } 
+    }
     tera_context.insert("mob_levels", &game_data::MINION_HP_TABLE.as_slice());
 
     let mut rows = retrieve_copy(query);
@@ -102,12 +106,17 @@ pub fn process(tera_context: &mut Context, query: &DamageByPowerQuery) {
         rows = handle_action(query, rows);
     }
 
-    if query.sort_field.is_some() {
-        sort(
-            query.sort_field.clone().unwrap(),
+    match &query.sort_field {
+        Some(field) => sort(
+            field,
             query.sort_dir.clone().unwrap(),
             &mut rows,
-        );
+        ),
+        None => sort(
+            &"total_damage_percent".to_string(),
+            SortDirection::DESC,
+            &mut rows,
+        ) 
     }
 
     update_cache(query.key, rows.clone());
@@ -152,7 +161,7 @@ fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRo
         PowerTableActions::Merge => match &query.power_row {
             Some(indexes) => {
                 let mut final_list = rows.clone();
-                let merge_rows: Vec<PowerRow> = indexes
+                let merged_rows: Vec<PowerRow> = indexes
                     .into_iter()
                     .map(|i| final_list.get(*i as usize).unwrap().clone())
                     .collect();
@@ -165,39 +174,41 @@ fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRo
                 final_list.retain(|_| *index_iter.next().unwrap());
 
                 let mut new_row = PowerRow::new();
-                for r in merge_rows {
-                    if new_row.power_name == "" {
-                        new_row.power_name = r.power_name;
-                    } else {
-                        new_row.power_name = format!("{},{}", new_row.power_name, r.power_name);
-                    }
-                    // Careful here, make sure the new row data is updated before using it
-                    // in a later calculation
-                    new_row.activations += r.activations;
-                    new_row.hits += r.hits;
-                    new_row.streak_breakers += r.streak_breakers;
-                    new_row.misses += r.misses;
-                    new_row.hit_percentage = calc_hit_percent(new_row.hits, new_row.misses);
-                    new_row.total_damage += r.total_damage;
-                    new_row.total_damage_percent += r.total_damage_percent;
-                    new_row.dpa = calc_dpa(new_row.activations, new_row.total_damage);
-                    new_row.dph = calc_dph(new_row.hits, new_row.total_damage);
-                    new_row.overkill = calc_overkill(new_row.dph, get_mob_hp(&query.mob_level.as_ref().unwrap()));
-                    new_row.ate = avg_ate(new_row.ate, r.ate);
-                    new_row.direct_damage += r.direct_damage;
-                    new_row.dot_damage += r.dot_damage;
-                    new_row.critical_damage += r.critical_damage;
-                    new_row.critical_hits += r.critical_hits;
-                    new_row.percent_hits_critical =
-                        calc_hit_critical_percent(new_row.hits, new_row.critical_hits);
-                    new_row.percent_damage_critical =
-                        calc_damage_critical_percent(new_row.total_damage, new_row.critical_damage)
+                for r in merged_rows {
+                    merge_rows(&mut new_row, &r, &query.mob_level.as_ref().unwrap());
                 }
                 final_list.insert(0, new_row);
                 final_list
             }
             None => rows.clone(),
         },
+        PowerTableActions::MergeGuess => {
+            let first_list = rows.clone();
+            let mut second_list = rows.clone();
+            let mut final_list = Vec::<PowerRow>::new();
+            let mob_level = query.mob_level.as_ref().unwrap();
+
+            for r in first_list {
+                let matches: Vec<PowerRow> = second_list
+                    .iter()
+                    .filter(|pr| jaro_winkler(&pr.power_name, &r.power_name) > 0.75)
+                    .map(|pr| pr.clone())
+                    .collect();
+
+                if !matches.is_empty() {
+                    let mut new_row = PowerRow::new();
+                    for m in matches {
+                        second_list.retain(|r| r.power_name != m.power_name);
+                        merge_rows(&mut new_row, &m, mob_level);
+                    }
+                    final_list.push(new_row);
+                }
+            }
+
+            final_list.append(&mut second_list);
+
+            final_list
+        }
         PowerTableActions::Delete => match &query.power_row {
             Some(indexes) => {
                 let mut final_list = rows.clone();
@@ -212,6 +223,35 @@ fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRo
             None => rows.clone(),
         },
     }
+}
+
+fn merge_rows(first_row: &mut PowerRow, second_row: &PowerRow, mob_level: &String) {
+    // Careful here, make sure the new row data is updated before using it
+    // in a later calculations
+    if first_row.power_name == "" {
+        first_row.power_name = second_row.power_name.clone();
+    } else {
+        first_row.power_name = format!("{},{}", first_row.power_name, second_row.power_name);
+    }
+    first_row.activations += second_row.activations;
+    first_row.hits += second_row.hits;
+    first_row.streak_breakers += second_row.streak_breakers;
+    first_row.misses += second_row.misses;
+    first_row.hit_percentage = calc_hit_percent(first_row.hits, first_row.misses);
+    first_row.total_damage += second_row.total_damage;
+    first_row.total_damage_percent += second_row.total_damage_percent;
+    first_row.dpa = calc_dpa(first_row.activations, first_row.total_damage);
+    first_row.dph = calc_dph(first_row.hits, first_row.total_damage);
+    first_row.overkill = calc_overkill(first_row.dph, get_mob_hp(mob_level));
+    first_row.ate = avg_ate(first_row.ate, second_row.ate);
+    first_row.direct_damage += second_row.direct_damage;
+    first_row.dot_damage += second_row.dot_damage;
+    first_row.critical_damage += second_row.critical_damage;
+    first_row.critical_hits += second_row.critical_hits;
+    first_row.percent_hits_critical =
+        calc_hit_critical_percent(first_row.hits, first_row.critical_hits);
+    first_row.percent_damage_critical =
+        calc_damage_critical_percent(first_row.total_damage, first_row.critical_damage);
 }
 
 fn calc_hit_percent(hits: i32, misses: i32) -> Option<i32> {
@@ -333,7 +373,7 @@ fn headers() -> Vec<(&'static str, &'static str)> {
     headers
 }
 
-fn sort(sort_field: String, sort_dir: SortDirection, data: &mut Vec<PowerRow>) {
+fn sort(sort_field: &String, sort_dir: SortDirection, data: &mut Vec<PowerRow>) {
     match sort_field.as_str() {
         "power_name" => match sort_dir {
             SortDirection::DESC => data.sort_by(|a, b| b.power_name.cmp(&a.power_name)),

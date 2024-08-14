@@ -41,6 +41,7 @@ pub enum PowerTableActions {
     Revert,
     RemoveNonDamaging,
     Merge,
+    MergeGuess,
     Delete,
 }
 
