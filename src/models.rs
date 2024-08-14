@@ -72,6 +72,7 @@ pub struct PlayerActivation {
     pub line_number: i32,
     pub log_date: String,
     pub power_name: String,
+    pub proc_fire: i32,
 }
 
 #[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, Serialize, Deserialize)]
@@ -195,6 +196,7 @@ pub struct DamageReportByPower {
     pub summary_key: i32,
     pub power_name: String,
     pub activations: i32,
+    pub proc_fires: i32,
     pub hits: i32,
     pub streak_breakers: i32,
     pub misses: i32,

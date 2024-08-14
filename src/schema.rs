@@ -59,6 +59,7 @@ diesel::table! {
         line_number -> Integer,
         log_date -> Text,
         power_name -> Text,
+        proc_fire -> Integer,
     }
 }
 
@@ -135,6 +136,7 @@ diesel::table! {
         summary_key -> Integer,
         power_name -> Text,
         activations -> Integer,
+        proc_fires -> Integer,
         hits -> Integer,
         streak_breakers -> Integer,
         misses -> Integer,

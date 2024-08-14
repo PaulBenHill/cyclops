@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS hit_or_miss (summary_key INTEGER NOT NULL, line_numbe
 
 -- Table: player_activation
 DROP TABLE IF EXISTS player_activation;
-CREATE TABLE IF NOT EXISTS player_activation (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, power_name TEXT NOT NULL, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key) ON DELETE CASCADE) STRICT;
+CREATE TABLE IF NOT EXISTS player_activation (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, power_name TEXT NOT NULL, proc_fire INTEGER CHECK ((proc_fire IN (0, 1))) NOT NULL DEFAULT (0), PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key) ON DELETE CASCADE) STRICT;
 
 -- Table: reward
 DROP TABLE IF EXISTS reward;
@@ -67,10 +67,12 @@ from summary;
 
 -- View: damage_report_by_power
 DROP VIEW IF EXISTS damage_report_by_power;
-CREATE VIEW IF NOT EXISTS damage_report_by_power AS select
+CREATE VIEW IF NOT EXISTS damage_report_by_power AS 
+select
 summary_key,
 power_name,
 activations,
+proc_fires,
 sum(hits) as hits,
 sum(streak_breakers) as streak_breakers,
 sum(misses) misses,
@@ -96,7 +98,22 @@ from (
 select 
 pa.summary_key, 
 pa.power_name,
-count(pa.power_name) as activations,
+(CASE WHEN
+pa.proc_fire == 0
+THEN
+count(pa.power_name)
+ELSE
+0
+END
+) as activations,
+(CASE WHEN
+pa.proc_fire == 1
+THEN
+count(pa.power_name)
+ELSE
+0
+END
+) as proc_fires,
 0 as hits,
 0 as streak_breakers,
 0 as misses,
@@ -113,6 +130,7 @@ select
 hm.summary_key,
 hm.power_name,
 0 as activations,
+0 as proc_fires,
 sum(hm.hit) AS hits,
 sum(hm.streakbreaker) as streak_breakers,
 sum(CASE WHEN hit = 0 THEN 1 ELSE 0 END) AS misses,
@@ -130,6 +148,7 @@ select
 da.summary_key,
 da.power_name,
 0 as activations,
+0 as proc_fires,
 0 as hits,
 0 as streak_breakers,
 0 as misses,

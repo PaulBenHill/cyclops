@@ -27,6 +27,7 @@
                     <td><input class="pam-checkbox" form="dbp_form" type="checkbox" id="row_{{loop.index0}}" name="power_row[{{loop.index0}}]" value="{{loop.index0}}"></td>
                     <td>{{row.power_name | replace(from=":", to=":<br>") | replace(from=",", to="<br><br>")}}</td>
                     <td>{{row.activations}}</td>
+                    <td>{{row.proc_fires}}</td>
                     <td>{{row.hits}} ({{row.streak_breakers}})</td>
                     <td>{{row.misses}}</td>
                     <td>{{row.hit_percentage}}</td>

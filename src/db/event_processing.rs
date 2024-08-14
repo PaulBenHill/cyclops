@@ -57,6 +57,7 @@ pub fn write_to_database(
                 line_number: data_position.line_number as i32,
                 log_date: data_position.date.to_rfc3339(),
                 power_name: power_name.clone(),
+                proc_fire: 0,
             }),
             FileDataPoint::AutohitPower {
                 data_position,
@@ -70,6 +71,7 @@ pub fn write_to_database(
                         line_number: data_position.line_number as i32,
                         log_date: data_position.date.to_rfc3339(),
                         power_name: power_name.clone(),
+                        proc_fire: 1,
                     })
                 }
             }
@@ -284,7 +286,7 @@ pub fn write_to_database(
                     source_type: String::from("Player"),
                     source_name: String::from("Player"),
                 });
-
+                
                 if damage_dealt.power_name.contains("Chance for")
                     || damage_dealt.power_name.contains("Spider's Bite")
                 {
@@ -293,6 +295,7 @@ pub fn write_to_database(
                         line_number: data_position.line_number as i32,
                         log_date: data_position.date.to_rfc3339(),
                         power_name: damage_dealt.power_name.clone(),
+                        proc_fire: 1,
                     });
                 }
             }
@@ -318,6 +321,7 @@ pub fn write_to_database(
                         line_number: data_position.line_number as i32,
                         log_date: data_position.date.to_rfc3339(),
                         power_name: damage_dealt.power_name.clone(),
+                        proc_fire: 1,
                     });
                 }
             }
@@ -380,6 +384,7 @@ pub fn write_to_database(
                         line_number: data_position.line_number as i32,
                         log_date: data_position.date.to_rfc3339(),
                         power_name: damage_dealt.power_name.clone(),
+                        proc_fire: 1,
                     });
                 }
             }

@@ -24,6 +24,7 @@ lazy_static! {
 struct PowerRow {
     power_name: String,
     activations: i32,
+    proc_fires: i32, 
     hits: i32,
     streak_breakers: i32,
     misses: i32,
@@ -47,6 +48,7 @@ impl PowerRow {
         PowerRow {
             power_name: "".to_string(),
             activations: 0,
+            proc_fires: 0,
             hits: 0,
             streak_breakers: 0,
             misses: 0,
@@ -234,6 +236,7 @@ fn merge_rows(first_row: &mut PowerRow, second_row: &PowerRow, mob_level: &Strin
         first_row.power_name = format!("{},{}", first_row.power_name, second_row.power_name);
     }
     first_row.activations += second_row.activations;
+    first_row.proc_fires += second_row.proc_fires;
     first_row.hits += second_row.hits;
     first_row.streak_breakers += second_row.streak_breakers;
     first_row.misses += second_row.misses;
@@ -327,6 +330,7 @@ fn generate_power_rows(query: &DamageByPowerQuery) -> Vec<PowerRow> {
         rows.push(PowerRow {
             power_name: p.power_name,
             activations: p.activations,
+            proc_fires: p.proc_fires,
             hits: p.hits,
             streak_breakers: p.streak_breakers,
             misses: p.misses,
@@ -354,6 +358,7 @@ fn headers() -> Vec<(&'static str, &'static str)> {
     headers.push(("checked", "Select"));
     headers.push(("power_name", "Power"));
     headers.push(("activations", "Activations"));
+    headers.push(("proc_fires", "Procs"));
     headers.push(("hits", "Hits (Streakbreakers)"));
     headers.push(("misses", "Misses"));
     headers.push(("hit_percentage", "Hit Percentage"));
@@ -382,6 +387,10 @@ fn sort(sort_field: &String, sort_dir: SortDirection, data: &mut Vec<PowerRow>) 
         "activations" => match sort_dir {
             SortDirection::DESC => data.sort_by(|a, b| b.activations.cmp(&a.activations)),
             SortDirection::ASC => data.sort_by(|a, b| a.activations.cmp(&b.activations)),
+        },
+        "proc_fires" => match sort_dir {
+            SortDirection::DESC => data.sort_by(|a, b| b.proc_fires.cmp(&a.proc_fires)),
+            SortDirection::ASC => data.sort_by(|a, b| a.proc_fires.cmp(&b.proc_fires)),
         },
         "hits" => match sort_dir {
             SortDirection::DESC => data.sort_by(|a, b| b.hits.cmp(&a.hits)),
