@@ -26,7 +26,7 @@ Mobs: <select id="mob_name_select"
     {% if mob_name is defined %}
     <option selected value="{{mob_name}}">{{ mob_name | replace(from="_", to=" ")}}</option>
     {% else %}
-    <option disabled selected value>-- select a power --</option>
+    <option disabled selected value>-- select a mob --</option>
     {% endif %}
     {% for m in mobs_damaged %}
       <option value="{{m | replace(from=" ", to="_")}}">{{m}}</option>

@@ -3,12 +3,13 @@ use diesel::dsl::not;
 use diesel::prelude::*;
 use diesel::SqliteConnection;
 
+use crate::game_data;
 use crate::log_processing::parser_model::*;
 use crate::models::{DamageAction, DefeatedTarget, HitOrMiss, PlayerActivation, Reward, Summary};
 
-use crate::schema::{
-    damage_action, defeated_targets, hit_or_miss, player_activation, reward, summary,
-};
+use crate::schema;
+use crate::schema::player_activation;
+use crate::schema::{damage_action, defeated_targets, hit_or_miss, reward, summary};
 
 pub fn write_to_database(
     conn: &mut SqliteConnection,
@@ -286,7 +287,7 @@ pub fn write_to_database(
                     source_type: String::from("Player"),
                     source_name: String::from("Player"),
                 });
-                
+
                 if damage_dealt.power_name.contains("Chance for")
                     || damage_dealt.power_name.contains("Spider's Bite")
                 {
@@ -587,6 +588,7 @@ pub fn write_to_database(
         if !rewards.is_empty() {
             insert_rewards(conn, &rewards);
         }
+
         let final_summaries = finalize_summaries(conn, data_points.len(), &summaries[..]);
         finalize_data(conn, &final_summaries[..]);
         cleanup_summaries(conn);
@@ -682,6 +684,7 @@ fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
         finalize_defeats(conn, s);
         finalize_rewards(conn, s);
     }
+    finalize_pseudo_pets(conn);
 }
 
 fn finalize_activations(conn: &mut SqliteConnection, s: &Summary) {
@@ -778,6 +781,29 @@ fn finalize_rewards(conn: &mut SqliteConnection, s: &Summary) {
         .set(summary_key.eq(s.summary_key))
         .execute(conn)
         .expect("Unable to update rewards");
+}
+
+fn finalize_pseudo_pets(conn: &mut SqliteConnection) {
+    for pet in game_data::PSEUDO_PETS_TABLE.iter() {
+        diesel::update(player_activation::table)
+            .filter(player_activation::power_name.like(&pet.activation_name))
+            .set(player_activation::power_name.eq(&pet.merged_name))
+            .execute(conn)
+            .expect("Unable to update pseudo pet activation");
+
+        diesel::update(hit_or_miss::table)
+            .filter(hit_or_miss::power_name.like(&pet.damage_name))
+            .set(hit_or_miss::power_name.eq(&pet.merged_name))
+            .execute(conn)
+            .expect("Unable to update pseudo damage_action");
+
+        diesel::update(damage_action::table)
+            .filter(damage_action::power_name.like(&pet.damage_name))
+            .set(damage_action::power_name.eq(&pet.merged_name))
+            .execute(conn)
+            .expect("Unable to update pseudo damage_action");
+
+    }
 }
 
 fn cleanup_summaries(conn: &mut SqliteConnection) {

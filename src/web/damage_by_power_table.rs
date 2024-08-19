@@ -194,7 +194,7 @@ fn handle_action(query: &DamageByPowerQuery, rows: Vec<PowerRow>) -> Vec<PowerRo
             for r in first_list {
                 let matches: Vec<PowerRow> = second_list
                     .iter()
-                    .filter(|pr| jaro(&pr.power_name, &r.power_name) > 0.75)
+                    .filter(|pr| jaro_winkler(&pr.power_name, &r.power_name) > 0.75)
                     .map(|pr| pr.clone())
                     .collect();
 
