@@ -1,5 +1,5 @@
 use chrono::{self, DateTime, Local, NaiveDateTime};
-use serde::{Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 use std::fmt;
 
 #[derive(Debug, Serialize, Clone)]
@@ -42,7 +42,7 @@ impl DataPosition {
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub enum DamageType {
     Smashing,
     Lethal,

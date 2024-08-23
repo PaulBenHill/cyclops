@@ -50,6 +50,7 @@ diesel::table! {
         target_name -> Text,
         power_name -> Text,
         streakbreaker -> Integer,
+        sim_hit -> Integer,
     }
 }
 

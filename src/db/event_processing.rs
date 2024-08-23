@@ -7,7 +7,6 @@ use crate::game_data;
 use crate::log_processing::parser_model::*;
 use crate::models::{DamageAction, DefeatedTarget, HitOrMiss, PlayerActivation, Reward, Summary};
 
-use crate::schema;
 use crate::schema::player_activation;
 use crate::schema::{damage_action, defeated_targets, hit_or_miss, reward, summary};
 
@@ -91,6 +90,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::PlayerStreakbreakerHit {
@@ -108,6 +108,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 1,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::PlayerMiss {
@@ -125,6 +126,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::PseudoPetHit {
@@ -143,6 +145,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::PseudoPetStreakbreakerHit {
@@ -161,6 +164,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 1,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::PsuedoPetMiss {
@@ -179,6 +183,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::MobHit {
@@ -197,6 +202,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::MobAutoHit {
@@ -215,6 +221,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::MobMiss {
@@ -233,6 +240,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::MobPseudoPetHit {
@@ -251,6 +259,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::MobPseudoPetMiss {
@@ -269,6 +278,7 @@ pub fn write_to_database(
                     target_name: action_result.target.clone(),
                     power_name: action_result.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::PlayerDirectDamage {
@@ -417,6 +427,7 @@ pub fn write_to_database(
                     target_name: damage_dealt.target.clone(),
                     power_name: damage_dealt.power_name.clone(),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::PsuedoPetCriticalDamage {
@@ -522,6 +533,7 @@ pub fn write_to_database(
                     target_name: String::from("NA"),
                     power_name: String::from("Fulcrum Shift"),
                     streakbreaker: 0,
+                    sim_hit: 0,
                 });
             }
             FileDataPoint::PlayerVictory {
@@ -685,6 +697,7 @@ fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
         finalize_rewards(conn, s);
     }
     finalize_pseudo_pets(conn);
+    finalize_sim_hits(conn)
 }
 
 fn finalize_activations(conn: &mut SqliteConnection, s: &Summary) {
@@ -802,7 +815,59 @@ fn finalize_pseudo_pets(conn: &mut SqliteConnection) {
             .set(damage_action::power_name.eq(&pet.merged_name))
             .execute(conn)
             .expect("Unable to update pseudo damage_action");
+    }
+}
 
+fn finalize_sim_hits(conn: &mut SqliteConnection) {
+    for p in game_data::SIM_HIT_POWERS.iter() {
+        println!("Processing {}", p.power_name);
+        // select all damage_actions row by power
+        use crate::schema::damage_action::dsl::*;
+        let damage_rows: Vec<DamageAction> = damage_action
+            .select(DamageAction::as_select())
+            .filter(
+                power_name
+                    .like(p.power_name.to_string())
+                    .and(source_type.eq("Player").or(source_type.eq("PlayerPet")))
+                    .and(damage_type.eq(p.damage_type.to_string())),
+            )
+            .load(conn)
+            .expect("Unable to load damage actions");
+        println!("Damage rows return: {}", damage_rows.len());
+        if !damage_rows.is_empty() {
+            // delete hit, not misses, rows with the same power name and from the player
+            let deletes = diesel::delete(hit_or_miss::table)
+                .filter(
+                    hit_or_miss::dsl::hit.eq(1).and(
+                        hit_or_miss::dsl::power_name
+                            .like(p.power_name.to_string())
+                            .and(hit_or_miss::dsl::source_type.eq("Player").or(hit_or_miss::dsl::source_type.eq("PlayerPet"))),
+                    ),
+                )
+                .execute(conn);
+            println!("Hit rows deleted: {}", deletes.unwrap());
+            // insert a hit row for each damage_action row at the same time
+            let mut sim_hits = Vec::<HitOrMiss>::new();
+            for r in damage_rows {
+                sim_hits.push(HitOrMiss {
+                    summary_key: r.summary_key,
+                    line_number: 11221970 + r.line_number,
+                    log_date: r.log_date,
+                    hit: 1,
+                    chance_to_hit: 100,
+                    source_type: r.source_type,
+                    source_name: r.source_name,
+                    target_name: r.target_name,
+                    power_name: r.power_name,
+                    streakbreaker: 0,
+                    sim_hit: 1,
+                });
+            }
+            let row_count = diesel::insert_into(hit_or_miss::table)
+                .values(sim_hits)
+                .execute(conn);
+            println!("Inserted sim hits: {}", row_count.unwrap());
+        }
     }
 }
 

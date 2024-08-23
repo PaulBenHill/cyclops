@@ -62,6 +62,7 @@ pub struct HitOrMiss {
     pub target_name: String,
     pub power_name: String,
     pub streakbreaker: i32,
+    pub sim_hit: i32,
 }
 
 #[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable)]
