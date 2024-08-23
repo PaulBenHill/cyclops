@@ -2,10 +2,14 @@ use core::fmt;
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
+use strsim::jaro_winkler;
+
+use crate::log_processing::parser_model::DamageType;
 
 lazy_static! {
     pub static ref MINION_HP_TABLE: Vec<MobHP> = initialize_mob_hp_tables(MobClass::Minion);
     pub static ref PSEUDO_PETS_TABLE: Vec<PseudoPets> = initialize_pseudo_pet_table();
+    pub static ref SIM_HIT_POWERS: Vec<SimHitPower> = initialize_sim_hit_powers();
 }
 
 #[derive(Debug)]
@@ -44,14 +48,21 @@ pub struct PseudoPets {
     pub merged_name: String,
 }
 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct SimHitPower {
+    pub power_name: String,
+    pub damage_type: DamageType,
+}
+
 pub fn initialize_mob_hp_tables(mob_class: MobClass) -> Vec<MobHP> {
     csv::Reader::from_path(format!(".\\resources\\{}_hp_table.csv", mob_class))
         .unwrap()
         .deserialize()
-        .map(|r| r.unwrap()).collect()
+        .map(|r| r.unwrap())
+        .collect()
 }
 
-pub fn get_mob_hp(level: &String ) -> i32 {
+pub fn get_mob_hp(level: &String) -> i32 {
     let l = i32::from_str_radix(level, 10).unwrap();
     MINION_HP_TABLE.iter().find(|d| l == d.level).unwrap().hp
 }
@@ -60,5 +71,14 @@ pub fn initialize_pseudo_pet_table() -> Vec<PseudoPets> {
     csv::Reader::from_path(".\\resources\\pseudo_pets.csv")
         .unwrap()
         .deserialize()
-        .map(|r| r.unwrap()).collect()
+        .map(|r| r.unwrap())
+        .collect()
+}
+
+pub fn initialize_sim_hit_powers() -> Vec<SimHitPower> {
+    csv::Reader::from_path(".\\resources\\sim_hit_powers.csv")
+        .unwrap()
+        .deserialize()
+        .map(|r| r.unwrap())
+        .collect()
 }
