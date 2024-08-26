@@ -84,7 +84,13 @@ sum(hits) IS NOT NULL AND sum(hits) > 0
 THEN
 sum(power_total_damage)/sum(hits)
 ELSE
+(CASE WHEN
+sum(proc_fires) IS NOT NULL AND sum(proc_fires) > 0
+THEN
+sum(power_total_damage)/sum(proc_fires)
+ELSE
 NULL
+END)
 END
 ) as dph,
 (ROUND(1.0 * sum(hits + misses) / activations)) as ate,

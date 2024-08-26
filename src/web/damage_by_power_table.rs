@@ -3,7 +3,6 @@ use std::sync::Mutex;
 
 use serde::Deserialize;
 use serde::Serialize;
-use strsim::jaro;
 use strsim::jaro_winkler;
 use tera::Context;
 
@@ -245,7 +244,7 @@ fn merge_rows(first_row: &mut PowerRow, second_row: &PowerRow, mob_level: &Strin
     first_row.total_damage += second_row.total_damage;
     first_row.total_damage_percent += second_row.total_damage_percent;
     first_row.dpa = calc_dpa(first_row.activations, first_row.total_damage);
-    first_row.dph = calc_dph(first_row.hits, first_row.total_damage);
+    first_row.dph = calc_dph(first_row.hits, first_row.proc_fires, first_row.total_damage);
     first_row.overkill = calc_overkill(first_row.dph, get_mob_hp(mob_level));
     first_row.ate = avg_ate(first_row.ate, second_row.ate);
     first_row.direct_damage += second_row.direct_damage;
@@ -276,9 +275,12 @@ fn calc_dpa(activations: i32, total_damage: i32) -> Option<i32> {
     }
 }
 
-fn calc_dph(hits: i32, total_damage: i32) -> Option<i32> {
+fn calc_dph(hits: i32, procs: i32, total_damage: i32) -> Option<i32> {
     if hits > 0 && total_damage > 0 {
         let v = (total_damage as f32 / hits as f32).round() as i32;
+        Some(v)
+    } else if procs > 0 && total_damage > 0 {
+        let v = (total_damage as f32 / procs as f32).round() as i32;
         Some(v)
     } else {
         None

@@ -820,7 +820,7 @@ fn finalize_pseudo_pets(conn: &mut SqliteConnection) {
 
 fn finalize_sim_hits(conn: &mut SqliteConnection) {
     for p in game_data::SIM_HIT_POWERS.iter() {
-        println!("Processing {}", p.power_name);
+        //println!("Processing {}", p.power_name);
         // select all damage_actions row by power
         use crate::schema::damage_action::dsl::*;
         let damage_rows: Vec<DamageAction> = damage_action
@@ -833,7 +833,7 @@ fn finalize_sim_hits(conn: &mut SqliteConnection) {
             )
             .load(conn)
             .expect("Unable to load damage actions");
-        println!("Damage rows return: {}", damage_rows.len());
+        //println!("Damage rows return: {}", damage_rows.len());
         if !damage_rows.is_empty() {
             // delete hit, not misses, rows with the same power name and from the player
             let deletes = diesel::delete(hit_or_miss::table)
@@ -845,7 +845,7 @@ fn finalize_sim_hits(conn: &mut SqliteConnection) {
                     ),
                 )
                 .execute(conn);
-            println!("Hit rows deleted: {}", deletes.unwrap());
+            //println!("Hit rows deleted: {}", deletes.unwrap());
             // insert a hit row for each damage_action row at the same time
             let mut sim_hits = Vec::<HitOrMiss>::new();
             for r in damage_rows {
@@ -866,7 +866,7 @@ fn finalize_sim_hits(conn: &mut SqliteConnection) {
             let row_count = diesel::insert_into(hit_or_miss::table)
                 .values(sim_hits)
                 .execute(conn);
-            println!("Inserted sim hits: {}", row_count.unwrap());
+            //println!("Inserted sim hits: {}", row_count.unwrap());
         }
     }
 }
