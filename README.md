@@ -39,7 +39,7 @@ Once, you log into a character, log files should start appearing in \<coh instal
 
 The default behavior is to start the web server at http://127.0.0.1:11227. Command line options are available. See below.
 ## Installation
-- Unzip the downloaded [release](https://github.com/PaulBenHill/cyclops/releases/tag/Cyclops-beta-1.1) where ever you want, the application is self contained.
+- Unzip the downloaded [release](https://github.com/PaulBenHill/cyclops/releases/tag/Cyclops-beta-1.2) where ever you want, the application is self contained.
 ## Windows Users: 
 - double click on - cyclops.bat.
 ## Linux/IOS: 
