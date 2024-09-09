@@ -85,8 +85,10 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - Attack Summary - Global totals for this session
 - Attack Summary By Power - Combat totals per power
   - Merge rows together that you think are related. Like procs.
+  - Merge Rows Best Guess - Uses a string matching algorithm to merge rows. Great for Mastermind pets and psuedo pets with similar names.
   - Delete row
-- Remove Non Damage Power - Removes powers like Hasten, Placate, and Build Up.
+  - Remove Non Damage Power - Removes powers like Hasten, Placate, and Build Up.
+  - Minion level - Helps determine how much over/under kill for each power.
 - Revert Changes - Revert all table changes.
 - DPS using an interval of \<interval\> - DPS (Damage per second) when the gap between damage log messages is less than the interval. Example, you attack a spawn, defeat them, wait 60 seconds, then attack another spawn. That would be considered two DPS sessions with an interval of 60.
 - Damage Dealt By Type - Damage done to mobs sorted by damage type.
@@ -95,6 +97,7 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - Damage Taken By Mob Power - Detailed break down of damage dealt to the player by each mob's power.
 - Damage Dealt To Mob Power - Detailed break down of damage dealty by each player power for each mob damaged.
 - Damage by Power or Mob - Select either a power or mob and see what damage was done filtered for a specific power or mob.
+  - Minion level - Helps determine how much over/under kill for each power. 
 
 ## Report directory is where the data is stored to generate the summaries
 - Copy of the source chat log. Example: chatlog_2024_02_08.txt.
