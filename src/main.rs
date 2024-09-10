@@ -17,7 +17,7 @@ mod game_data;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
-const VERSION: &str = "1.0";
+const VERSION: &str = "1.3";
 
 #[derive(Clone, Debug)]
 struct AppContext {
