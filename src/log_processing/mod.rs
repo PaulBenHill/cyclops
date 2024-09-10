@@ -294,13 +294,18 @@ impl ParserJob {
             Ok(file) => {
                 let mut reader = BufReader::new(file);
 
-                while reader
-                    .read_line(&mut buf)
-                    .expect(&format!("Unable to read line from {:?}", log_path))
-                    > 0
-                {
-                    lines.push(buf.clone());
-                    buf.clear();
+                loop { 
+                    match reader.read_line(&mut buf) {
+                            Ok(count) => {
+                             if count > 0 {
+                              lines.push(buf.clone());
+                              buf.clear();
+                            } else {
+                                break;
+                            }
+                        }
+                        Err(e) => println!("Not valid line, error: {}, line: {}. Ignoring line.", e, lines.len()+1),
+                    };
                 }
             }
             Err(e) => panic!("Unable to copied log file: {:?}:{}", log_path, e),
