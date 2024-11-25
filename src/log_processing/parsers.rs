@@ -15,7 +15,6 @@ lazy_static! {
     static ref LOOT_DROP_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You received (.+)[.]").unwrap();
 
     static ref MOB_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! (.+) power had a (.+)% chance to hit and rolled a (.+)[.]").unwrap();
-    static ref MOB_AUTO_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! (.+) power was autohit\.").unwrap();
     static ref MOB_MISS_MATCHER: Regex 	= Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) MISSES! (.+) power had a (.+)% chance to hit, but rolled a (.+)[.]").unwrap();
     static ref MOB_PSEDUOPET_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) HITS you! (.+) power had a (.+)% chance to hit and rolled a (.+)[.]").unwrap();
     static ref MOB_PSEDUOPET_MISS_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) MISSES! (.+) power had a (.+)% chance to hit, but rolled a (.+)[.]").unwrap();
@@ -52,9 +51,10 @@ lazy_static! {
     static ref MOB_PSEUDO_PET_CONTROL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+?) (Stuns|Holds|Immobilizes|Confuses|Taunts|Terrifies?) you with their ([a-zA-Z ]+?)[.]").unwrap();
 
     static ref AUTOHIT_ONE_MATCHER: Regex  = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) HIT (.+)! Your (.+) power is autohit.").unwrap();
-    static ref AUTOHIT_TWO_MATCHER: Regex  = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! Your (.+) power is autohit.").unwrap();
-    static ref AUTOHIT_MATCHER_PSEUDO_PET_MATCHER_ONE: Regex  = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) HITS you! (.+) power was autohit.").unwrap();
-    static ref AUTOHIT_MATCHER_PSEUDO_PET_MATCHER_TWO: Regex  = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power is autohit.").unwrap();
+    static ref AUTOHIT_TWO_MATCHER: Regex  = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! Your (.+) power was autohit.").unwrap();
+    static ref AUTOHIT_MATCHER_PSEUDO_PET_MATCHER_ONE: Regex  = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  HIT (.+)! Your (.+) power is autohit.").unwrap();
+    static ref AUTOHIT_MATCHER_PSEUDO_PET_MATCHER_TWO: Regex  = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) HITS you! (.+) power was autohit.").unwrap();
+    static ref OTHER_AUTO_HIT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) HITS you! (.+) power was autohit\.").unwrap();
 
     static ref CHAT_MESSAGE_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) \[(.*?)\] (.*)").unwrap();
 
@@ -67,6 +67,9 @@ lazy_static! {
     static ref PLAYER_ENDURANCE_OTHER_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with (.+) granting them (.*) points of endurance[.]$").unwrap();
     static ref PLAYER_ENDURANCE_BUFF_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+) hits you with their (.+) granting you (.+) points of endurance").unwrap();
 
+    static ref RESISTANCE_DEBUFF: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+).*reduc.*resistance.*").unwrap();
+    static ref TARGET_UNAFFECTED: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) Target is unaffected by.*").unwrap();
+
     // Combined regex
     static ref PLAYER_ATTACK_DAMAGE: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for ([0-9.]+) points of\s?(?:unresistable)?\s?(.+) damage\s*(?P<dot>over time){0,1}(?P<critical>.+){0,1}[.]").unwrap();
     static ref PSEUDO_PET_ATTACK_DAMAGE: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You hit (.+) with your (.+) for (.+) points of\s?(?:unresistable)?\s?(.+) damage\s*(?P<dot>over time){0,1}(?P<critical>.+){0,1}[.]").unwrap();
@@ -77,14 +80,12 @@ lazy_static! {
     //static ref PSEUDO_PET_HEAL_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  You heal (.+) with (.+) for (.+) health points(.*)[.]$").unwrap();
     //static ref PSEUDO_PET_HEAL_HOT_MATCHER: Regex = Regex::new(r"^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+?):  (.+) heals you with their (.+) for (.+) health points over time.").unwrap();
     /*
-    public static final String PATTERN_MISS 	 	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) MISSED (.+)!! Your (.+) power had a (.+)% chance to hit, you rolled a (.+).";
     public static final String PATTERN_PSEUDOHEAL	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  You heal (.+) with (.+) for (.+) health points.";
     public static final String PATTERN_END			= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) granting them (.+) points of endurance(.*)[.]$";
     public static final String PATTERN_END2			= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) Your (.+) grants you (.+) points of endurance(.*)[.]$";
     public static final String PATTERN_PSEUDOEND	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  You hit (.+) with your (.+) granting them (.+) points of endurance(.*)[.]$";
     public static final String PATTERN_END_DAM		= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You hit (.+) with your (.+) for (.+) points of their endurance(.*)[.]$";
     public static final String PATTERN_PSEUDOEND_DAM= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) (.+):  You hit (.+) with your (.+) for (.+) points of their endurance(.*)[.]$";
-    public static final String PATTERN_XP_INCARN	= "^([0-9]+-[0-9]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+) You have defeated (.+)";
     public static final String PATTERN_DROP_COMMON	= "^Invention:.+";
     public static final String COMBAT 			= "combat_";
     public static final String GLOBAL_PREFIX 	= "global_";
@@ -130,7 +131,6 @@ pub fn initialize_matchers() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_player_miss,
         extract_loot_drop,
         extract_mob_hit,
-        //extract_mob_auto_hit,
         extract_mob_miss,
         extract_player_victory,
         extract_mob_pseudo_pet_control,
@@ -141,6 +141,9 @@ pub fn initialize_matchers() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_mob_pseudo_pet_damage,
         extract_mob_damage_dot,
         extract_mob_damage,
+        extract_resistance_debuff,
+        extract_other_auto_hit,
+        extract_target_unaffected,
         //extract_recipe_drop,
         //extract_player_knockback,
         //extract_pet_knockback,
@@ -309,11 +312,11 @@ pub fn extract_mob_hit(line_number: u32, line: &String) -> Option<FileDataPoint>
     }
 }
 
-pub fn extract_mob_auto_hit(line_number: u32, line: &String) -> Option<FileDataPoint> {
-    let caps = MOB_AUTO_HIT_MATCHER.captures(line);
+pub fn extract_other_auto_hit(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = OTHER_AUTO_HIT_MATCHER.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::MobAutoHit {
+        Some(data) => Some(FileDataPoint::OtherAutoHit {
             data_position: DataPosition::new(line_number, &data[1]),
             name: String::from(&data[2]),
             action_result: HitOrMiss::new("Player", &data[3], "100"),
@@ -754,7 +757,7 @@ pub fn extract_autohit_pseudo_pet_one(line_number: u32, line: &String) -> Option
     let caps = AUTOHIT_MATCHER_PSEUDO_PET_MATCHER_ONE.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::AutohitPower {
+        Some(data) => Some(FileDataPoint::AutohitPowerIgnore {
             data_position: DataPosition::new(line_number, &data[1]),
             source: String::from("Player"),
             target: String::from(&data[2]),
@@ -768,7 +771,7 @@ pub fn extract_autohit_pseudo_pet_two(line_number: u32, line: &String) -> Option
     let caps = AUTOHIT_MATCHER_PSEUDO_PET_MATCHER_TWO.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::AutohitPower {
+        Some(data) => Some(FileDataPoint::AutohitPowerIgnore {
             data_position: DataPosition::new(line_number, &data[1]),
             source: String::from(&data[2]),
             target: String::from(&data[3]),
@@ -796,7 +799,7 @@ pub fn extract_autohit_two(line_number: u32, line: &String) -> Option<FileDataPo
     let caps = AUTOHIT_TWO_MATCHER.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::AutohitPower {
+        Some(data) => Some(FileDataPoint::AutohitPowerIgnore {
             data_position: DataPosition::new(line_number, &data[1]),
             source: String::from("Player"),
             target: String::from(&data[2]),
@@ -814,6 +817,28 @@ pub fn extract_chat_message(line_number: u32, line: &String) -> Option<FileDataP
             data_position: DataPosition::new(line_number, &data[1]),
             category: String::from(&data[2]),
             message: String::from(&data[3]),
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_resistance_debuff(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = RESISTANCE_DEBUFF.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::ResistanceDebuff { 
+            data_position: DataPosition::new(line_number, &data[1])
+        }),
+        None => None,
+    }
+}
+
+pub fn extract_target_unaffected(line_number: u32, line: &String) -> Option<FileDataPoint> {
+    let caps = TARGET_UNAFFECTED.captures(line);
+
+    match caps {
+        Some(data) => Some(FileDataPoint::TargetUnaffected { 
+            data_position: DataPosition::new(line_number, &data[1])
         }),
         None => None,
     }

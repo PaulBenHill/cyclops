@@ -228,7 +228,7 @@ pub enum FileDataPoint {
         name: String,
         action_result: HitOrMiss,
     },
-    MobAutoHit {
+    OtherAutoHit {
         data_position: DataPosition,
         name: String,
         action_result: HitOrMiss,
@@ -309,6 +309,10 @@ pub enum FileDataPoint {
     PlayerKnockback {
         data_position: DataPosition,
         target: String,
+        power_name: String,
+    },
+    PlayerPowerRecharged {
+        data_position: DataPosition,
         power_name: String,
     },
     PlayerFulcrumShift {
@@ -403,6 +407,18 @@ pub enum FileDataPoint {
         source: String,
         target: String,
         power_name: String,
+    },
+    AutohitPowerIgnore {
+        data_position: DataPosition,
+        source: String,
+        target: String,
+        power_name: String,
+    },
+    ResistanceDebuff {
+        data_position: DataPosition,
+    },
+    TargetUnaffected {
+        data_position: DataPosition,
     },
     ChatMessage {
         data_position: DataPosition,

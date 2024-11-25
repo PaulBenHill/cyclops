@@ -205,25 +205,27 @@ pub fn write_to_database(
                     sim_hit: 0,
                 });
             }
-            FileDataPoint::MobAutoHit {
-                data_position,
-                action_result,
-                name,
-            } => {
-                hits_misses.push(crate::models::HitOrMiss {
-                    summary_key: key,
-                    line_number: data_position.line_number as i32,
-                    log_date: data_position.date.to_rfc3339(),
-                    hit: 1,
-                    chance_to_hit: 100,
-                    source_type: String::from("Mob"),
-                    source_name: String::from(name),
-                    target_name: action_result.target.clone(),
-                    power_name: action_result.power_name.clone(),
-                    streakbreaker: 0,
-                    sim_hit: 0,
-                });
-            }
+            // Probematic TODO
+            // Could be player or mob, could spam
+            // FileDataPoint::OtherAutoHit {
+            //     data_position,
+            //     action_result,
+            //     name,
+            // } => {
+            //     hits_misses.push(crate::models::HitOrMiss {
+            //         summary_key: key,
+            //         line_number: data_position.line_number as i32,
+            //         log_date: data_position.date.to_rfc3339(),
+            //         hit: 1,
+            //         chance_to_hit: 100,
+            //         source_type: String::from("Mob"),
+            //         source_name: String::from(name),
+            //         target_name: action_result.target.clone(),
+            //         power_name: action_result.power_name.clone(),
+            //         streakbreaker: 0,
+            //         sim_hit: 0,
+            //     });
+            // }
             FileDataPoint::MobMiss {
                 data_position,
                 action_result,
@@ -836,12 +838,16 @@ fn finalize_sim_hits(conn: &mut SqliteConnection) {
         //println!("Damage rows return: {}", damage_rows.len());
         if !damage_rows.is_empty() {
             // delete hit, not misses, rows with the same power name and from the player
-            let deletes = diesel::delete(hit_or_miss::table)
+            let _ = diesel::delete(hit_or_miss::table)
                 .filter(
                     hit_or_miss::dsl::hit.eq(1).and(
                         hit_or_miss::dsl::power_name
                             .like(p.power_name.to_string())
-                            .and(hit_or_miss::dsl::source_type.eq("Player").or(hit_or_miss::dsl::source_type.eq("PlayerPet"))),
+                            .and(
+                                hit_or_miss::dsl::source_type
+                                    .eq("Player")
+                                    .or(hit_or_miss::dsl::source_type.eq("PlayerPet")),
+                            ),
                     ),
                 )
                 .execute(conn);

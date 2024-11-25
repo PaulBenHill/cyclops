@@ -1,14 +1,24 @@
 use std::{
-     fmt, fs::{self, File}, io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write}, mem, path::{Path, PathBuf}, sync::Mutex, time::Instant
+    fmt,
+    fs::{self, File},
+    io::{BufRead, BufReader, BufWriter, LineWriter, Lines, Write},
+    mem,
+    path::{Path, PathBuf},
+    sync::Mutex,
+    time::Instant,
 };
 
 use chrono::Local;
 use diesel::SqliteConnection;
+use lazy_static::lazy_static;
 use parser_model::FileDataPoint;
 use serde::{Deserialize, Serialize};
-use lazy_static::lazy_static;
 
-use crate::{db::{self, event_processing::write_to_database}, models::Summary, AppContext};
+use crate::{
+    db::{self, event_processing::write_to_database},
+    models::Summary,
+    AppContext,
+};
 
 pub mod parser_model;
 mod parsers;
@@ -40,18 +50,17 @@ pub struct ParserJob {
 }
 
 pub fn add_job(job: ParserJob) {
-  let mut queue = PARSER_JOB_QUEUE.lock().unwrap();
+    let mut queue = PARSER_JOB_QUEUE.lock().unwrap();
 
-  let _ = mem::replace(&mut *queue, Some(job));
+    let _ = mem::replace(&mut *queue, Some(job));
 }
 
 pub fn get_job() -> Option<ParserJob> {
-  let mut queue = PARSER_JOB_QUEUE.lock().unwrap();
+    let mut queue = PARSER_JOB_QUEUE.lock().unwrap();
 
-  let job_option = mem::replace(&mut *queue, None);
+    let job_option = mem::replace(&mut *queue, None);
 
-
-  job_option
+    job_option
 }
 
 impl ParserJob {
@@ -93,7 +102,7 @@ impl ParserJob {
                 Self::write_data_files(
                     conn,
                     &report_dir,
-                   &file,
+                    &file,
                     &file_path,
                     &data_points,
                     &summaries,
@@ -115,7 +124,6 @@ impl ParserJob {
         self.completion_date = format!("{}", local_time.format("%a %b %e %T %Y"));
         let last_file = self.files.last().unwrap();
         self.last_file = String::from(last_file.as_os_str().to_str().unwrap());
-
 
         println!("File(s) processing time took: {} second.", self.run_time);
 
@@ -261,7 +269,7 @@ impl ParserJob {
         parsed_lines: &Vec<FileDataPoint>,
         summaries: &Vec<Summary>,
     ) {
-         let log_file_path = report_dir.join(file_name.file_name().unwrap());
+        let log_file_path = report_dir.join(file_name.file_name().unwrap());
         if let Err(e) = std::fs::copy(data_file, log_file_path.to_path_buf()) {
             println!("Copying data file return zero bytes: {}", e);
         }
@@ -270,6 +278,7 @@ impl ParserJob {
 
         //write parsed logs for troubleshooting
         Self::write_parsed_files(&report_dir, parsed_lines);
+        Self::write_rp_file(&report_dir, parsed_lines);
 
         let dps_file = match File::create(report_dir.join("dps.csv")) {
             Ok(f) => f,
@@ -294,17 +303,21 @@ impl ParserJob {
             Ok(file) => {
                 let mut reader = BufReader::new(file);
 
-                loop { 
+                loop {
                     match reader.read_line(&mut buf) {
-                            Ok(count) => {
-                             if count > 0 {
-                              lines.push(buf.clone());
-                              buf.clear();
+                        Ok(count) => {
+                            if count > 0 {
+                                lines.push(buf.clone());
+                                buf.clear();
                             } else {
                                 break;
                             }
                         }
-                        Err(e) => println!("Not valid line, error: {}, line: {}. Ignoring line.", e, lines.len()+1),
+                        Err(e) => println!(
+                            "Not valid line, error: {}, line: {}. Ignoring line.",
+                            e,
+                            lines.len() + 1
+                        ),
                     };
                 }
             }
@@ -332,7 +345,6 @@ impl ParserJob {
                     chunk_path.clone()
                 ));
             }
-
         }
     }
 
@@ -344,10 +356,91 @@ impl ParserJob {
         let mut buf_text_writer = BufWriter::new(parsed_text_file);
         for data_point in parsed_lines {
             buf_text_writer
-                .write_all(format!("{:?}\n,", data_point).as_bytes())
+                .write_all(format!("{:?}\r\n,", data_point).as_bytes())
                 .expect("Unable to write parsed.txt")
         }
     }
+
+    const IGNORE_LIST: &'static [&'static str] = &[
+        "reduces the regeneration rate",
+        "You are now Stealthy.",
+        "You activate Sprint and can now run faster.",
+        "knocks you off your feet with their",
+        "You are now Tough, and are slightly resistant to Smashing and Lethal damage",
+        "You start to Weave and are now harder to hit and Immobilize",
+        "is still recharging",
+        "Your henchmen protect you from",
+        "You cower in terror",
+        "Your Hasten has increased your rate of attack",
+        "Your Hasten drains",
+        "You are no longer afraid",
+        "boosts the damage of your attacks"
+    ];
+
+    fn write_rp_file(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
+        let parsed_text_file = match File::create(report_dir.join("rp.txt")) {
+            Ok(f) => f,
+            Err(e) => panic!("Cannot create rp.txt file: {:?}", e),
+        };
+        let mut buf_text_writer = BufWriter::new(parsed_text_file);
+        for data_point in parsed_lines {
+            match data_point {
+                FileDataPoint::ChatMessage {
+                    data_position,
+                    category,
+                    message,
+                } => buf_text_writer
+                    .write_all(
+                        format!(
+                            "[CHAT]#+!{}#+!{}#+!{}#+!{}\r\n",
+                            data_position.line_number,
+                            data_position.date.format("%Y/%m/%d %H:%M"),
+                            category,
+                            message
+                        )
+                        .as_bytes(),
+                    )
+                    .expect("Unable to write chat message to rp.txt"),
+                FileDataPoint::Unparsed {
+                    data_position,
+                    content,
+                } => {
+                    if !Self::IGNORE_LIST.iter().any(|s| content.contains(s)) {
+                        buf_text_writer
+                            .write_all(
+                                format!(
+                                    "UNPARSED#+!{}#+!{}#+!{}\r\n",
+                                    data_position.line_number,
+                                    data_position.date.format("%Y/%m/%d %H:%M"),
+                                    content
+                                )
+                                .as_bytes(),
+                            )
+                            .expect("Unable to write unparsed to rp.txt")
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+}
+
+pub struct MonitorJob {
+    pub dir: PathBuf,
+    // configuration
+    pub start_time: String,
+    pub last_run_time: String,
+    pub errors: Vec<ProcessingError>,
+}
+
+impl MonitorJob {
+    // find file updated in the last min
+    // open file for reading
+    // read lines
+    // process lines
+    // write to db - mutex
+    // sleep
+    // repeat read lines from last position
 }
 
 pub fn create_dir(dir_path: &PathBuf) {
