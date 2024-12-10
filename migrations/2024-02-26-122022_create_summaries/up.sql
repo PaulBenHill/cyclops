@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS hit_or_miss (summary_key INTEGER NOT NULL, line_numbe
 DROP TABLE IF EXISTS player_activation;
 CREATE TABLE IF NOT EXISTS player_activation (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, power_name TEXT NOT NULL, proc_fire INTEGER CHECK ((proc_fire IN (0, 1))) NOT NULL DEFAULT (0), PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key) ON DELETE CASCADE) STRICT;
 
+-- Table: player_power_recharged
+DROP TABLE IF EXISTS player_power_recharged;
+CREATE TABLE IF NOT EXISTS player_power_recharged (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, power_name TEXT NOT NULL, PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key) ON DELETE CASCADE) STRICT;
+
 -- Table: reward
 DROP TABLE IF EXISTS reward;
 CREATE TABLE IF NOT EXISTS reward (summary_key INTEGER NOT NULL, line_number INTEGER NOT NULL, log_date TEXT NOT NULL, experience INTEGER, influence INTEGER, item_drop TEXT, reward_type TEXT NOT NULL CHECK (reward_type IN ('ExpAndInf', 'Threads', 'Item')), PRIMARY KEY (summary_key, line_number, log_date), FOREIGN KEY (summary_key) REFERENCES summary (summary_key) ON DELETE CASCADE) STRICT;
@@ -68,107 +72,94 @@ from summary;
 -- View: damage_report_by_power
 DROP VIEW IF EXISTS damage_report_by_power;
 CREATE VIEW IF NOT EXISTS damage_report_by_power AS 
-select
-summary_key,
-power_name,
-activations,
-proc_fires,
-sum(hits) as hits,
-sum(streak_breakers) as streak_breakers,
-sum(misses) misses,
-ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses)) * 100) as hit_percentage,
-sum(power_total_damage) as power_total_damage,
-(sum(power_total_damage)/activations) as dpa,
-(CASE WHEN 
-sum(hits) IS NOT NULL AND sum(hits) > 0
-THEN
-sum(power_total_damage)/sum(hits)
-ELSE
-(CASE WHEN
-sum(proc_fires) IS NOT NULL AND sum(proc_fires) > 0
-THEN
-sum(power_total_damage)/sum(proc_fires)
-ELSE
-NULL
-END)
-END
-) as dph,
-(ROUND(1.0 * sum(hits + misses) / activations)) as ate,
-sum(direct_damage) as direct_damage,
-sum(dot_damage) as dot_damage,
-sum(critical_damage) as critical_damage,
-sum(critical_hits) as critical_hits,
-(ROUND(1.0 * sum(critical_hits) / (sum(hits)) * 100)) as percent_hits_critical,
-(ROUND(1.0 * sum(critical_damage) / (sum(power_total_damage)) * 100)) as percent_damage_critical
-from (
-select 
-pa.summary_key, 
-pa.power_name,
-(CASE WHEN
-pa.proc_fire == 0
-THEN
-count(pa.power_name)
-ELSE
-0
-END
-) as activations,
-(CASE WHEN
-pa.proc_fire == 1
-THEN
-count(pa.power_name)
-ELSE
-0
-END
-) as proc_fires,
-0 as hits,
-0 as streak_breakers,
-0 as misses,
-0 as power_total_damage,
-0 as direct_damage,
-0 as dot_damage,
-0 as critical_damage,
-0 as critical_hits
-from
-player_activation pa
-group by summary_key, power_name
-UNION ALL
-select 
-hm.summary_key,
-hm.power_name,
-0 as activations,
-0 as proc_fires,
-sum(hm.hit) AS hits,
-sum(hm.streakbreaker) as streak_breakers,
-sum(CASE WHEN hit = 0 THEN 1 ELSE 0 END) AS misses,
-0 as power_total_damage,
-0 as direct_damage,
-0 as dot_damage,
-0 as critical_damage,
-0 as critical_hits
-from
-hit_or_miss hm
-where hm.source_type IN ('Player', 'PlayerPet')
-group by summary_key, power_name
-UNION ALL
-select
-da.summary_key,
-da.power_name,
-0 as activations,
-0 as proc_fires,
-0 as hits,
-0 as streak_breakers,
-0 as misses,
-sum(da.damage) as power_total_damage,
-SUM(CASE WHEN da.damage_mode = 'Direct' AND da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS direct_damage,
-SUM(CASE WHEN da.damage_mode = 'DoT' AND da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS dot_damage,
-SUM(CASE WHEN da.damage_mode = 'Critical' AND da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS critical_damage,
-SUM(CASE WHEN da.damage_mode = 'Critical' AND da.source_type IN ('Player', 'PlayerPet') THEN 1 ELSE 0 END) AS critical_hits
-from
-damage_action da
-where da.source_type IN ('Player', 'PlayerPet')
-group by summary_key, power_name)
-group by summary_key, power_name
-order by power_total_damage desc;
+   SELECT summary_key,
+           power_name,
+           activations,
+           proc_fires,
+           sum(hits) AS hits,
+           sum(streak_breakers) AS streak_breakers,
+           sum(misses) misses,
+           ROUND(1.0 * sum(hits) / (sum(hits) + sum(misses) ) * 100) AS hit_percentage,
+           sum(power_total_damage) AS power_total_damage,
+           (sum(power_total_damage) / activations) AS dpa,
+           (CASE WHEN sum(hits) IS NOT NULL AND 
+                      sum(hits) > 0 THEN sum(power_total_damage) / sum(hits) ELSE (CASE WHEN sum(proc_fires) IS NOT NULL AND 
+                                                                                             sum(proc_fires) > 0 THEN sum(power_total_damage) / sum(proc_fires) ELSE NULL END) END) AS dph,
+           (ROUND(1.0 * sum(hits + misses) / activations) ) AS ate,
+           sum(direct_damage) AS direct_damage,
+           sum(dot_damage) AS dot_damage,
+           sum(critical_damage) AS critical_damage,
+           sum(critical_hits) AS critical_hits,
+           (ROUND(1.0 * sum(critical_hits) / (sum(hits) ) * 100) ) AS percent_hits_critical,
+           (ROUND(1.0 * sum(critical_damage) / (sum(power_total_damage) ) * 100) ) AS percent_damage_critical,
+           average_recharge
+      FROM (
+               SELECT pa.summary_key,
+                      pa.power_name,
+                      (CASE WHEN pa.proc_fire == 0 THEN count(pa.power_name) ELSE 0 END) AS activations,
+                      (CASE WHEN pa.proc_fire == 1 THEN count(pa.power_name) ELSE 0 END) AS proc_fires,
+                      0 AS hits,
+                      0 AS streak_breakers,
+                      0 AS misses,
+                      0 AS power_total_damage,
+                      0 AS direct_damage,
+                      0 AS dot_damage,
+                      0 AS critical_damage,
+                      0 AS critical_hits,
+                      (
+                          SELECT average_recharge
+                            FROM average_power_recharge ar
+                           WHERE pa.power_name = ar.power_name
+                      )
+                      AS average_recharge
+                 FROM player_activation pa
+                GROUP BY summary_key,
+                         power_name
+               UNION ALL
+               SELECT hm.summary_key,
+                      hm.power_name,
+                      0 AS activations,
+                      0 AS proc_fires,
+                      sum(hm.hit) AS hits,
+                      sum(hm.streakbreaker) AS streak_breakers,
+                      sum(CASE WHEN hit = 0 THEN 1 ELSE 0 END) AS misses,
+                      0 AS power_total_damage,
+                      0 AS direct_damage,
+                      0 AS dot_damage,
+                      0 AS critical_damage,
+                      0 AS critical_hits,
+                      0 AS average_recharge
+                 FROM hit_or_miss hm
+                WHERE hm.source_type IN ('Player', 'PlayerPet') 
+                GROUP BY summary_key,
+                         power_name
+               UNION ALL
+               SELECT da.summary_key,
+                      da.power_name,
+                      0 AS activations,
+                      0 AS proc_fires,
+                      0 AS hits,
+                      0 AS streak_breakers,
+                      0 AS misses,
+                      sum(da.damage) AS power_total_damage,
+                      SUM(CASE WHEN da.damage_mode = 'Direct' AND 
+                                    da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS direct_damage,
+                      SUM(CASE WHEN da.damage_mode = 'DoT' AND 
+                                    da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS dot_damage,
+                      SUM(CASE WHEN da.damage_mode = 'Critical' AND 
+                                    da.source_type IN ('Player', 'PlayerPet') THEN da.damage ELSE 0 END) AS critical_damage,
+                      SUM(CASE WHEN da.damage_mode = 'Critical' AND 
+                                    da.source_type IN ('Player', 'PlayerPet') THEN 1 ELSE 0 END) AS critical_hits,
+                      0 AS average_recharge
+                 FROM damage_action da
+                WHERE da.source_type IN ('Player', 'PlayerPet') 
+                GROUP BY summary_key,
+                         power_name
+           )
+     GROUP BY summary_key,
+              power_name
+     ORDER BY power_total_damage DESC;
+
 
 -- View: total_damage_report
 DROP VIEW IF EXISTS total_damage_report;
@@ -603,3 +594,66 @@ where
 da1.source_type IN ('Player', 'PlayerPet')
 group by da1.summary_key, da1.target_name, da1.power_name
 order by da1.power_name);
+
+DROP VIEW IF EXISTS average_power_recharge;
+CREATE VIEW IF NOT EXISTS average_power_recharge AS
+SELECT power_name,
+           ROUND(sum(recharge_time) / count(power_name) ) AS average_recharge
+      FROM (
+               SELECT summary_key,
+                      power_name,
+                      ROUND( (JULIANDAY(recharge_log_date) - JULIANDAY(activation_log_date) ) * 86400) AS recharge_time
+                 FROM (
+                          SELECT summary_key,
+                                 pa.log_date AS activation_log_date,
+                                 power_name,
+                                 (
+                                     SELECT log_date
+                                       FROM player_power_recharged ppr
+                                      WHERE pa.summary_key = ppr.summary_key AND 
+                                            pa.line_number < ppr.line_number AND 
+                                            pa.power_name = ppr.power_name
+                                      ORDER BY ppr.log_date
+                                      LIMIT 1
+                                 )
+                                 AS recharge_log_date
+                            FROM player_activation pa
+                           WHERE pa.proc_fire = 0
+                      )
+                WHERE activation_log_date IS NOT NULL AND 
+                      recharge_log_date IS NOT NULL
+           )
+     GROUP BY summary_key,
+              power_name;
+
+DROP VIEW IF EXISTS last_interesting_date;
+CREATE VIEW IF NOT EXISTS last_interesting_date AS
+    SELECT log_date
+      FROM (
+               SELECT log_date
+                 FROM damage_action
+               UNION
+               SELECT log_date
+                 FROM debuff_action
+               UNION
+               SELECT log_date
+                 FROM defeated_targets
+               UNION
+               SELECT log_date
+                 FROM hit_or_miss
+               UNION
+               SELECT log_date
+                 FROM player_activation
+               UNION
+               SELECT log_date
+                 FROM player_power_recharged
+               UNION
+               SELECT log_date
+                 FROM reward
+               UNION
+               SELECT log_date
+                 FROM summary
+           )
+     ORDER BY log_date DESC
+     LIMIT 1;
+

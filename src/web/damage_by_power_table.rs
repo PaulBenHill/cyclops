@@ -41,6 +41,7 @@ struct PowerRow {
     critical_hits: i32,
     percent_hits_critical: Option<i32>,
     percent_damage_critical: Option<i32>,
+    average_recharge: Option<i32>,
 }
 
 impl PowerRow {
@@ -65,6 +66,7 @@ impl PowerRow {
             critical_hits: 0,
             percent_hits_critical: None,
             percent_damage_critical: None,
+            average_recharge: None,
         }
     }
 }
@@ -350,6 +352,7 @@ fn generate_power_rows(query: &DamageByPowerQuery) -> Vec<PowerRow> {
             critical_hits: p.critical_hits,
             percent_hits_critical: p.percent_hits_critical,
             percent_damage_critical: p.percent_damage_critical,
+            average_recharge: p.average_recharge,
         });
     }
 
@@ -377,6 +380,7 @@ fn headers() -> Vec<(&'static str, &'static str)> {
     headers.push(("critical_hits", "Critical Hits"));
     headers.push(("percent_hits_critical", "Percent Hits Critical"));
     headers.push(("percent_damage_critical", "Percent Damage Critical"));
+    headers.push(("average_recharge", "Average Recharge"));
 
     headers
 }
@@ -465,6 +469,14 @@ fn sort(sort_field: &String, sort_dir: SortDirection, data: &mut Vec<PowerRow>) 
             }
             SortDirection::ASC => {
                 data.sort_by(|a, b| a.percent_damage_critical.cmp(&b.percent_damage_critical))
+            }
+        },
+        "average_recharge" => match sort_dir {
+            SortDirection::DESC => {
+                data.sort_by(|a, b| b.average_recharge.cmp(&a.average_recharge))
+            }
+            SortDirection::ASC => {
+                data.sort_by(|a, b| a.average_recharge.cmp(&b.average_recharge))
             }
         },
         _ => println!("Unknown sort field provided: {}", sort_field),

@@ -1,6 +1,10 @@
 use clap::Parser;
 use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
 use log_processing::ParserJob;
+use monitoring::monitor_structs::MonitorConfig;
+use monitoring::MonitorJob;
+use std::fs::File;
+use std::io::BufReader;
 use std::path::*;
 use std::time::Instant;
 use std::{env, fs};
@@ -8,12 +12,13 @@ use std::{env, fs};
 use tera::Tera;
 
 mod args;
-mod log_processing;
-mod models;
-mod schema;
-mod web;
 pub mod db;
 mod game_data;
+mod log_processing;
+mod models;
+mod monitoring;
+mod schema;
+mod web;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
@@ -39,8 +44,13 @@ fn main() {
     println!("################################");
     let start = Instant::now();
 
-    let (app_context, log_file_names) = initialize(); 
-    
+    let (app_context, log_file_names, monitor_job) = initialize();
+
+    if let Some(job) = monitor_job {
+        println!("Starting monitor job on directory {:?}.", job.config.dir);
+        job.monitor_dir();
+    }
+
     let parser_job = ParserJob {
         files: log_file_names,
         processed: 0,
@@ -50,9 +60,9 @@ fn main() {
         last_file: "".to_string(),
     };
     if !parser_job.files.is_empty() {
-       parser_job.process_logs(&app_context);
+        parser_job.process_logs(&app_context);
     }
-    
+
     println!(
         "Starting web server at http://{}:{}",
         app_context.web_address, app_context.web_port
@@ -80,10 +90,7 @@ fn get_last_modified_file_in_dir<D: AsRef<Path>>(dir: D) -> PathBuf {
         .flatten() // Remove failed
         .filter(|f| f.metadata().unwrap().is_file()) // Filter out directories (only consider files)
         .max_by_key(|x| x.metadata().unwrap().modified().unwrap())
-        .map(|r| {
-            dunce::canonicalize(r.path())
-                .unwrap()
-        })
+        .map(|r| dunce::canonicalize(r.path()).unwrap())
         .unwrap()
 }
 
@@ -96,10 +103,7 @@ fn read_log_file_dir<D: AsRef<Path>>(dir: D) -> Vec<PathBuf> {
                     .filter(|r| r.is_ok())
                     .map(|r| r.unwrap().path())
                     .filter(|r| r.is_file())
-                    .map(|r| {
-                        dunce::canonicalize(r)
-                            .unwrap()
-                    })
+                    .map(|r| dunce::canonicalize(r).unwrap())
                     .filter(|r| r.extension().unwrap() == "txt")
                     .collect();
 
@@ -111,11 +115,15 @@ fn read_log_file_dir<D: AsRef<Path>>(dir: D) -> Vec<PathBuf> {
                 );
             }
         }
-        Err(e) => panic!("Cannot determine directory name: {:?}:{:?}", dir.as_ref(), e),
+        Err(e) => panic!(
+            "Cannot determine directory name: {:?}:{:?}",
+            dir.as_ref(),
+            e
+        ),
     }
 }
 
-fn initialize() -> (AppContext, Vec<PathBuf>) {
+fn initialize() -> (AppContext, Vec<PathBuf>, Option<MonitorJob>) {
     let working_dir = env::current_dir().unwrap().clone();
     println!(
         "Cyclops was compiled on {}:{}.",
@@ -139,7 +147,7 @@ fn initialize() -> (AppContext, Vec<PathBuf>) {
 
     if log_file_names.is_empty() {
         println!("No logs found. Continuing to web server.");
-    } 
+    }
 
     let mut output_dir = PathBuf::new().join(OUTPUT_DIR);
     if let Some(outputdir) = args.outputdir {
@@ -165,6 +173,24 @@ fn initialize() -> (AppContext, Vec<PathBuf>) {
         webserver_port = port_arg;
     }
 
+    let mut monitor_job: Option<MonitorJob> = None;
+    if let Some(path) = args.monitorconfig {
+        if path.exists() {
+            println!("Monitor configuration path: {:?}", path);
+            let f = File::open(path).expect("Unable to find monitor file");
+            let reader = BufReader::new(f);
+            let monitor_config: MonitorConfig =
+                serde_json::from_reader(reader).expect("Unable to read config file");
+            println!(
+                "Monitor config data: {}",
+                serde_json::to_string_pretty(&monitor_config).expect("Unable to serialize config")
+            );
+            monitor_job = Some(MonitorJob::new(monitor_config));
+        } else {
+            println!("Monitor configuration file is not readable: {:?}", path);
+        }
+    }
+
     log_processing::create_dir(&output_dir);
     println!("Output directory: {}", output_dir.display());
 
@@ -172,14 +198,17 @@ fn initialize() -> (AppContext, Vec<PathBuf>) {
 
     let res_dir = working_dir.clone().join("resources");
 
-    (AppContext {
-        working_dir,
-        resources_dir: res_dir,
-        output_dir,
-        dps_interval,
-        web_address: String::from(webserver_address),
-        web_port: webserver_port as u16,
-        tera,
-    },
-    log_file_names)
+    (
+        AppContext {
+            working_dir,
+            resources_dir: res_dir,
+            output_dir,
+            dps_interval,
+            web_address: String::from(webserver_address),
+            web_port: webserver_port as u16,
+            tera,
+        },
+        log_file_names,
+        monitor_job,
+    )
 }

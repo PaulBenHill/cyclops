@@ -5,6 +5,7 @@ use std::{
     mem,
     path::{Path, PathBuf},
     sync::Mutex,
+    thread::{self},
     time::Instant,
 };
 
@@ -13,11 +14,10 @@ use diesel::SqliteConnection;
 use lazy_static::lazy_static;
 use parser_model::FileDataPoint;
 use serde::{Deserialize, Serialize};
+use monitoring::monitor_structs::MonitorConfig;
 
 use crate::{
-    db::{self, event_processing::write_to_database},
-    models::Summary,
-    AppContext,
+    db::{self, event_processing::write_to_database}, get_last_modified_file_in_dir, models::Summary, monitoring, AppContext
 };
 
 pub mod parser_model;
@@ -77,7 +77,7 @@ impl ParserJob {
                 }
             };
 
-            let reader = match Self::open_log_file(file_path.to_path_buf()) {
+            let reader = match open_log_file(file_path.to_path_buf()) {
                 Ok(r) => r,
                 Err(e) => {
                     self.errors.push(e);
@@ -87,9 +87,8 @@ impl ParserJob {
 
             let lines = reader.lines();
 
-            let processing_result = Self::process_lines(conn, file.to_path_buf(), lines);
-            if processing_result.0 {
-                let data_points = processing_result.1;
+            let (success, file_points) = process_lines(conn, file.to_path_buf(), lines);
+            if success {
                 let summaries = db::queries::get_summaries(conn);
 
                 let report_dir = Self::create_report_dir(
@@ -104,7 +103,7 @@ impl ParserJob {
                     &report_dir,
                     &file,
                     &file_path,
-                    &data_points,
+                    &file_points,
                     &summaries,
                 );
             } else {
@@ -177,88 +176,6 @@ impl ParserJob {
 
         println!("Report directory: {:?}", report_dir);
         report_dir.clone()
-    }
-
-    pub fn open_log_file(path_buf: PathBuf) -> Result<BufReader<File>, ProcessingError> {
-        let file_name = path_buf
-            .clone()
-            .into_os_string()
-            .into_string()
-            .expect("Could not create a file name from os string.");
-        if path_buf.is_file() {
-            let result = File::open(path_buf.to_path_buf());
-
-            match result {
-                Ok(file) => {
-                    println!("File opened for processing: {}", file_name,);
-                    Ok(BufReader::new(file))
-                }
-                Err(e) => Err(ProcessingError {
-                    file_name: path_buf,
-                    message: format!("Unable to open file might not readble. {}", e),
-                }),
-            }
-        } else {
-            Err(ProcessingError {
-                file_name: path_buf,
-                message: "File is not file, might be a directory".to_string(),
-            })
-        }
-    }
-
-    fn process_lines(
-        conn: &mut SqliteConnection,
-        file: PathBuf,
-        lines: Lines<BufReader<File>>,
-    ) -> (bool, Vec<FileDataPoint>) {
-        let mut line_count: u32 = 0;
-        let parsers = parsers::initialize_matchers();
-        let mut data_points: Vec<FileDataPoint> = Vec::with_capacity(50000);
-
-        for line in lines.flatten() {
-            line_count += 1;
-            for p in &parsers {
-                if let Some(data) = p(line_count, &line) {
-                    data_points.push(data);
-                    break;
-                }
-            }
-        }
-
-        println!(
-            "Line count: {}, Data point count: {}",
-            line_count,
-            data_points.len()
-        );
-        println!("Matching and conversion done.");
-
-        let mut has_data = false;
-        for dp in &data_points {
-            match dp {
-                FileDataPoint::PlayerDirectDamage {
-                    data_position: _,
-                    damage_dealt: _,
-                } => {
-                    has_data = true;
-                    break;
-                }
-                _ => (),
-            }
-        }
-
-        if has_data {
-            // write to database
-            write_to_database(
-                conn,
-                file.into_os_string().into_string().unwrap(),
-                &data_points,
-            );
-            println!("Generating summaries done.");
-        }
-
-        data_points.shrink_to_fit();
-
-        (has_data, data_points)
     }
 
     fn write_data_files(
@@ -374,7 +291,7 @@ impl ParserJob {
         "Your Hasten has increased your rate of attack",
         "Your Hasten drains",
         "You are no longer afraid",
-        "boosts the damage of your attacks"
+        "boosts the damage of your attacks",
     ];
 
     fn write_rp_file(report_dir: &PathBuf, parsed_lines: &Vec<FileDataPoint>) {
@@ -425,24 +342,6 @@ impl ParserJob {
     }
 }
 
-pub struct MonitorJob {
-    pub dir: PathBuf,
-    // configuration
-    pub start_time: String,
-    pub last_run_time: String,
-    pub errors: Vec<ProcessingError>,
-}
-
-impl MonitorJob {
-    // find file updated in the last min
-    // open file for reading
-    // read lines
-    // process lines
-    // write to db - mutex
-    // sleep
-    // repeat read lines from last position
-}
-
 pub fn create_dir(dir_path: &PathBuf) {
     if !dir_path.exists() {
         match fs::create_dir_all(dir_path) {
@@ -461,6 +360,88 @@ pub fn verify_file<P: AsRef<Path>>(path_buf: P) -> Result<PathBuf, ProcessingErr
             file_name: path.to_path_buf(),
             message: "Unable to verify file existence. Might be invalid file name or permissions"
                 .to_owned(),
+        })
+    }
+}
+
+pub fn process_lines(
+    conn: &mut SqliteConnection,
+    file: PathBuf,
+    lines: Lines<BufReader<File>>,
+) -> (bool, Vec<FileDataPoint>) {
+    let mut line_count: u32 = 0;
+    let parsers = parsers::MATCHER_FUNCS;
+    let mut data_points: Vec<FileDataPoint> = Vec::with_capacity(50000);
+
+    for line in lines.flatten() {
+        line_count += 1;
+        for p in &parsers {
+            if let Some(data) = p(line_count, &line) {
+                data_points.push(data);
+                break;
+            }
+        }
+    }
+
+    println!(
+        "Line count: {}, Data point count: {}",
+        line_count,
+        data_points.len()
+    );
+    println!("Matching and conversion done.");
+
+    let mut has_data = false;
+    for dp in &data_points {
+        match dp {
+            FileDataPoint::PlayerDirectDamage {
+                data_position: _,
+                damage_dealt: _,
+            } => {
+                has_data = true;
+                break;
+            }
+            _ => (),
+        }
+    }
+
+    if has_data {
+        // write to database
+        write_to_database(
+            conn,
+            file.into_os_string().into_string().unwrap(),
+            &data_points,
+        );
+        println!("Generating summaries done.");
+    }
+
+    data_points.shrink_to_fit();
+
+    (has_data, data_points)
+}
+
+pub fn open_log_file(path_buf: PathBuf) -> Result<BufReader<File>, ProcessingError> {
+    let file_name = path_buf
+        .clone()
+        .into_os_string()
+        .into_string()
+        .expect("Could not create a file name from os string.");
+    if path_buf.is_file() {
+        let result = File::open(path_buf.to_path_buf());
+
+        match result {
+            Ok(file) => {
+                println!("File opened for processing: {}", file_name,);
+                Ok(BufReader::new(file))
+            }
+            Err(e) => Err(ProcessingError {
+                file_name: path_buf,
+                message: format!("Unable to open file might not readble. {}", e),
+            }),
+        }
+    } else {
+        Err(ProcessingError {
+            file_name: path_buf,
+            message: "File is not file, might be a directory".to_string(),
         })
     }
 }

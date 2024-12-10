@@ -65,6 +65,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    player_power_recharged (summary_key, line_number, log_date) {
+        summary_key -> Integer,
+        line_number -> Integer,
+        log_date -> Text,
+        power_name -> Text,
+    }
+}
+
+diesel::table! {
     reward (summary_key, line_number, log_date) {
         summary_key -> Integer,
         line_number -> Integer,
@@ -152,6 +161,7 @@ diesel::table! {
         critical_hits -> Integer,
         percent_hits_critical -> Nullable<Integer>,
         percent_damage_critical -> Nullable<Integer>,
+        average_recharge -> Nullable<Integer>,
     }
 }
 
@@ -239,6 +249,7 @@ diesel::joinable!(debuff_action -> summary (summary_key));
 diesel::joinable!(defeated_targets -> summary (summary_key));
 diesel::joinable!(hit_or_miss -> summary (summary_key));
 diesel::joinable!(player_activation -> summary (summary_key));
+diesel::joinable!(player_power_recharged -> summary (summary_key));
 diesel::joinable!(reward -> summary (summary_key));
 diesel::joinable!(total_damage_report -> summary (summary_key));
 diesel::joinable!(damage_taken -> summary (summary_key));
@@ -254,6 +265,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     defeated_targets,
     hit_or_miss,
     player_activation,
+    player_power_recharged,
     reward,
     summary,
     total_damage_report,

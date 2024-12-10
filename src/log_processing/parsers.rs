@@ -93,9 +93,9 @@ lazy_static! {
     */
 }
 
-pub fn initialize_matchers() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
-    // Order matters!
-    vec![
+// Order matters!!!
+// Update array size when adding new functions
+pub static MATCHER_FUNCS: [fn(u32, &String) -> Option<FileDataPoint>; 49] = [
         extract_session_marker_1,
         extract_session_marker_2,
         pseudo_pet_attack_damage,
@@ -103,10 +103,10 @@ pub fn initialize_matchers() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         extract_pseudo_pet_hit,
         extract_pseudo_pet_streakbreaker_hit,
         player_pet_attack_damage,
-        extract_power_recharged,
         extract_exp_inf_gain,
         extract_other_victory,
         extract_player_activation,
+        extract_power_recharged,
         extract_chat_message,
         extract_mob_pseudopet_hit,
         extract_mob_pseudopet_miss,
@@ -148,8 +148,7 @@ pub fn initialize_matchers() -> Vec<fn(u32, &String) -> Option<FileDataPoint>> {
         //extract_player_knockback,
         //extract_pet_knockback,
         extract_unparsed, //This should always be the last matcher, as it matches everything
-    ]
-}
+];
 
 pub fn extract_session_marker_1(line_number: u32, line: &String) -> Option<FileDataPoint> {
     let caps = SESSION_MARKER_MATCHER_1.captures(line);
@@ -642,7 +641,7 @@ pub fn extract_power_recharged(line_number: u32, line: &String) -> Option<FileDa
     let caps = POWER_RECHARGED_MATCHER.captures(line);
 
     match caps {
-        Some(data) => Some(FileDataPoint::PowerRecharged {
+        Some(data) => Some(FileDataPoint::PlayerPowerRecharged {
             data_position: DataPosition::new(line_number, &data[1]),
             power_name: String::from(&data[2]),
         }),

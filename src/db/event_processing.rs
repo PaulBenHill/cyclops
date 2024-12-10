@@ -5,10 +5,9 @@ use diesel::SqliteConnection;
 
 use crate::game_data;
 use crate::log_processing::parser_model::*;
-use crate::models::{DamageAction, DefeatedTarget, HitOrMiss, PlayerActivation, Reward, Summary};
+use crate::models::{DamageAction, DefeatedTarget, HitOrMiss, PlayerActivation, PlayerPowerRecharged, Reward, Summary};
 
-use crate::schema::player_activation;
-use crate::schema::{damage_action, defeated_targets, hit_or_miss, reward, summary};
+use crate::schema::{damage_action, defeated_targets, hit_or_miss, player_activation, player_power_recharged, reward, summary};
 
 pub fn write_to_database(
     conn: &mut SqliteConnection,
@@ -18,6 +17,7 @@ pub fn write_to_database(
     let key = (chrono::offset::Local::now().timestamp() % 1000) as i32;
     let mut summaries: Vec<Summary> = Vec::new();
     let mut activations: Vec<PlayerActivation> = Vec::new();
+    let mut recharges: Vec<PlayerPowerRecharged> = Vec::new();
     let mut hits_misses: Vec<HitOrMiss> = Vec::new();
     let mut damage_actions: Vec<DamageAction> = Vec::new();
     let mut defeats: Vec<DefeatedTarget> = Vec::new();
@@ -58,6 +58,15 @@ pub fn write_to_database(
                 log_date: data_position.date.to_rfc3339(),
                 power_name: power_name.clone(),
                 proc_fire: 0,
+            }),
+            FileDataPoint::PlayerPowerRecharged {
+                data_position,
+                power_name,
+            } => recharges.push(PlayerPowerRecharged {
+                summary_key: key,
+                line_number: data_position.line_number as i32,
+                log_date: data_position.date.to_rfc3339(),
+                power_name: power_name.clone(),
             }),
             FileDataPoint::AutohitPower {
                 data_position,
@@ -587,6 +596,10 @@ pub fn write_to_database(
             insert_activations(conn, &activations);
         }
 
+        if !recharges.is_empty() {
+            insert_recharges(conn, &recharges);
+        }
+
         if !hits_misses.is_empty() {
             insert_hits_misses(conn, &hits_misses);
         }
@@ -621,6 +634,14 @@ fn insert_activations(conn: &mut SqliteConnection, activations: &Vec<PlayerActiv
         .values(activations)
         .execute(conn)
         .expect("Error saving new activation");
+}
+
+fn insert_recharges(conn: &mut SqliteConnection, recharges: &Vec<PlayerPowerRecharged>) {
+    println!("Recharges: {}", recharges.len());
+    diesel::insert_into(player_power_recharged::table)
+        .values(recharges)
+        .execute(conn)
+        .expect("Error saving new recharge");
 }
 
 fn insert_hits_misses(conn: &mut SqliteConnection, hits_misses: &Vec<HitOrMiss>) {
@@ -661,7 +682,7 @@ fn finalize_summaries(
     // Determine the last line in a session
     // If more than one summary, then map
     // the start lines into a vec
-    // end lines are the startline -1 lines
+    // end line is the startline -1 line
     // push the last line of the file onto the end line vec
     // else
     // skip
@@ -690,9 +711,11 @@ fn finalize_summaries(
     summary.select(Summary::as_select()).load(conn).unwrap()
 }
 
+// There be fence post dragons here, pay attention to the gt(greater than) vs le(less than equals)
 fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
     for s in summaries {
         finalize_activations(conn, s);
+        finalize_recharges(conn, s);
         finalize_hits_misses(conn, s);
         finalize_damage_action(conn, s);
         finalize_defeats(conn, s);
@@ -704,11 +727,23 @@ fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
 
 fn finalize_activations(conn: &mut SqliteConnection, s: &Summary) {
     let gt_ln = line_number.gt(s.first_line_number);
-    let lt_ln = line_number.lt(s.last_line_number);
+    let le_ln = line_number.le(s.last_line_number);
 
     use crate::schema::player_activation::dsl::*;
     diesel::update(player_activation)
-        .filter(gt_ln.and(lt_ln))
+        .filter(gt_ln.and(le_ln))
+        .set((summary_key.eq(s.summary_key),))
+        .execute(conn)
+        .expect("Unable to update activations");
+}
+
+fn finalize_recharges(conn: &mut SqliteConnection, s: &Summary) {
+    let gt_ln = line_number.gt(s.first_line_number);
+    let le_ln = line_number.le(s.last_line_number);
+
+    use crate::schema::player_power_recharged::dsl::*;
+    diesel::update(player_power_recharged)
+        .filter(gt_ln.and(le_ln))
         .set((summary_key.eq(s.summary_key),))
         .execute(conn)
         .expect("Unable to update activations");
@@ -716,12 +751,12 @@ fn finalize_activations(conn: &mut SqliteConnection, s: &Summary) {
 
 fn finalize_hits_misses(conn: &mut SqliteConnection, s: &Summary) {
     let gt_ln = line_number.gt(s.first_line_number);
-    let lt_ln = line_number.lt(s.last_line_number);
+    let le_ln = line_number.le(s.last_line_number);
 
     use crate::schema::hit_or_miss::dsl::*;
     let player_hit_miss_pre = crate::schema::hit_or_miss::source_type.eq("Player");
     diesel::update(hit_or_miss)
-        .filter(gt_ln.and(lt_ln).and(player_hit_miss_pre))
+        .filter(gt_ln.and(le_ln).and(player_hit_miss_pre))
         .set((
             summary_key.eq(s.summary_key),
             source_name.eq(s.player_name.clone()),
@@ -730,7 +765,7 @@ fn finalize_hits_misses(conn: &mut SqliteConnection, s: &Summary) {
         .expect("Unable to update hit or miss");
 
     diesel::update(hit_or_miss)
-        .filter(gt_ln.and(lt_ln))
+        .filter(gt_ln.and(le_ln))
         .filter(not(player_hit_miss_pre))
         .set(summary_key.eq(s.summary_key))
         .execute(conn)
@@ -739,20 +774,20 @@ fn finalize_hits_misses(conn: &mut SqliteConnection, s: &Summary) {
 
 fn finalize_damage_action(conn: &mut SqliteConnection, s: &Summary) {
     let gt_ln = line_number.gt(s.first_line_number);
-    let lt_ln = line_number.lt(s.last_line_number);
+    let le_ln = line_number.le(s.last_line_number);
 
     use crate::schema::damage_action::dsl::*;
     let player_damage_pre = crate::schema::damage_action::source_type.eq("Player");
 
     diesel::update(damage_action)
-        .filter(gt_ln.and(lt_ln))
+        .filter(gt_ln.and(le_ln))
         .filter(not(player_damage_pre))
         .set(summary_key.eq(s.summary_key))
         .execute(conn)
         .expect("Unable to update other damage action");
 
     diesel::update(damage_action)
-        .filter(gt_ln.and(lt_ln).and(player_damage_pre))
+        .filter(gt_ln.and(le_ln).and(player_damage_pre))
         .set((
             summary_key.eq(s.summary_key),
             source_name.eq(s.player_name.clone()),
@@ -763,20 +798,20 @@ fn finalize_damage_action(conn: &mut SqliteConnection, s: &Summary) {
 
 fn finalize_defeats(conn: &mut SqliteConnection, s: &Summary) {
     let gt_ln = line_number.gt(s.first_line_number);
-    let lt_ln = line_number.lt(s.last_line_number);
+    let le_ln = line_number.le(s.last_line_number);
 
     use crate::schema::defeated_targets::dsl::*;
     let player_damage_pre = crate::schema::defeated_targets::source_name.eq("Player");
 
     diesel::update(defeated_targets)
-        .filter(gt_ln.and(lt_ln))
+        .filter(gt_ln.and(le_ln))
         .filter(not(player_damage_pre))
         .set(summary_key.eq(s.summary_key))
         .execute(conn)
         .expect("Unable to update other defeats");
 
     diesel::update(defeated_targets)
-        .filter(gt_ln.and(lt_ln).and(player_damage_pre))
+        .filter(gt_ln.and(le_ln).and(player_damage_pre))
         .set((
             summary_key.eq(s.summary_key),
             source_name.eq(s.player_name.clone()),
@@ -787,12 +822,12 @@ fn finalize_defeats(conn: &mut SqliteConnection, s: &Summary) {
 
 fn finalize_rewards(conn: &mut SqliteConnection, s: &Summary) {
     let gt_ln = line_number.gt(s.first_line_number);
-    let lt_ln = line_number.lt(s.last_line_number);
+    let le_ln = line_number.le(s.last_line_number);
 
     use crate::schema::reward::dsl::*;
 
     diesel::update(reward)
-        .filter(gt_ln.and(lt_ln))
+        .filter(gt_ln.and(le_ln))
         .set(summary_key.eq(s.summary_key))
         .execute(conn)
         .expect("Unable to update rewards");

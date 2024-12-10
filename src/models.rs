@@ -76,6 +76,16 @@ pub struct PlayerActivation {
     pub proc_fire: i32,
 }
 
+#[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable)]
+#[diesel(primary_key(summary_key, line_number, log_date))]
+#[diesel(table_name = player_power_recharged)]
+pub struct PlayerPowerRecharged {
+    pub summary_key: i32,
+    pub line_number: i32,
+    pub log_date: String,
+    pub power_name: String,
+}
+
 #[derive(Queryable, Debug, Clone, Identifiable, Insertable, Selectable, Serialize, Deserialize)]
 #[diesel(primary_key(summary_key, line_number, log_date))]
 #[diesel(table_name = reward)]
@@ -218,6 +228,8 @@ pub struct DamageReportByPower {
     pub percent_hits_critical: Option<i32>,
     #[diesel(sql_type = Nullable<Integer>)]
     pub percent_damage_critical: Option<i32>,
+    #[diesel(sql_type = Nullable<Integer>)]
+    pub average_recharge: Option<i32>,
 }
 
 #[derive(

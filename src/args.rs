@@ -43,4 +43,11 @@ pub struct Args {
     pub address: Option<String>,
     #[arg(short, long, required = false, value_name = "Web server port")]
     pub port: Option<usize>,
+    #[arg(
+        short,
+        long,
+        required = false,
+        value_name = "Monitoring configuration file."
+    )]
+    pub monitorconfig: Option<PathBuf>,
 }

@@ -398,10 +398,6 @@ pub enum FileDataPoint {
         source: String,
         target: String,
     },
-    PowerRecharged {
-        data_position: DataPosition,
-        power_name: String,
-    },
     AutohitPower {
         data_position: DataPosition,
         source: String,
