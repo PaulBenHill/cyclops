@@ -376,6 +376,8 @@ pub struct DamageDealtToMobByPower {
     pub summary_key: i32,
     pub target_name: String,
     pub power_name: String,
+    #[diesel(sql_type = Nullable<Integer>)]
+    pub proc_fires: Option<i32>,
     pub hits: i32,
     pub misses: i32,
     pub chance_to_hit: i32,

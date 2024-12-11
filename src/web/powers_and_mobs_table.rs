@@ -59,6 +59,7 @@ pub fn headers() -> Vec<(&'static str, &'static str)> {
     let mut headers = Vec::<(&'static str, &'static str)>::new();
     headers.push(("target_name", "Target Name"));
     headers.push(("power_name", "Power Name"));
+    headers.push(("proc_fires", "Procs"));
     headers.push(("hits", "Hits"));
     headers.push(("misses", "Misses"));
     headers.push(("chance_to_hit", "Chance To Hit"));
@@ -77,6 +78,10 @@ pub fn flatten(data: Vec<DamageDealtToMobByPower>) -> Vec<Vec<String>> {
         let mut row = Vec::<String>::new();
         row.push(d.target_name);
         row.push(d.power_name);
+        match d.proc_fires {
+            Some(count) => row.push(count.to_string()),
+            None => row.push("".to_string())
+        }
         row.push(d.hits.to_string());
         row.push(d.misses.to_string());
         row.push(d.chance_to_hit.to_string());
@@ -98,6 +103,10 @@ pub fn sort(sort_field: String, sort_dir: SortDirection, data: &mut Vec<DamageDe
         "power_name" => match sort_dir {
             SortDirection::DESC => data.sort_by(|a, b| b.power_name.cmp(&a.power_name)),
             SortDirection::ASC => data.sort_by(|a, b| a.power_name.cmp(&b.power_name)),
+        },
+        "proc_fires" => match sort_dir {
+            SortDirection::DESC => data.sort_by(|a, b| b.proc_fires.cmp(&a.proc_fires)),
+            SortDirection::ASC => data.sort_by(|a, b| a.proc_fires.cmp(&b.proc_fires)),
         },
         "hits" => match sort_dir {
             SortDirection::DESC => data.sort_by(|a, b| b.hits.cmp(&a.hits)),

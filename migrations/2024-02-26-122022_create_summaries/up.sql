@@ -439,161 +439,109 @@ order by da1.summary_key, total_damage desc, da1.power_name, da1.damage_type);
 
 DROP VIEW IF EXISTS damage_dealt_to_mob_by_power;
 CREATE VIEW IF NOT EXISTS damage_dealt_to_mob_by_power AS
-select
-summary_key,
-target_name,
-power_name,
-hits,
-misses,
-chance_to_hit,
-(CASE WHEN
-misses = 0
-THEN
-100
-ELSE
-ROUND(1.0 * hits / (hits + misses)* 100)
-END) as hit_percent,
-total_damage,
-(CASE WHEN
-total_damage = 0 OR hits = 0
-THEN
-0
-ELSE
-ROUND(1.0 * total_damage / hits)
-END) as damage_per_hit,
-0 as overkill
-from
-(select
-da1.summary_key,
-da1.target_name,
-da1.power_name,
-(CASE
-WHEN
-(select 
-sum(hit)
-from
-hit_or_miss hm1
-where
-hm1.hit = 1
-AND
-da1.summary_key = hm1.summary_key
-AND
-hm1.source_type IN ('Player', 'PlayerPet')
-AND
-da1.source_type = hm1.source_type
-AND
-da1.target_name = hm1.target_name
-AND
-da1.power_name = hm1.power_name
-) IS NULL
-THEN
-0
-ELSE
-(select 
-count(hit)
-from
-hit_or_miss hm1
-where
-hm1.hit = 1
-AND
-da1.summary_key = hm1.summary_key
-AND
-hm1.source_type IN ('Player', 'PlayerPet')
-AND
-da1.source_type = hm1.source_type
-AND
-da1.target_name = hm1.target_name
-AND
-da1.power_name = hm1.power_name
-)
-END) as hits,
-(CASE
-WHEN
-(select 
-count(hit)
-from
-hit_or_miss hm1
-where
-hm1.hit = 0
-AND
-da1.summary_key = hm1.summary_key
-AND
-hm1.source_type IN ('Player', 'PlayerPet')
-AND
-da1.source_type = hm1.source_type
-AND
-da1.target_name = hm1.target_name
-AND
-da1.power_name = hm1.power_name
-) IS NULL
-THEN
-0
-ELSE
-(select 
-count(hit)
-from
-hit_or_miss hm1
-where
-hm1.hit = 0
-AND
-da1.summary_key = hm1.summary_key
-AND
-hm1.source_type IN ('Player', 'PlayerPet')
-AND
-da1.source_type = hm1.source_type
-AND
-da1.target_name = hm1.target_name
-AND
-da1.power_name = hm1.power_name
-)
-END) as misses,
-ROUND((CASE
-WHEN
-(select 
-avg(chance_to_hit)
-from
-hit_or_miss hm1
-where
-hm1.hit = 1
-AND
-da1.summary_key = hm1.summary_key
-AND
-hm1.source_type IN ('Player', 'PlayerPet')
-AND
-da1.source_type = hm1.source_type
-AND
-da1.target_name = hm1.target_name
-AND
-da1.power_name = hm1.power_name
-) IS NULL
-THEN
-0
-ELSE
-(select 
-avg(chance_to_hit)
-from
-hit_or_miss hm1
-where
-hm1.hit = 1
-AND
-da1.summary_key = hm1.summary_key
-AND
-hm1.source_type IN ('Player', 'PlayerPet')
-AND
-da1.source_type = hm1.source_type
-AND
-da1.target_name = hm1.target_name
-AND
-da1.power_name = hm1.power_name
-)
-END)) as chance_to_hit,
-sum(da1.damage) as total_damage
-from
-damage_action da1
-where
-da1.source_type IN ('Player', 'PlayerPet')
-group by da1.summary_key, da1.target_name, da1.power_name
-order by da1.power_name);
+    SELECT summary_key,
+           target_name,
+           power_name,
+           proc_fires,
+           hits,
+           misses,
+           chance_to_hit,
+           (CASE WHEN misses = 0 THEN 100 ELSE ROUND(1.0 * hits / (hits + misses) * 100) END) AS hit_percent,
+           total_damage,
+           (CASE WHEN total_damage = 0 OR 
+                      hits = 0 THEN 0 ELSE ROUND(1.0 * total_damage / hits) END) AS damage_per_hit,
+           0 AS overkill
+      FROM (
+               SELECT da1.summary_key,
+                      da1.target_name,
+                      da1.power_name,
+                      (CASE WHEN (
+                              SELECT proc_fire
+                                FROM player_activation pa
+                               WHERE da1.summary_key = pa.summary_key AND 
+                                     da1.power_name = pa.power_name AND 
+                                     pa.proc_fire = 1
+                          )
+                          IS NULL THEN NULL ELSE sum( (
+                                                          SELECT proc_fire
+                                                            FROM player_activation pa
+                                                           WHERE da1.summary_key = pa.summary_key AND 
+                                                                 da1.power_name = pa.power_name AND 
+                                                                 pa.proc_fire = 1
+                                                      )
+                          ) END) AS proc_fires,
+                      (CASE WHEN (
+                              SELECT sum(hit) 
+                                FROM hit_or_miss hm1
+                               WHERE hm1.hit = 1 AND 
+                                     da1.summary_key = hm1.summary_key AND 
+                                     hm1.source_type IN ('Player', 'PlayerPet') AND 
+                                     da1.source_type = hm1.source_type AND 
+                                     da1.target_name = hm1.target_name AND 
+                                     da1.power_name = hm1.power_name
+                          )
+                          IS NULL THEN 0 ELSE (
+                              SELECT count(hit) 
+                                FROM hit_or_miss hm1
+                               WHERE hm1.hit = 1 AND 
+                                     da1.summary_key = hm1.summary_key AND 
+                                     hm1.source_type IN ('Player', 'PlayerPet') AND 
+                                     da1.source_type = hm1.source_type AND 
+                                     da1.target_name = hm1.target_name AND 
+                                     da1.power_name = hm1.power_name
+                          )
+                      END) AS hits,
+                      (CASE WHEN (
+                              SELECT count(hit) 
+                                FROM hit_or_miss hm1
+                               WHERE hm1.hit = 0 AND 
+                                     da1.summary_key = hm1.summary_key AND 
+                                     hm1.source_type IN ('Player', 'PlayerPet') AND 
+                                     da1.source_type = hm1.source_type AND 
+                                     da1.target_name = hm1.target_name AND 
+                                     da1.power_name = hm1.power_name
+                          )
+                          IS NULL THEN 0 ELSE (
+                              SELECT count(hit) 
+                                FROM hit_or_miss hm1
+                               WHERE hm1.hit = 0 AND 
+                                     da1.summary_key = hm1.summary_key AND 
+                                     hm1.source_type IN ('Player', 'PlayerPet') AND 
+                                     da1.source_type = hm1.source_type AND 
+                                     da1.target_name = hm1.target_name AND 
+                                     da1.power_name = hm1.power_name
+                          )
+                      END) AS misses,
+                      ROUND( (CASE WHEN (
+                                     SELECT avg(chance_to_hit) 
+                                       FROM hit_or_miss hm1
+                                      WHERE hm1.hit = 1 AND 
+                                            da1.summary_key = hm1.summary_key AND 
+                                            hm1.source_type IN ('Player', 'PlayerPet') AND 
+                                            da1.source_type = hm1.source_type AND 
+                                            da1.target_name = hm1.target_name AND 
+                                            da1.power_name = hm1.power_name
+                                 )
+                                 IS NULL THEN 0 ELSE (
+                                     SELECT avg(chance_to_hit) 
+                                       FROM hit_or_miss hm1
+                                      WHERE hm1.hit = 1 AND 
+                                            da1.summary_key = hm1.summary_key AND 
+                                            hm1.source_type IN ('Player', 'PlayerPet') AND 
+                                            da1.source_type = hm1.source_type AND 
+                                            da1.target_name = hm1.target_name AND 
+                                            da1.power_name = hm1.power_name
+                                 )
+                             END) ) AS chance_to_hit,
+                      sum(da1.damage) AS total_damage
+                 FROM damage_action da1
+                WHERE da1.source_type IN ('Player', 'PlayerPet') 
+                GROUP BY da1.summary_key,
+                         da1.target_name,
+                         da1.power_name
+                ORDER BY da1.power_name
+           );
+
 
 DROP VIEW IF EXISTS average_power_recharge;
 CREATE VIEW IF NOT EXISTS average_power_recharge AS

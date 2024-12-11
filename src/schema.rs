@@ -232,6 +232,7 @@ diesel::table! {
         summary_key -> Integer,
         target_name -> Text,
         power_name -> Text,
+        proc_fires -> Nullable<Integer>,
         hits -> Integer,
         misses -> Integer,
         chance_to_hit -> Integer,

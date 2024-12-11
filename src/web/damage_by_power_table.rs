@@ -257,6 +257,8 @@ fn merge_rows(first_row: &mut PowerRow, second_row: &PowerRow, mob_level: &Strin
         calc_hit_critical_percent(first_row.hits, first_row.critical_hits);
     first_row.percent_damage_critical =
         calc_damage_critical_percent(first_row.total_damage, first_row.critical_damage);
+    first_row.average_recharge =
+        calc_average_recharge(first_row.average_recharge, second_row.average_recharge);
 }
 
 fn calc_hit_percent(hits: i32, misses: i32) -> Option<i32> {
@@ -322,6 +324,19 @@ fn calc_damage_critical_percent(total_damage: i32, critical_damage: i32) -> Opti
         return Some(((critical_damage as f32 / total_damage as f32) * 100.0).round() as i32);
     }
     None
+}
+
+fn calc_average_recharge(first: Option<i32>, second: Option<i32>) -> Option<i32> {
+    match first {
+        Some(v1) => match second {
+            Some(v2) => Some(((v1 as f32 + v2 as f32) / 2.0).round() as i32),
+            None => Some(v1),
+        },
+        None => match second {
+            Some(v2) => Some(v2),
+            None => None,
+        },
+    }
 }
 
 fn generate_power_rows(query: &DamageByPowerQuery) -> Vec<PowerRow> {

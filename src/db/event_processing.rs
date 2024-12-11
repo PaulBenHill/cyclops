@@ -841,6 +841,12 @@ fn finalize_pseudo_pets(conn: &mut SqliteConnection) {
             .execute(conn)
             .expect("Unable to update pseudo pet activation");
 
+        diesel::update(player_power_recharged::table)
+            .filter(player_power_recharged::power_name.like(&pet.activation_name))
+            .set(player_power_recharged::power_name.eq(&pet.merged_name))
+            .execute(conn)
+            .expect("Unable to update pseudo pet recharged");
+
         diesel::update(hit_or_miss::table)
             .filter(hit_or_miss::power_name.like(&pet.damage_name))
             .set(hit_or_miss::power_name.eq(&pet.merged_name))
