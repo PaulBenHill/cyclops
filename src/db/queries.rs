@@ -1,14 +1,16 @@
-
 use std::path::PathBuf;
 
-use diesel::SqliteConnection;
+use crate::schema::last_interesting_date::log_date;
+use chrono::DateTime;
+use chrono::Local;
 use diesel::prelude::*;
+use diesel::SqliteConnection;
 
 use crate::db::get_file_conn;
 use crate::models::{
-    DamageDealtByType, DamageDealtToMobByPower, DamageIntervals, DamageReportByPower,
-    DamageTaken, DamageTakenByMob, DamageTakenByMobPower, DamageTakenByType, 
-    IndexDetails, RewardsDefeats, Summary, TotalDamageReport,
+    DamageDealtByType, DamageDealtToMobByPower, DamageIntervals, DamageReportByPower, DamageTaken,
+    DamageTakenByMob, DamageTakenByMobPower, DamageTakenByType, IndexDetails, RewardsDefeats,
+    Summary, TotalDamageReport, PlayerPowerRecharged, PlayerActivation
 };
 use crate::web::web_structs_enums::DamageByPowerQuery;
 use crate::web::web_structs_enums::PowersMobsData;
@@ -304,5 +306,79 @@ pub fn get_mobs_damaged(query: &PowersMobsData) -> Vec<String> {
     match result {
         Ok(names) => names,
         Err(_) => panic!("Unable to load power names"),
+    }
+}
+
+pub fn get_last_interesting_date(conn: &mut SqliteConnection) -> DateTime<Local> {
+    use crate::schema::last_interesting_date::dsl::last_interesting_date;
+
+    let result = last_interesting_date.select(log_date).load::<String>(conn);
+
+    match result {
+        Ok(list) => {
+            let date = list.first().unwrap();
+            date.parse().unwrap()
+        }
+        Err(e) => {
+            panic!("Unable to load last interesting date!: {:?}", e);
+        }
+    }
+}
+
+pub fn get_last_activation(
+    conn: &mut SqliteConnection,
+    power_text: &String,
+    time_point: DateTime<Local>,
+) -> Option<PlayerActivation> {
+    use crate::schema::player_activation::dsl::*;
+
+    let result = player_activation
+        .select(PlayerActivation::as_select())
+        .filter(power_name.eq(power_text))
+        .order_by(log_date.desc())
+        .limit(1)
+        .load(conn)
+        .expect("Unable to load last player activation");
+
+
+    match result.first() {
+        Some(activation) => {
+            let activation_date: DateTime<Local> = activation.log_date.parse().unwrap();
+            if activation_date.timestamp() > time_point.timestamp() {
+                Some(activation.clone())
+            } else {
+                None
+            }
+        }
+        None => None
+    }
+}
+
+pub fn get_last_recharge(
+    conn: &mut SqliteConnection,
+    power_text: &String,
+    time_point: DateTime<Local>,
+) -> Option<PlayerPowerRecharged> {
+    use crate::schema::player_power_recharged::dsl::*;
+
+    let result = player_power_recharged
+        .select(PlayerPowerRecharged::as_select())
+        .filter(power_name.eq(power_text))
+        .order_by(log_date.desc())
+        .limit(1)
+        .load(conn)
+        .expect("Unable to load last player recharge");
+
+    
+    match result.first() {
+        Some(recharge) => {
+            let recharge_date: DateTime<Local> = recharge.log_date.parse().unwrap();
+            if recharge_date.timestamp() > time_point.timestamp() {
+                Some(recharge.clone())
+            } else {
+                None
+            }
+        }
+        None => None
     }
 }

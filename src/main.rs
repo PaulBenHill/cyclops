@@ -173,6 +173,9 @@ fn initialize() -> (AppContext, Vec<PathBuf>, Option<MonitorJob>) {
         webserver_port = port_arg;
     }
 
+    log_processing::create_dir(&output_dir);
+    println!("Output directory: {}", output_dir.display());
+
     let mut monitor_job: Option<MonitorJob> = None;
     if let Some(path) = args.monitorconfig {
         if path.exists() {
@@ -185,14 +188,11 @@ fn initialize() -> (AppContext, Vec<PathBuf>, Option<MonitorJob>) {
                 "Monitor config data: {}",
                 serde_json::to_string_pretty(&monitor_config).expect("Unable to serialize config")
             );
-            monitor_job = Some(MonitorJob::new(monitor_config));
+            monitor_job = Some(MonitorJob::new(&output_dir, monitor_config));
         } else {
             println!("Monitor configuration file is not readable: {:?}", path);
         }
     }
-
-    log_processing::create_dir(&output_dir);
-    println!("Output directory: {}", output_dir.display());
 
     let tera = setup_tera();
 

@@ -386,3 +386,20 @@ pub struct DamageDealtToMobByPower {
     pub damage_per_hit: i32,
     pub overkill: i32,
 }
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(log_date))]
+#[diesel(table_name = last_interesting_date)]
+pub struct LastInterestingDate {
+    pub log_date: String
+}

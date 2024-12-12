@@ -1,22 +1,26 @@
+use chrono::Local;
 use log_processing::ProcessingError;
 use monitor_structs::MonitorConfig;
+use std::io::Write;
 use std::{
     cmp,
+    fs::{File, OpenOptions},
     io::BufRead,
+    path::PathBuf,
     thread,
-    time::{self, Duration, Instant},
+    time::{self, Instant},
 };
 
 use crate::{
-    db, get_last_modified_file_in_dir,
-    log_processing::{
-        self, open_log_file, process_lines, verify_file,
-    },
+    db::{self},
+    get_last_modified_file_in_dir,
+    log_processing::{self, open_log_file, process_lines, verify_file},
 };
 
 pub mod monitor_structs;
 
 pub struct MonitorJob {
+    pub log_file: File,
     pub config: MonitorConfig,
     pub start_time: String,
     pub last_run_time: u128,
@@ -24,8 +28,16 @@ pub struct MonitorJob {
 } // configuration
 
 impl MonitorJob {
-    pub fn new(config: MonitorConfig) -> Self {
+    pub fn new(output_dir: &PathBuf, config: MonitorConfig) -> Self {
+        let now = Local::now();
+        let log_path = output_dir.join(format!("monitor.{}.log", now.format("%Y_%m_%d")));
+        let log_file = OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(log_path)
+            .expect("Unable to create new monitor log");
         Self {
+            log_file: log_file,
             config: config,
             start_time: "no started".to_owned(),
             last_run_time: 0,
@@ -66,7 +78,36 @@ impl MonitorJob {
             let (success, file_points) = process_lines(conn, file_path.to_path_buf(), lines);
             if success {
                 println!("Datapoints parsed: {}", file_points.len());
-                let summaries = db::queries::get_summaries(conn);
+                let end_date = db::queries::get_last_interesting_date(conn);
+                let last_second = end_date - chrono::Duration::seconds(1);
+
+                for a in &self.config.actions {
+                    match a.trigger_type {
+                        monitor_structs::TriggerType::ACTIVATION => {
+                            let activation_option =
+                                db::queries::get_last_activation(conn, &a.power_name, last_second);
+                            println!("Power activation: {:?}", activation_option);
+
+                            match activation_option {
+                                Some(a) => {
+                                   writeln!(self.log_file, "Power activation: {:?},{:?}", last_second, a).expect("Unable to write activation to monitor log");
+                                }
+                                None => (),
+                            }
+                        }
+                        monitor_structs::TriggerType::RECHARGE => {
+                            let recharge_option =
+                                db::queries::get_last_recharge(conn, &a.power_name, last_second);
+                            match recharge_option {
+                                Some(r) => {
+                                   writeln!(self.log_file, "Power recharge: {:?},{:?}", last_second, r).expect("Unable to write recharge to monitor log");
+                                }
+                                None => (),
+                            }
+                        }
+                    }
+                }
+
                 self.last_run_time = start.elapsed().as_millis();
                 println!("Processing time in milliseconds: {}", self.last_run_time);
             } else {

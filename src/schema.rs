@@ -243,6 +243,12 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    last_interesting_date (log_date) {
+        log_date -> Text
+    }
+}
+
 
 
 diesel::joinable!(damage_action -> summary (summary_key));
