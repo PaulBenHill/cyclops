@@ -5,7 +5,7 @@ use monitoring::monitor_structs::MonitorConfig;
 use monitoring::MonitorJob;
 use std::fs::File;
 use std::io::BufReader;
-use std::path::*;
+use std::{path::*, thread};
 use std::time::Instant;
 use std::{env, fs};
 
@@ -48,7 +48,7 @@ fn main() {
 
     if let Some(job) = monitor_job {
         println!("Starting monitor job on directory {:?}.", job.config.dir);
-        job.monitor_dir();
+        let handle = thread::spawn(move || {job.monitor_dir();});
     }
 
     let parser_job = ParserJob {
@@ -176,6 +176,10 @@ fn initialize() -> (AppContext, Vec<PathBuf>, Option<MonitorJob>) {
     log_processing::create_dir(&output_dir);
     println!("Output directory: {}", output_dir.display());
 
+    let tera = setup_tera();
+
+    let res_dir = working_dir.clone().join("resources");
+
     let mut monitor_job: Option<MonitorJob> = None;
     if let Some(path) = args.monitorconfig {
         if path.exists() {
@@ -194,9 +198,6 @@ fn initialize() -> (AppContext, Vec<PathBuf>, Option<MonitorJob>) {
         }
     }
 
-    let tera = setup_tera();
-
-    let res_dir = working_dir.clone().join("resources");
 
     (
         AppContext {
