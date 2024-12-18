@@ -1,0 +1,9 @@
+<div id="messages" class="div-border">
+    <label>Now:</label>
+    {{ now | date(format="%H:%M:%S %Y-%m-%d") }}
+    <table>
+        {% for m in messages %}
+        <tr><td style="color: {{m.color}}; font-size: {{m.font_size}}">{{m.output_text}}</td></tr>
+        {% endfor %}
+    </table>
+</div>

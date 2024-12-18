@@ -36,6 +36,13 @@ pub struct MessageDetails {
     pub end_time: DateTime<Local>,
 }
 
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq, Default, Hash)]
+pub struct MonitorMessage {
+   pub output_text: String,
+   pub color: String,
+   pub font_size: u8,
+}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MonitorConfig {

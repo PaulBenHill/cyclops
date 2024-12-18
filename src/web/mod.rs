@@ -21,7 +21,7 @@ mod powers_and_mobs_table;
 pub mod web_structs_enums;
 
 use crate::{
-    get_last_modified_file_in_dir, log_processing::{self, ParserJob}, AppContext
+    get_last_modified_file_in_dir, log_processing::{self, ParserJob}, monitoring, AppContext
 };
 
 fn create_job_result(context: &AppContext, job: &ParserJob) -> HttpResponse {
@@ -227,6 +227,35 @@ async fn player_summary_query(req: HttpRequest, context: web::Data<AppContext>) 
     }
 }
 
+#[get("/monitor")]
+async fn monitor(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let monitor_context = Context::new();
+
+    let result = context
+        .tera
+        .render("monitor.html", &monitor_context);
+    match result {
+        Ok(data) => HttpResponse::Ok().body(data),
+        Err(e) => panic!("Could not render {}:{:?}", "monitor.html", e),
+    }
+}
+
+#[get("/monitor_messages")]
+async fn monitor_messages(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
+    let mut message_context = Context::new();
+
+    let (now, messages) = monitoring::get_messages();
+    message_context.insert("now", &now.timestamp());
+    message_context.insert("messages", &messages);
+    let result = context
+        .tera
+        .render("messages.html", &message_context);
+    match result {
+        Ok(data) => HttpResponse::Ok().body(data),
+        Err(e) => panic!("Could not render {}:{:?}", "monitoring_messages.html", e),
+    }
+}
+
 #[actix_web::main]
 pub async fn start(context: AppContext) -> std::io::Result<()> {
     let address = context.web_address.to_string();
@@ -244,6 +273,8 @@ pub async fn start(context: AppContext) -> std::io::Result<()> {
             .service(damage_by_power)
             .service(damage_table)
             .service(powers_and_mobs_query)
+            .service(monitor)
+            .service(monitor_messages)
             .service(fs::Files::new(
                 "/resources",
                 context.resources_dir.to_owned(),
