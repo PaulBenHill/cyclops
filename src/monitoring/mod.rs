@@ -20,7 +20,6 @@ use crate::{
 
 pub mod monitor_structs;
 
-#[derive(Clone, Debug)]
 pub struct MonitorJob {
     pub log_file: File,
     pub config: MonitorConfig,
