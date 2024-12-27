@@ -244,8 +244,9 @@ async fn monitor(_: HttpRequest, context: web::Data<AppContext>) -> impl Respond
 async fn monitor_messages(_: HttpRequest, context: web::Data<AppContext>) -> impl Responder {
     let mut message_context = Context::new();
 
-    let (now, messages) = monitoring::get_messages();
+    let (now, stats, messages) = monitoring::get_messages();
     message_context.insert("now", &now.timestamp());
+    message_context.insert("stats", &stats);
     message_context.insert("messages", &messages);
     let result = context
         .tera

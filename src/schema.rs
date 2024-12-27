@@ -249,6 +249,18 @@ diesel::table! {
     }
 }
 
+diesel::table!(
+    session_stats (summary_key) {
+        summary_key -> Integer,
+        total_dps -> Integer,
+        dps_5 -> Integer,
+        total_exp -> Integer,
+        exp_5 -> Integer,
+        total_inf -> Integer,
+        inf_5 -> Integer,
+    }
+);
+
 
 
 diesel::joinable!(damage_action -> summary (summary_key));
@@ -284,4 +296,5 @@ diesel::allow_tables_to_appear_in_same_query!(
     damage_taken_by_mob,
     damage_taken_by_mob_power,
     damage_dealt_to_mob_by_power,
+    session_stats,
 );

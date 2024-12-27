@@ -10,7 +10,7 @@ use crate::db::get_file_conn;
 use crate::models::{
     DamageDealtByType, DamageDealtToMobByPower, DamageIntervals, DamageReportByPower, DamageTaken,
     DamageTakenByMob, DamageTakenByMobPower, DamageTakenByType, IndexDetails, RewardsDefeats,
-    Summary, TotalDamageReport, PlayerPowerRecharged, PlayerActivation
+    Summary, TotalDamageReport, PlayerPowerRecharged, PlayerActivation, SessionStats
 };
 use crate::web::web_structs_enums::DamageByPowerQuery;
 use crate::web::web_structs_enums::PowersMobsData;
@@ -380,5 +380,23 @@ pub fn get_last_recharge(
             }
         }
         None => None
+    }
+}
+
+pub fn get_session_stats(conn: &mut SqliteConnection, key: i32) -> Option<SessionStats> {
+    use crate::schema::session_stats::dsl::*;
+
+    match session_stats
+        .filter(summary_key.eq(key))
+        .load::<SessionStats>(conn)
+    {
+        Ok(result) => {
+            if result.is_empty() {
+                None
+            } else {
+                Some(result.first().unwrap().clone())
+            }
+        }
+        Err(_) => None,
     }
 }

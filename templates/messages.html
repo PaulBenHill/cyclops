@@ -1,6 +1,31 @@
 <div id="messages" class="div-border">
     <label>Now:</label>
     {{ now | date(format="%H:%M:%S %Y-%m-%d") }}
+    <br>
+    <label>Session stats:</label>
+    <table>
+        <tr>
+        <th></th>
+        <th>Total</th>
+        <th>last 5 mins</th>
+        </tr>
+        <tr>
+            <td>DPS</td>
+            <td>{{stats.total_dps}}</td>
+            <td>{{stats.dps_5}}</td>
+        </tr>
+        <tr>
+            <td>Exp</td>
+            <td>{{stats.total_exp}}</td>
+            <td>{{stats.exp_5}}</td>
+        </tr>
+        <tr>
+            <td>Inf</td>
+            <td>{{stats.total_inf}}</td>
+            <td>{{stats.inf_5}}</td>
+        </tr>
+    </table>
+    <br>
     <table>
         {% for m in messages %}
         <tr><td style="color: {{m.color}}; font-size: {{m.font_size}}">{{m.output_text}}</td></tr>

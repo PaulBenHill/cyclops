@@ -403,3 +403,26 @@ pub struct DamageDealtToMobByPower {
 pub struct LastInterestingDate {
     pub log_date: String
 }
+
+#[derive(
+    Queryable,
+    Debug,
+    Clone,
+    Identifiable,
+    Insertable,
+    Selectable,
+    QueryableByName,
+    Serialize,
+    Deserialize,
+)]
+#[diesel(primary_key(summary_key))]
+#[diesel(table_name = session_stats)]
+pub struct SessionStats {
+    pub summary_key: i32,
+    pub total_dps: i32,
+    pub dps_5: i32,
+    pub total_exp: i32,
+    pub exp_5: i32,
+    pub total_inf: i32,
+    pub inf_5: i32,
+}

@@ -16,6 +16,7 @@ use std::{
     time::{self, Instant},
 };
 
+use crate::models::SessionStats;
 use crate::{
     db::{self},
     get_last_modified_file_in_dir,
@@ -27,6 +28,15 @@ pub mod monitor_structs;
 lazy_static! {
     static ref DISPLAY_MESSAGES: Mutex<HashMap<EventKey, MessageDetails>> =
         Mutex::new(HashMap::new());
+    static ref SESSION_STATS: Mutex<SessionStats> = Mutex::new(SessionStats {
+        summary_key: 0,
+        total_dps: 0,
+        dps_5: 0,
+        total_exp: 0,
+        exp_5: 0,
+        total_inf: 0,
+        inf_5: 0,
+    });
 }
 
 pub struct MonitorJob {
@@ -87,9 +97,19 @@ impl MonitorJob {
 
             let (success, file_points) = process_lines(conn, file_path.to_path_buf(), lines);
             if success {
+                // Handle session stats
+                let key = db::queries::get_summaries(conn).last().unwrap().summary_key;
+                match db::queries::get_session_stats(conn, key) {
+                    Some(data) => {
+                        let mut old_state = SESSION_STATS.lock().unwrap();
+                        let _ = std::mem::replace(&mut *old_state, data);
+                    }
+                     _ => (),
+                }
+
                 let mut display_map = DISPLAY_MESSAGES.lock().unwrap();
                 println!("Datapoints parsed: {}", file_points.len());
-                //let end_date = db::queries::get_last_interesting_date(conn);
+
                 let now: DateTime<Local> = Local::now();
                 let last_second = now - chrono::Duration::seconds(5);
                 let mut new_messages: HashMap<EventKey, MessageDetails> = HashMap::new();
@@ -171,29 +191,29 @@ impl MonitorJob {
                     }
                 }
 
-                    let mut remove_keys: Vec<EventKey> = Vec::new();
-                    for (key, message) in display_map.iter() {
-                        if expired_message(&now, &message) {
+                let mut remove_keys: Vec<EventKey> = Vec::new();
+                for (key, message) in display_map.iter() {
+                    if expired_message(&now, &message) {
+                        remove_keys.push(key.clone());
+                    }
+                    for new_key in new_messages.keys() {
+                        if replace_existing_message(&key, &new_key) {
                             remove_keys.push(key.clone());
                         }
-                        for new_key in new_messages.keys() {
-                            if replace_existing_message(&key, &new_key) {
-                                remove_keys.push(key.clone());
-                            }
-                        }
                     }
+                }
 
-                    writeln!(self.log_file, "display messages: {}", display_map.len());
-                    display_map.retain(|k, _| !remove_keys.contains(k));
-                    writeln!(self.log_file, "display post retain: {}", display_map.len());
-                    display_map.extend(new_messages);
-                    writeln!(self.log_file, "display final: {}", display_map.len());
-                    for (key, value) in display_map.iter() {
-                        writeln!(self.log_file, "### Display Map ###")
-                            .expect("Unable to write to monitor log.");
-                        writeln!(self.log_file, "{:?}: {:?}", key, value)
-                            .expect("Unable to write to monitor log.");
-                    }
+                writeln!(self.log_file, "display messages: {}", display_map.len());
+                display_map.retain(|k, _| !remove_keys.contains(k));
+                writeln!(self.log_file, "display post retain: {}", display_map.len());
+                display_map.extend(new_messages);
+                writeln!(self.log_file, "display final: {}", display_map.len());
+                for (key, value) in display_map.iter() {
+                    writeln!(self.log_file, "### Display Map ###")
+                        .expect("Unable to write to monitor log.");
+                    writeln!(self.log_file, "{:?}: {:?}", key, value)
+                        .expect("Unable to write to monitor log.");
+                }
 
                 self.last_run_time = start.elapsed().as_millis();
                 println!("Processing time in milliseconds: {}", self.last_run_time);
@@ -295,7 +315,11 @@ fn replace_existing_message(existing_key: &EventKey, new_key: &EventKey) -> bool
     false
 }
 
-pub fn get_messages() -> (DateTime<Local>, Vec<MonitorMessage>) {
+pub fn get_stats() -> SessionStats {
+   SESSION_STATS.lock().unwrap().clone()
+}
+
+pub fn get_messages() -> (DateTime<Local>, SessionStats, Vec<MonitorMessage>) {
     let details = DISPLAY_MESSAGES.lock().unwrap();
     let now = Local::now();
     let time_point = now.timestamp();
@@ -322,5 +346,5 @@ pub fn get_messages() -> (DateTime<Local>, Vec<MonitorMessage>) {
         }
     }
 
-    (now, messages)
+    (now, SESSION_STATS.lock().unwrap().clone(), messages)
 }

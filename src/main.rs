@@ -19,6 +19,7 @@ mod models;
 mod monitoring;
 mod schema;
 mod web;
+mod overlay;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
@@ -48,7 +49,8 @@ fn main() {
 
     if let Some(job) = monitor_job {
         println!("Starting monitor job on directory {:?}.", job.config.dir);
-        let handle = thread::spawn(move || {job.monitor_dir();});
+        let monitor_job_handle = thread::spawn(move || {job.monitor_dir();});
+        let overlay_handle = thread::spawn(move || {overlay::start()});
     }
 
     let parser_job = ParserJob {
