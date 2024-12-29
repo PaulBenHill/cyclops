@@ -561,7 +561,7 @@ SELECT power_name,
                                       WHERE pa.summary_key = ppr.summary_key AND 
                                             pa.line_number < ppr.line_number AND 
                                             pa.power_name = ppr.power_name
-                                      ORDER BY ppr.log_date
+                                      ORDER BY ppr.line_number
                                       LIMIT 1
                                  )
                                  AS recharge_log_date
@@ -618,7 +618,7 @@ CREATE VIEW IF NOT EXISTS session_stats AS
                                                   WHERE s.summary_key = summary_key AND 
                                                         (source_type = 'Player' OR 
                                                          source_type = 'PlayerPet') 
-                                                  ORDER BY log_date DESC
+                                                  ORDER BY line_number DESC
                                                   LIMIT 1
                                              )
                                   ) - (unixepoch( (
@@ -627,7 +627,7 @@ CREATE VIEW IF NOT EXISTS session_stats AS
                                                        WHERE s.summary_key = summary_key AND 
                                                              (source_type = 'Player' OR 
                                                               source_type = 'PlayerPet') 
-                                                       ORDER BY log_date ASC
+                                                       ORDER BY line_number ASC
                                                        LIMIT 1
                                                   )
                                       ) ) ) AS delta
@@ -648,7 +648,7 @@ CREATE VIEW IF NOT EXISTS session_stats AS
                                                                            FROM damage_action
                                                                           WHERE s.summary_key = summary_key AND 
                                                                                 source_type IN ('Player', 'PlayerPet') 
-                                                                          ORDER BY log_date DESC
+                                                                          ORDER BY line_number DESC
                                                                           LIMIT 1
                                                                      )
 -                                                                  300) 
@@ -674,7 +674,7 @@ CREATE VIEW IF NOT EXISTS session_stats AS
                                                      FROM reward
                                                     WHERE s.summary_key = summary_key AND 
                                                           experience > 0
-                                                    ORDER BY log_date DESC
+                                                    ORDER BY line_number DESC
                                                     LIMIT 1
                                                )
 -                                            300) 
@@ -697,7 +697,7 @@ CREATE VIEW IF NOT EXISTS session_stats AS
                                                      FROM reward
                                                     WHERE s.summary_key = summary_key AND 
                                                           influence > 0
-                                                    ORDER BY log_date DESC
+                                                    ORDER BY line_number DESC
                                                     LIMIT 1
                                                )
 -                                            300) 

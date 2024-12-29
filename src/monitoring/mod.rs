@@ -16,6 +16,7 @@ use std::{
     time::{self, Instant},
 };
 
+use crate::log_processing::monitor_lines;
 use crate::models::SessionStats;
 use crate::{
     db::{self},
@@ -95,7 +96,7 @@ impl MonitorJob {
 
             let lines = reader.lines();
 
-            let (success, file_points) = process_lines(conn, file_path.to_path_buf(), lines);
+            let (success, file_points) = monitor_lines(conn, file_path.to_path_buf(), lines);
             if success {
                 // Handle session stats
                 let key = db::queries::get_summaries(conn).last().unwrap().summary_key;
@@ -243,8 +244,8 @@ impl MonitorJob {
                 }
                 break;
             }
-            let sleep_time = cmp::max(10, 1000 - self.last_run_time);
-            println!("Sleep time: {}", sleep_time);
+            let sleep_time = cmp::max(10, 1000 - self.last_run_time as i128);
+            println!("Run time: {}, Sleep time: {}", self.last_run_time, sleep_time);
             thread::sleep(time::Duration::from_millis(sleep_time as u64));
         }
 

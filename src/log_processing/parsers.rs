@@ -150,6 +150,19 @@ pub static MATCHER_FUNCS: [fn(u32, &String) -> Option<FileDataPoint>; 49] = [
         extract_unparsed, //This should always be the last matcher, as it matches everything
 ];
 
+// Order matters!!!
+// Update array size when adding new functions
+pub static MONITOR_MATCHER_FUNCS: [fn(u32, &String) -> Option<FileDataPoint>; 7] = [
+        extract_session_marker_1,
+        extract_session_marker_2,
+        pseudo_pet_attack_damage,
+        player_pet_attack_damage,
+        extract_exp_inf_gain,
+        extract_player_activation,
+        extract_power_recharged,
+];
+
+
 pub fn extract_session_marker_1(line_number: u32, line: &String) -> Option<FileDataPoint> {
     let caps = SESSION_MARKER_MATCHER_1.captures(line);
 

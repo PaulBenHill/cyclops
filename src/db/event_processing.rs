@@ -622,6 +622,261 @@ pub fn write_to_database(
     }
 }
 
+pub fn write_to_monitor(
+    conn: &mut SqliteConnection,
+    file_name: String,
+    data_points: &Vec<FileDataPoint>,
+    line_count: u32
+) {
+    let key = (chrono::offset::Local::now().timestamp() % 1000) as i32;
+    let mut summaries: Vec<Summary> = Vec::new();
+    let mut activations: Vec<PlayerActivation> = Vec::new();
+    let mut recharges: Vec<PlayerPowerRecharged> = Vec::new();
+    let mut damage_actions: Vec<DamageAction> = Vec::new();
+    let mut rewards: Vec<Reward> = Vec::new();
+
+    // Create placeholder summary
+    let placeholder = Summary {
+        summary_key: key,
+        player_name: String::from("NO NAME"),
+        log_date: String::from("PLACEHOLDER"),
+        first_line_number: 1,
+        last_line_number: line_count as i32,
+        log_file_name: String::from(&file_name),
+    };
+    summaries.push(placeholder);
+
+    for dp in data_points {
+        match dp {
+            FileDataPoint::SessionMarker {
+                data_position,
+                player_name,
+            } => {
+                summaries.push(Summary {
+                    summary_key: data_position.date.timestamp() as i32,
+                    player_name: player_name.clone(),
+                    log_date: data_position.date.to_rfc3339(),
+                    first_line_number: data_position.line_number as i32,
+                    last_line_number: data_position.line_number as i32 + line_count as i32, 
+                    log_file_name: String::from(&file_name),
+                });
+            }
+            FileDataPoint::PlayerPowerActivation {
+                data_position,
+                power_name,
+            } => activations.push(PlayerActivation {
+                summary_key: key,
+                line_number: data_position.line_number as i32,
+                log_date: data_position.date.to_rfc3339(),
+                power_name: power_name.clone(),
+                proc_fire: 0,
+            }),
+            FileDataPoint::PlayerPowerRecharged {
+                data_position,
+                power_name,
+            } => recharges.push(PlayerPowerRecharged {
+                summary_key: key,
+                line_number: data_position.line_number as i32,
+                log_date: data_position.date.to_rfc3339(),
+                power_name: power_name.clone(),
+            }),
+            FileDataPoint::PlayerDirectDamage {
+                data_position,
+                damage_dealt,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target_name: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("Direct"),
+                    source_type: String::from("Player"),
+                    source_name: String::from("Player"),
+                });
+
+                if damage_dealt.power_name.contains("Chance for")
+                    || damage_dealt.power_name.contains("Spider's Bite")
+                {
+                    activations.push(PlayerActivation {
+                        summary_key: key,
+                        line_number: data_position.line_number as i32,
+                        log_date: data_position.date.to_rfc3339(),
+                        power_name: damage_dealt.power_name.clone(),
+                        proc_fire: 1,
+                    });
+                }
+            }
+            FileDataPoint::PlayerDamageDoT {
+                data_position,
+                damage_dealt,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target_name: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("DoT"),
+                    source_type: String::from("Player"),
+                    source_name: String::from("Player"),
+                });
+                if damage_dealt.power_name.contains("Interface") {
+                    activations.push(PlayerActivation {
+                        summary_key: key,
+                        line_number: data_position.line_number as i32,
+                        log_date: data_position.date.to_rfc3339(),
+                        power_name: damage_dealt.power_name.clone(),
+                        proc_fire: 1,
+                    });
+                }
+            }
+            FileDataPoint::PlayerCriticalDamage {
+                data_position,
+                damage_dealt,
+                critical_type: _,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target_name: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("Critical"),
+                    source_type: String::from("Player"),
+                    source_name: String::from("Player"),
+                });
+            }
+            FileDataPoint::PseudoPetDirectDamage {
+                data_position,
+                damage_dealt,
+                pet_name,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target_name: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("Direct"),
+                    source_type: String::from("PlayerPet"),
+                    source_name: String::from(pet_name),
+                });
+                // Initially put in for damage patches
+                // but it's causes issues with damage per hits
+                // on pseudopets that record their hit rolls correctly
+                // Lightning Rod
+                // hits_misses.push(crate::models::HitOrMiss {
+                //     summary_key: key,
+                //     line_number: data_position.line_number as i32,
+                //     log_date: data_position.date.to_rfc3339(),
+                //     hit: 1,
+                //     chance_to_hit: 100,
+                //     source_type: String::from("PlayerPet"),
+                //     source_name: String::from(pet_name),
+                //     target_name: damage_dealt.target.clone(),
+                //     power_name: damage_dealt.power_name.clone(),
+                //     streakbreaker: 0,
+                // });
+                if damage_dealt.power_name.contains("Chance for")
+                    || damage_dealt.power_name.contains("Spider's Bite")
+                {
+                    activations.push(PlayerActivation {
+                        summary_key: key,
+                        line_number: data_position.line_number as i32,
+                        log_date: data_position.date.to_rfc3339(),
+                        power_name: damage_dealt.power_name.clone(),
+                        proc_fire: 1,
+                    });
+                }
+            }
+            FileDataPoint::PsuedoPetDamageDoT {
+                data_position,
+                damage_dealt,
+                pet_name,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target_name: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("DoT"),
+                    source_type: String::from("PlayerPet"),
+                    source_name: String::from(pet_name),
+                });
+            }
+            FileDataPoint::PsuedoPetCriticalDamage {
+                data_position,
+                damage_dealt,
+                pet_name,
+                critical_type: _,
+            } => {
+                damage_actions.push(DamageAction {
+                    summary_key: key,
+                    line_number: data_position.line_number as i32,
+                    log_date: data_position.date.to_rfc3339(),
+                    target_name: damage_dealt.target.clone(),
+                    power_name: damage_dealt.power_name.clone(),
+                    damage: damage_dealt.damage.round() as i32,
+                    damage_type: damage_dealt.damage_type.to_string(),
+                    damage_mode: String::from("Critical"),
+                    source_type: String::from("PlayerPet"),
+                    source_name: String::from(pet_name),
+                });
+            }
+            FileDataPoint::ExpAndInfGain {
+                data_position,
+                exp,
+                inf,
+            } => rewards.push(Reward {
+                summary_key: key,
+                line_number: data_position.line_number as i32,
+                log_date: data_position.date.to_rfc3339(),
+                experience: Some(*exp as i32),
+                influence: Some(*inf as i32),
+                item_drop: None,
+                reward_type: String::from("ExpAndInf"),
+            }),
+            _ => (),
+        }
+    }
+
+    if !summaries.is_empty() {
+        insert_summaries(conn, &summaries);
+
+        if !activations.is_empty() {
+            insert_activations(conn, &activations);
+        }
+
+        if !recharges.is_empty() {
+            insert_recharges(conn, &recharges);
+        }
+
+        if !damage_actions.is_empty() {
+            insert_damage(conn, &damage_actions);
+        }
+
+        if !rewards.is_empty() {
+            insert_rewards(conn, &rewards);
+        }
+
+        let final_summaries = finalize_summaries(conn, line_count as usize, &summaries[..]);
+        finalize_data(conn, &final_summaries[..]);
+        cleanup_summaries(conn);
+    }
+}
+
 pub fn insert_summaries(conn: &mut SqliteConnection, summaries: &Vec<Summary>) {
     diesel::insert_into(summary::table)
         .values(summaries)
@@ -637,7 +892,6 @@ fn insert_activations(conn: &mut SqliteConnection, activations: &Vec<PlayerActiv
 }
 
 fn insert_recharges(conn: &mut SqliteConnection, recharges: &Vec<PlayerPowerRecharged>) {
-    println!("Recharges: {}", recharges.len());
     diesel::insert_into(player_power_recharged::table)
         .values(recharges)
         .execute(conn)

@@ -14,10 +14,9 @@ use diesel::SqliteConnection;
 use lazy_static::lazy_static;
 use parser_model::FileDataPoint;
 use serde::{Deserialize, Serialize};
-use monitoring::monitor_structs::MonitorConfig;
 
 use crate::{
-    db::{self, event_processing::write_to_database}, get_last_modified_file_in_dir, models::Summary, monitoring, AppContext
+    db::{self, event_processing::{write_to_database, write_to_monitor}}, models::Summary, monitoring, AppContext
 };
 
 pub mod parser_model;
@@ -410,6 +409,62 @@ pub fn process_lines(
             conn,
             file.into_os_string().into_string().unwrap(),
             &data_points,
+        );
+        println!("Generating summaries done.");
+    }
+
+    data_points.shrink_to_fit();
+
+    (has_data, data_points)
+}
+
+pub fn monitor_lines(
+    conn: &mut SqliteConnection,
+    file: PathBuf,
+    lines: Lines<BufReader<File>>,
+) -> (bool, Vec<FileDataPoint>) {
+    let mut line_count: u32 = 0;
+    let parsers = parsers::MONITOR_MATCHER_FUNCS;
+    let mut data_points: Vec<FileDataPoint> = Vec::with_capacity(50000);
+
+    for line in lines.flatten() {
+        line_count += 1;
+        for p in &parsers {
+            if let Some(data) = p(line_count, &line) {
+                data_points.push(data);
+                break;
+            }
+        }
+    }
+
+    println!(
+        "Line count: {}, Data point count: {}",
+        line_count,
+        data_points.len()
+    );
+    println!("Matching and conversion done.");
+
+    let mut has_data = false;
+    for dp in &data_points {
+        match dp {
+            FileDataPoint::PlayerDirectDamage {
+                data_position: _,
+                damage_dealt: _,
+            } => {
+                has_data = true;
+                break;
+            }
+            _ => (),
+        }
+    }
+
+    if has_data {
+        // write to database
+        write_to_monitor(
+            conn,
+            file.into_os_string().into_string().unwrap(),
+            &data_points,
+            line_count
         );
         println!("Generating summaries done.");
     }

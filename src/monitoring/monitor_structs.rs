@@ -47,9 +47,6 @@ pub struct MonitorMessage {
 #[serde(rename_all = "camelCase")]
 pub struct MonitorConfig {
     pub dir: PathBuf,
-    pub dps: bool,
-    pub experience: bool,
-    pub influence: bool,
     #[serde(rename = "session_totals")]
     pub session_totals: bool,
     #[serde(rename = "display_colors")]
