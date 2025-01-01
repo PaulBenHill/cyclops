@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
 
 use chrono::{DateTime, Local};
@@ -11,7 +11,7 @@ pub enum TriggerType {
     RECHARGE,
 }
 
-#[derive(Hash, PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct EventKey {
     pub log_date: DateTime<Local>,
     pub line_number: i32,
@@ -19,7 +19,16 @@ pub struct EventKey {
     pub power_name: String,
 }
 
-#[derive(Debug)]
+impl Hash for EventKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.trigger_type.hash(state);
+        self.log_date.hash(state);
+        self.line_number.hash(state);
+        self.power_name.hash(state);
+    }
+} 
+
+#[derive(Debug, Clone)]
 pub struct MessageDetails {
     pub trigger_type: TriggerType,
     pub power_name: String,
@@ -66,7 +75,7 @@ pub struct Action {
     #[serde(rename = "output_text")]
     pub output_text: String,
     #[serde(rename = "delay_secs")]
-    pub delay_secs: u16,
+    pub delay_secs: u32,
     #[serde(rename = "display_secs")]
-    pub display_secs: u16,
+    pub display_secs: u32,
 }

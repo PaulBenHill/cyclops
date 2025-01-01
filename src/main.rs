@@ -50,7 +50,8 @@ fn main() {
     if let Some(job) = monitor_job {
         println!("Starting monitor job on directory {:?}.", job.config.dir);
         let monitor_job_handle = thread::spawn(move || {job.monitor_dir();});
-        let overlay_handle = thread::spawn(move || {overlay::start()});
+        let working_dir = app_context.working_dir.clone();
+        let overlay_handle = thread::spawn(move || {overlay::start(working_dir)});
     }
 
     let parser_job = ParserJob {

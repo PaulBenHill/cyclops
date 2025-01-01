@@ -4,7 +4,7 @@ use log_processing::ProcessingError;
 use monitor_structs::{
     Action, EventKey, MessageDetails, MonitorConfig, MonitorMessage, TriggerType,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::Write;
 use std::sync::Mutex;
 use std::{
@@ -15,6 +15,7 @@ use std::{
     thread,
     time::{self, Instant},
 };
+use tracing_subscriber::field::display;
 
 use crate::log_processing::monitor_lines;
 use crate::models::SessionStats;
@@ -105,7 +106,7 @@ impl MonitorJob {
                         let mut old_state = SESSION_STATS.lock().unwrap();
                         let _ = std::mem::replace(&mut *old_state, data);
                     }
-                     _ => (),
+                    _ => (),
                 }
 
                 let mut display_map = DISPLAY_MESSAGES.lock().unwrap();
@@ -113,7 +114,6 @@ impl MonitorJob {
 
                 let now: DateTime<Local> = Local::now();
                 let last_second = now - chrono::Duration::seconds(5);
-                let mut new_messages: HashMap<EventKey, MessageDetails> = HashMap::new();
 
                 for action in &self.config.actions {
                     match action.trigger_type {
@@ -148,7 +148,7 @@ impl MonitorJob {
                                             &self.config,
                                             &action,
                                         );
-                                        new_messages.insert(key, display_message);
+                                        display_map.insert(key, display_message);
                                     }
                                 }
                                 None => (),
@@ -183,7 +183,7 @@ impl MonitorJob {
                                             &self.config,
                                             &action,
                                         );
-                                        new_messages.insert(key, display_message);
+                                        display_map.insert(key, display_message);
                                     }
                                 }
                                 None => (),
@@ -192,29 +192,43 @@ impl MonitorJob {
                     }
                 }
 
-                let mut remove_keys: Vec<EventKey> = Vec::new();
-                for (key, message) in display_map.iter() {
-                    if expired_message(&now, &message) {
-                        remove_keys.push(key.clone());
-                    }
-                    for new_key in new_messages.keys() {
-                        if replace_existing_message(&key, &new_key) {
-                            remove_keys.push(key.clone());
+                // Remove all expired keys
+                display_map.retain(|k, _| k.log_date.timestamp() < now.timestamp());
+
+                if !display_map.is_empty() {
+                    // All message must be verify as active
+                    // So, collect them into a hashset and remove the invalid ones
+                    let mut active_keys: HashSet<EventKey> = display_map.keys().cloned().collect();
+                    for (key, _) in display_map.iter() {
+
+                        // Remove activation is there is a newer activation for the same power
+                        if display_map.keys().any(|existing_key| {
+                            existing_key.trigger_type == TriggerType::ACTIVATION
+                                && existing_key.line_number > key.line_number
+                                && existing_key.power_name == key.power_name
+                        }) {
+                            active_keys.remove(key);
+                        }
+
+                        // Remove recharge is there is a newer recharge or activation for the same power
+                        if key.trigger_type == TriggerType::RECHARGE {
+                            if display_map.keys().any(|existing_key| {
+                                existing_key.line_number > key.line_number
+                                    && existing_key.power_name == key.power_name
+                            }) {
+                                active_keys.remove(key);
+                            }
                         }
                     }
+                    display_map.retain(|k, _| active_keys.contains(k));
                 }
-
-                writeln!(self.log_file, "display messages: {}", display_map.len());
-                display_map.retain(|k, _| !remove_keys.contains(k));
-                writeln!(self.log_file, "display post retain: {}", display_map.len());
-                display_map.extend(new_messages);
-                writeln!(self.log_file, "display final: {}", display_map.len());
+                writeln!(self.log_file, "### Display Map ###")
+                    .expect("Unable to write to monitor log.");
                 for (key, value) in display_map.iter() {
-                    writeln!(self.log_file, "### Display Map ###")
-                        .expect("Unable to write to monitor log.");
                     writeln!(self.log_file, "{:?}: {:?}", key, value)
                         .expect("Unable to write to monitor log.");
                 }
+                writeln!(self.log_file, "###  ###");
 
                 self.last_run_time = start.elapsed().as_millis();
                 println!("Processing time in milliseconds: {}", self.last_run_time);
@@ -245,7 +259,10 @@ impl MonitorJob {
                 break;
             }
             let sleep_time = cmp::max(10, 1000 - self.last_run_time as i128);
-            println!("Run time: {}, Sleep time: {}", self.last_run_time, sleep_time);
+            println!(
+                "Run time: {}, Sleep time: {}",
+                self.last_run_time, sleep_time
+            );
             thread::sleep(time::Duration::from_millis(sleep_time as u64));
         }
 
@@ -290,34 +307,6 @@ fn create_display_message(
         escalation_three_color: config.display_colors.get(2).unwrap().to_string(),
         end_time: display_start + chrono::Duration::seconds(action.display_secs as i64),
     }
-}
-
-fn expired_message(now: &DateTime<Local>, message: &MessageDetails) -> bool {
-    if message.end_time.timestamp() < now.timestamp() {
-        return true;
-    }
-
-    false
-}
-
-fn replace_existing_message(existing_key: &EventKey, new_key: &EventKey) -> bool {
-    if new_key.line_number == existing_key.line_number {
-        return false;
-    }
-
-    if new_key.trigger_type == existing_key.trigger_type
-        && new_key.line_number > existing_key.line_number
-        && new_key.power_name == existing_key.power_name
-        && new_key.log_date.timestamp() > existing_key.log_date.timestamp()
-    {
-        return true;
-    }
-
-    false
-}
-
-pub fn get_stats() -> SessionStats {
-   SESSION_STATS.lock().unwrap().clone()
 }
 
 pub fn get_messages() -> (DateTime<Local>, SessionStats, Vec<MonitorMessage>) {
