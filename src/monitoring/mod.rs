@@ -97,7 +97,7 @@ impl MonitorJob {
 
             let lines = reader.lines();
 
-            let (success, file_points) = monitor_lines(conn, file_path.to_path_buf(), lines);
+            let (success, file_points) = monitor_lines( &mut self.log_file, conn, file_path.to_path_buf(), lines);
             if success {
                 // Handle session stats
                 let key = db::queries::get_summaries(conn).last().unwrap().summary_key;
@@ -110,7 +110,7 @@ impl MonitorJob {
                 }
 
                 let mut display_map = DISPLAY_MESSAGES.lock().unwrap();
-                println!("Datapoints parsed: {}", file_points.len());
+                writeln!(self.log_file, "Datapoints parsed: {}", file_points.len()).expect("Unable to write to monitor log.");
 
                 let now: DateTime<Local> = Local::now();
                 let last_second = now - chrono::Duration::seconds(5);
@@ -123,16 +123,9 @@ impl MonitorJob {
                                 &action.power_name,
                                 last_second,
                             );
-                            println!("Power activation: {:?}", activation_option);
 
                             match activation_option {
                                 Some(activation) => {
-                                    writeln!(
-                                        self.log_file,
-                                        "Power activation: {:?},{:?}",
-                                        last_second, activation
-                                    )
-                                    .expect("Unable to write activation to monitor log");
                                     let log_date = activation.log_date.parse().unwrap();
                                     let key = create_event_key(
                                         log_date,
@@ -162,12 +155,6 @@ impl MonitorJob {
                             );
                             match recharge_option {
                                 Some(recharge) => {
-                                    writeln!(
-                                        self.log_file,
-                                        "Power recharge: {:?},{:?}",
-                                        last_second, recharge
-                                    )
-                                    .expect("Unable to write recharge to monitor log");
                                     let log_date = recharge.log_date.parse().unwrap();
                                     let key = create_event_key(
                                         log_date,
@@ -193,11 +180,11 @@ impl MonitorJob {
                 }
 
                 // Remove all expired keys
-                display_map.retain(|k, _| k.log_date.timestamp() < now.timestamp());
+                display_map.retain(|_, m| m.end_time.timestamp() >= now.timestamp());
 
                 if !display_map.is_empty() {
-                    // All message must be verify as active
-                    // So, collect them into a hashset and remove the invalid ones
+                    // All message must be verified as active
+                    // Collect them into a hashset and remove the invalid ones
                     let mut active_keys: HashSet<EventKey> = display_map.keys().cloned().collect();
                     for (key, _) in display_map.iter() {
 
@@ -228,25 +215,25 @@ impl MonitorJob {
                     writeln!(self.log_file, "{:?}: {:?}", key, value)
                         .expect("Unable to write to monitor log.");
                 }
-                writeln!(self.log_file, "###  ###");
+                writeln!(self.log_file, "###  ###").expect("Unable to write to monitor log.");
 
                 self.last_run_time = start.elapsed().as_millis();
-                println!("Processing time in milliseconds: {}", self.last_run_time);
+                writeln!(self.log_file, "Processing time in milliseconds: {}", self.last_run_time).expect("Unable to write to monitor log.");
             } else {
-                println!(
+                writeln!(self.log_file,
                     "No valid data found in {}.",
                     file_path
                         .to_path_buf()
                         .into_os_string()
                         .into_string()
                         .unwrap()
-                );
+                ).expect("Unable to write to monitor log.");
             }
 
             if !self.errors.is_empty() {
-                println!("ERROR(S):");
+                writeln!(self.log_file, "ERROR(S):").expect("Unable to write to monitor log.");
                 for e in &self.errors[..] {
-                    println!(
+                    writeln!(self.log_file,
                         "{}:{}",
                         &e.message,
                         &e.file_name
@@ -254,15 +241,15 @@ impl MonitorJob {
                             .into_os_string()
                             .into_string()
                             .unwrap()
-                    );
+                    ).expect("Unable to write to monitor log.");
                 }
                 break;
             }
             let sleep_time = cmp::max(10, 1000 - self.last_run_time as i128);
-            println!(
+            writeln!(self.log_file,
                 "Run time: {}, Sleep time: {}",
                 self.last_run_time, sleep_time
-            );
+            ).expect("Unable to write to monitor log.");
             thread::sleep(time::Duration::from_millis(sleep_time as u64));
         }
 

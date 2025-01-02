@@ -419,6 +419,7 @@ pub fn process_lines(
 }
 
 pub fn monitor_lines(
+    debug_log: &mut File,
     conn: &mut SqliteConnection,
     file: PathBuf,
     lines: Lines<BufReader<File>>,
@@ -437,12 +438,12 @@ pub fn monitor_lines(
         }
     }
 
-    println!(
+    writeln!(
+        debug_log,
         "Line count: {}, Data point count: {}",
         line_count,
         data_points.len()
-    );
-    println!("Matching and conversion done.");
+    ).expect("Unable to write to debug log.");
 
     let mut has_data = false;
     for dp in &data_points {
@@ -466,7 +467,6 @@ pub fn monitor_lines(
             &data_points,
             line_count
         );
-        println!("Generating summaries done.");
     }
 
     data_points.shrink_to_fit();
