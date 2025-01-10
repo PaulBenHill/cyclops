@@ -4,29 +4,23 @@ use core::time;
 use std::{fs::File, io::BufReader, path::PathBuf, thread};
 use num_format::{Locale, ToFormattedString};
 
-use egui::{Align2, Color32, DragValue, Frame, Margin, Shadow, Vec2, Widget};
+use egui::{Align2, Color32, Frame, Margin, Shadow};
 use egui_overlay::EguiOverlay;
-#[cfg(feature = "three_d")]
-use egui_render_three_d::ThreeDBackend as DefaultGfxBackend;
 #[cfg(feature = "wgpu")]
 use egui_render_wgpu::WgpuBackend as DefaultGfxBackend;
 use serde::{Deserialize, Serialize};
-use tracing_subscriber::filter::DynFilterFn;
 
 use crate::monitoring::{self, monitor_structs::MonitorMessage};
 
 #[cfg(not(any(feature = "three_d", feature = "wgpu")))]
 compile_error!("you must enable either `three_d` or `wgpu` feature to run this example");
 pub(crate) fn start(working_dir: PathBuf) {
-    // use tracing_subscriber::{fmt, prelude::*};
-    // // if RUST_LOG is not set, we will use the following filters
-    // tracing_subscriber::registry()
-    //     .with(fmt::layer())
-    //     .with(
-    //         DynFilterFn::try_from_default_env()
-    //             .unwrap_or(EnvFilter::new("debug,wgpu=warn,naga=warn")),
-    //     )
-    //     .init();
+    use tracing_subscriber::{fmt, prelude::*};
+    // if RUST_LOG is not set, we will use the following filters
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .init();
+
     let config = load_config(&working_dir);
     egui_overlay::start(Overlay {
         width_i32: config.overlay_size[0] as i32,
@@ -79,7 +73,7 @@ impl EguiOverlay for Overlay {
                 stroke: egui::Stroke::NONE,
             })
             .show(egui_context, |ui| {
-                egui::Grid::new("some_unique_id")
+                egui::Grid::new("overlay_grid")
                     .min_col_width(640.0)
                     .min_row_height(360.0)
                     .show(ui, |ui| {

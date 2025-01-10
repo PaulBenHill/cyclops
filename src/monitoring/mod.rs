@@ -15,14 +15,13 @@ use std::{
     thread,
     time::{self, Instant},
 };
-use tracing_subscriber::field::display;
 
 use crate::log_processing::monitor_lines;
 use crate::models::SessionStats;
 use crate::{
     db::{self},
     get_last_modified_file_in_dir,
-    log_processing::{self, open_log_file, process_lines, verify_file},
+    log_processing::{self, open_log_file, verify_file},
 };
 
 pub mod monitor_structs;
