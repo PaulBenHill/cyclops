@@ -28,6 +28,7 @@ pub fn get_summaries(conn: &mut SqliteConnection) -> Vec<Summary> {
     use crate::schema::summary::dsl::*;
     summary
         .select(Summary::as_select())
+        .order_by(log_date.asc())
         .load(conn)
         .expect("Unable to load summaries")
 }

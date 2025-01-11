@@ -608,99 +608,108 @@ CREATE VIEW IF NOT EXISTS last_interesting_date AS
 DROP VIEW IF EXISTS session_stats;
 CREATE VIEW IF NOT EXISTS session_stats AS
     SELECT summary_key,
-           (
-               SELECT CASE WHEN ROUND(total_damage / delta) < 0 THEN 0 ELSE ROUND(total_damage / delta) END
-                 FROM (
-                          SELECT sum(damage) AS total_damage,
-                                 (unixepoch( (
-                                                 SELECT log_date
-                                                   FROM damage_action
-                                                  WHERE s.summary_key = summary_key AND 
-                                                        (source_type = 'Player' OR 
-                                                         source_type = 'PlayerPet') 
-                                                  ORDER BY line_number DESC
-                                                  LIMIT 1
-                                             )
-                                  ) - (unixepoch( (
-                                                      SELECT log_date
-                                                        FROM damage_action
-                                                       WHERE s.summary_key = summary_key AND 
-                                                             (source_type = 'Player' OR 
-                                                              source_type = 'PlayerPet') 
-                                                       ORDER BY line_number ASC
-                                                       LIMIT 1
-                                                  )
-                                      ) ) ) AS delta
-                            FROM damage_action
-                      )
-           )
-           AS total_dps,
-           (
-               SELECT CASE WHEN ROUND(total_damage / 300) < 0 THEN 0 ELSE ROUND(total_damage / 300) END
-                 FROM (
-                          SELECT (
-                                     SELECT sum(damage) 
+           (CASE WHEN total_dps IS NULL THEN 0 ELSE total_dps END) AS total_dps,
+           (CASE WHEN dps_5 IS NULL THEN 0 ELSE dps_5 END) AS dps_5,
+           (CASE WHEN total_exp IS NULL THEN 0 ELSE total_exp END) AS total_exp,
+           (CASE WHEN exp_5 IS NULL THEN 0 ELSE exp_5 END) AS exp_5,
+           (CASE WHEN total_inf IS NULL THEN 0 ELSE total_inf END) AS total_inf,
+           (CASE WHEN inf_5 IS NULL THEN 0 ELSE inf_5 END) AS inf_5
+      FROM (
+               SELECT summary_key,
+                      (
+                          SELECT CASE WHEN ROUND(total_damage / delta) < 0 THEN 0 ELSE ROUND(total_damage / delta) END
+                            FROM (
+                                     SELECT sum(damage) AS total_damage,
+                                            (unixepoch( (
+                                                            SELECT log_date
+                                                              FROM damage_action
+                                                             WHERE s.summary_key = summary_key AND 
+                                                                   (source_type = 'Player' OR 
+                                                                    source_type = 'PlayerPet') 
+                                                             ORDER BY line_number DESC
+                                                             LIMIT 1
+                                                        )
+                                             ) - (unixepoch( (
+                                                                 SELECT log_date
+                                                                   FROM damage_action
+                                                                  WHERE s.summary_key = summary_key AND 
+                                                                        (source_type = 'Player' OR 
+                                                                         source_type = 'PlayerPet') 
+                                                                  ORDER BY line_number ASC
+                                                                  LIMIT 1
+                                                             )
+                                                 ) ) ) AS delta
                                        FROM damage_action
-                                      WHERE s.summary_key = summary_key AND 
-                                            source_type IN ('Player', 'PlayerPet') AND 
-                                            unixepoch(log_date) >= ( (
-                                                                         SELECT unixepoch(log_date) 
-                                                                           FROM damage_action
-                                                                          WHERE s.summary_key = summary_key AND 
-                                                                                source_type IN ('Player', 'PlayerPet') 
-                                                                          ORDER BY line_number DESC
-                                                                          LIMIT 1
-                                                                     )
--                                                                  300) 
                                  )
-                                 AS total_damage
                       )
-           )
-           AS dps_5,
-           (
-               SELECT sum(experience) 
-                 FROM reward
-                WHERE s.summary_key = summary_key AND 
-                      experience > 0
-           )
-           AS total_exp,
-           (
-               SELECT sum(experience) 
-                 FROM reward
-                WHERE s.summary_key = summary_key AND 
-                      experience > 0 AND 
-                      unixepoch(log_date) >= ( (
-                                                   SELECT unixepoch(log_date) 
-                                                     FROM reward
-                                                    WHERE s.summary_key = summary_key AND 
-                                                          experience > 0
-                                                    ORDER BY line_number DESC
-                                                    LIMIT 1
-                                               )
--                                            300) 
-           )
-           AS exp_5,
-           (
-               SELECT sum(influence) 
-                 FROM reward
-                WHERE s.summary_key = summary_key AND 
-                      influence > 0
-           )
-           AS total_inf,
-           (
-               SELECT sum(influence) 
-                 FROM reward
-                WHERE s.summary_key = summary_key AND 
-                      influence > 0 AND 
-                      unixepoch(log_date) >= ( (
-                                                   SELECT unixepoch(log_date) 
-                                                     FROM reward
-                                                    WHERE s.summary_key = summary_key AND 
-                                                          influence > 0
-                                                    ORDER BY line_number DESC
-                                                    LIMIT 1
-                                               )
--                                            300) 
-           )
-           AS inf_5
-      FROM summary s;
+                      AS total_dps,
+                      (
+                          SELECT CASE WHEN ROUND(total_damage / 300) < 0 THEN 0 ELSE ROUND(total_damage / 300) END
+                            FROM (
+                                     SELECT (
+                                                SELECT sum(damage) 
+                                                  FROM damage_action
+                                                 WHERE s.summary_key = summary_key AND 
+                                                       source_type IN ('Player', 'PlayerPet') AND 
+                                                       unixepoch(log_date) >= ( (
+                                                                                    SELECT unixepoch(log_date) 
+                                                                                      FROM damage_action
+                                                                                     WHERE s.summary_key = summary_key AND 
+                                                                                           source_type IN ('Player', 'PlayerPet') 
+                                                                                     ORDER BY line_number DESC
+                                                                                     LIMIT 1
+                                                                                )
+-                                                                             300) 
+                                            )
+                                            AS total_damage
+                                 )
+                      )
+                      AS dps_5,
+                      (
+                          SELECT sum(experience) 
+                            FROM reward
+                           WHERE s.summary_key = summary_key AND 
+                                 experience > 0
+                      )
+                      AS total_exp,
+                      (
+                          SELECT sum(experience) 
+                            FROM reward
+                           WHERE s.summary_key = summary_key AND 
+                                 experience > 0 AND 
+                                 unixepoch(log_date) >= ( (
+                                                              SELECT unixepoch(log_date) 
+                                                                FROM reward
+                                                               WHERE s.summary_key = summary_key AND 
+                                                                     experience > 0
+                                                               ORDER BY line_number DESC
+                                                               LIMIT 1
+                                                          )
+-                                                       300) 
+                      )
+                      AS exp_5,
+                      (
+                          SELECT sum(influence) 
+                            FROM reward
+                           WHERE s.summary_key = summary_key AND 
+                                 influence > 0
+                      )
+                      AS total_inf,
+                      (
+                          SELECT sum(influence) 
+                            FROM reward
+                           WHERE s.summary_key = summary_key AND 
+                                 influence > 0 AND 
+                                 unixepoch(log_date) >= ( (
+                                                              SELECT unixepoch(log_date) 
+                                                                FROM reward
+                                                               WHERE s.summary_key = summary_key AND 
+                                                                     influence > 0
+                                                               ORDER BY line_number DESC
+                                                               LIMIT 1
+                                                          )
+-                                                       300) 
+                      )
+                      AS inf_5
+                 FROM summary s
+           );
