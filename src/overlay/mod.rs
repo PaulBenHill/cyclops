@@ -1,25 +1,26 @@
 #![windows_subsystem = "windows"] // to turn off console.
 
 use core::time;
-use std::{fs::File, io::BufReader, path::PathBuf, thread};
 use num_format::{Locale, ToFormattedString};
+use std::{fs::File, io::BufReader, path::PathBuf, thread};
 
-use egui::{Align2, Color32, Frame, Margin, Shadow};
+use egui::{Align2, Color32, Frame, InnerResponse, Label, Margin, RichText, Shadow, TextStyle, Ui};
 use egui_overlay::EguiOverlay;
 #[cfg(feature = "wgpu")]
 use egui_render_wgpu::WgpuBackend as DefaultGfxBackend;
 use serde::{Deserialize, Serialize};
 
-use crate::monitoring::{self, monitor_structs::MonitorMessage};
+use crate::{
+    models::SessionStats,
+    monitoring::{self, monitor_structs::MonitorMessage},
+};
 
 #[cfg(not(any(feature = "three_d", feature = "wgpu")))]
 compile_error!("you must enable either `three_d` or `wgpu` feature to run this example");
 pub(crate) fn start(working_dir: PathBuf) {
     use tracing_subscriber::{fmt, prelude::*};
     // if RUST_LOG is not set, we will use the following filters
-    tracing_subscriber::registry()
-        .with(fmt::layer())
-        .init();
+    tracing_subscriber::registry().with(fmt::layer()).init();
 
     let config = load_config(&working_dir);
     egui_overlay::start(Overlay {
@@ -27,8 +28,15 @@ pub(crate) fn start(working_dir: PathBuf) {
         width_f32: config.overlay_size[0] as f32,
         height_i32: config.overlay_size[0] as i32,
         height_f32: config.overlay_size[1] as f32,
-        alignment: get_alignment(&config.alignment.as_str()),
-        offset: [config.offset[0] as f32, config.offset[1] as f32],
+        cell_width: (config.overlay_size[0] / 3) as f32,
+        cell_height: (config.overlay_size[1] / 3) as f32,
+        statistics_enabled: config.statistics_display.enabled,
+        statistics_font_size: config.statistics_display.font_size,
+        statistics_grid_position: config.statistics_display.grid_position,
+        statistics_vertical_offset: config.statistics_display.vertical_offset,
+        display_enabled: config.message_display.enabled,
+        display_grid_position: config.message_display.grid_position,
+        display_vertical_offset: config.message_display.vertical_offset,
     });
 }
 
@@ -37,8 +45,15 @@ pub struct Overlay {
     width_f32: f32,
     height_i32: i32,
     height_f32: f32,
-    alignment: Align2,
-    offset: [f32; 2],
+    cell_width: f32,
+    cell_height: f32,
+    statistics_enabled: bool,
+    statistics_font_size: u8,
+    statistics_grid_position: u8,
+    statistics_vertical_offset: f32,
+    display_enabled: bool,
+    display_grid_position: u8,
+    display_vertical_offset: f32,
 }
 impl EguiOverlay for Overlay {
     fn gui_run(
@@ -63,7 +78,7 @@ impl EguiOverlay for Overlay {
             .resizable(false)
             .default_width(self.width_f32)
             .default_height(self.height_f32)
-            .anchor(self.alignment, self.offset)
+            .anchor(Align2::CENTER_TOP, [0.0, 0.0])
             .frame(Frame {
                 inner_margin: Margin::ZERO,
                 outer_margin: Margin::ZERO,
@@ -74,65 +89,32 @@ impl EguiOverlay for Overlay {
             })
             .show(egui_context, |ui| {
                 egui::Grid::new("overlay_grid")
-                    .min_col_width(640.0)
-                    .min_row_height(360.0)
+                    .min_col_width(self.cell_width)
+                    .min_row_height(self.cell_height)
                     .show(ui, |ui| {
-                        ui.vertical_centered_justified(|ui| {
-                            ui.add_space(50.0);
-                            ui.add(egui::Label::new(
-                                egui::RichText::new(format!(
-                                    "DPS total: {} 5m: {}",
-                                    stats.total_dps.to_formatted_string(&Locale::en), stats.dps_5.to_formatted_string(&Locale::en)
-                                ))
-                                .color(Color32::WHITE)
-                                .size(24.0)
-                                .strong()
-                                .background_color(Color32::TRANSPARENT),
-                            ));
-                            ui.add(egui::Label::new(
-                                egui::RichText::new(format!(
-                                    "EXP total: {} 5m: {}",
-                                    stats.total_exp.to_formatted_string(&Locale::en), stats.exp_5.to_formatted_string(&Locale::en)
-                                ))
-                                .color(Color32::WHITE)
-                                .size(24.0)
-                                .background_color(Color32::TRANSPARENT),
-                            ));
-                            ui.add(egui::Label::new(
-                                egui::RichText::new(format!(
-                                    "Inf total: {} 5m: {}",
-                                    stats.total_inf.to_formatted_string(&Locale::en), stats.inf_5.to_formatted_string(&Locale::en)
-                                ))
-                                .color(Color32::WHITE)
-                                .size(24.0)
-                                .background_color(Color32::TRANSPARENT),
-                            ));
-                        });
-                        ui.vertical_centered(|ui| {
-                            ui.add_space(250.0);
-                            for m in messages {
-                                let color = get_color(&m);
-                                ui.add(egui::Label::new(
-                                    egui::RichText::new(m.output_text)
-                                        .color(color)
-                                        .size(m.font_size as f32)
-                                        .strong()
-                                        .background_color(Color32::TRANSPARENT),
-                                ));
+                        for i in 1..=9 {
+                            if self.statistics_enabled && i == self.statistics_grid_position {
+                                ui.vertical_centered(|ui| {
+                                    ui.add_space(self.statistics_vertical_offset);
+                                    for w in generated_stats_widgets(&self, &stats) {
+                                        ui.add(w);
+                                    }
+                                });
+                            } else if self.display_enabled && i == self.display_grid_position {
+                                ui.vertical_centered_justified(|ui| {
+                                    ui.add_space(self.display_vertical_offset);
+                                    for w in generate_message_widgets(&messages) {
+                                        ui.add(w);
+                                    }
+                                });
+                            } else {
+                                ui.label("");
                             }
-                        });
-                        ui.label("");
-                        ui.end_row();
 
-                        ui.label("");
-                        ui.label("");
-                        ui.label("");
-                        ui.end_row();
-
-                        ui.label("");
-                        ui.label("");
-                        ui.label("");
-                        ui.end_row();
+                            if i % 3 == 0 {
+                                ui.end_row();
+                            }
+                        }
                     });
             });
 
@@ -140,11 +122,73 @@ impl EguiOverlay for Overlay {
     }
 }
 
+fn generated_stats_widgets(config: &Overlay, stats: &SessionStats) -> Vec<Label> {
+    let mut stats_widgets = Vec::<Label>::new();
+    stats_widgets.push(Label::new(
+        RichText::new(format!(
+            "DPS total: {} 5m: {}",
+            stats.total_dps.to_formatted_string(&Locale::en),
+            stats.dps_5.to_formatted_string(&Locale::en)
+        ))
+        .text_style(TextStyle::Monospace)
+        .color(Color32::WHITE)
+        .size(config.statistics_font_size.into())
+        .strong()
+        .background_color(Color32::TRANSPARENT),
+    ));
+    stats_widgets.push(egui::Label::new(
+        RichText::new(format!(
+            "EXP total: {} 5m: {}",
+            stats.total_exp.to_formatted_string(&Locale::en),
+            stats.exp_5.to_formatted_string(&Locale::en)
+        ))
+        .text_style(TextStyle::Monospace)
+        .color(Color32::WHITE)
+        .size(config.statistics_font_size.into())
+        .background_color(Color32::TRANSPARENT),
+    ));
+    stats_widgets.push(egui::Label::new(
+        RichText::new(format!(
+            "Inf total: {} 5m: {}",
+            stats.total_inf.to_formatted_string(&Locale::en),
+            stats.inf_5.to_formatted_string(&Locale::en)
+        ))
+        .text_style(TextStyle::Monospace)
+        .color(Color32::WHITE)
+        .size(config.statistics_font_size.into())
+        .background_color(Color32::TRANSPARENT),
+    ));
+
+    stats_widgets
+}
+
+fn generate_message_widgets(messages: &Vec<MonitorMessage>) -> Vec<Label> {
+    let mut message_widgets = Vec::<Label>::new();
+
+    for m in messages {
+        let color = get_color(&m);
+        message_widgets.push(Label::new(
+            RichText::new(m.output_text.clone())
+                .text_style(TextStyle::Monospace)
+                .color(color)
+                .size(m.font_size as f32)
+                .strong()
+                .background_color(Color32::TRANSPARENT),
+        ));
+    }
+
+    message_widgets
+}
+
 fn get_color(m: &MonitorMessage) -> Color32 {
     match m.color.as_str() {
         "green" => Color32::GREEN,
         "yellow" => Color32::YELLOW,
         "red" => Color32::RED,
+        "orange" => Color32::ORANGE,
+        "blue" => Color32::BLUE,
+        "indigo" => Color32::from_rgb(75, 0, 130),
+        "violet" => Color32::from_rgb(148, 0, 211),
         _ => Color32::GRAY,
     }
 }
@@ -153,10 +197,33 @@ fn get_color(m: &MonitorMessage) -> Color32 {
 #[serde(rename_all = "camelCase")]
 pub struct OverlayConfig {
     #[serde(rename = "overlay_size")]
-    pub overlay_size: Vec<u64>,
-    pub alignment: String,
-    #[serde(rename = "offset:")]
-    pub offset: Vec<i32>,
+    pub overlay_size: Vec<i64>,
+    #[serde(rename = "statistics_display")]
+    pub statistics_display: StatisticsDisplay,
+    #[serde(rename = "message_display")]
+    pub message_display: MessageDisplay,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StatisticsDisplay {
+    pub enabled: bool,
+    #[serde(rename = "grid_position")]
+    pub grid_position: u8,
+    #[serde(rename = "vertical_offset")]
+    pub vertical_offset: f32,
+    #[serde(rename = "font_size")]
+    pub font_size: u8,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MessageDisplay {
+    pub enabled: bool,
+    #[serde(rename = "grid_position")]
+    pub grid_position: u8,
+    #[serde(rename = "vertical_offset")]
+    pub vertical_offset: f32,
 }
 
 fn get_alignment(align_str: &str) -> Align2 {
