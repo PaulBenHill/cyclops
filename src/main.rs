@@ -23,7 +23,7 @@ mod overlay;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
-const VERSION: &str = "1.3";
+const VERSION: &str = "1.4";
 
 #[derive(Clone, Debug)]
 struct AppContext {
@@ -49,9 +49,9 @@ fn main() {
 
     if let Some(job) = monitor_job {
         println!("Starting monitor job on directory {:?}.", job.config.dir);
-        let monitor_job_handle = thread::spawn(move || {job.monitor_dir();});
+        let _ = thread::spawn(move || {job.monitor_dir();});
         let working_dir = app_context.working_dir.clone();
-        let overlay_handle = thread::spawn(move || {overlay::start(working_dir)});
+        let _ = thread::spawn(move || {overlay::start(working_dir)});
     }
 
     let parser_job = ParserJob {

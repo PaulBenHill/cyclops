@@ -4,7 +4,7 @@ use core::time;
 use num_format::{Locale, ToFormattedString};
 use std::{fs::File, io::BufReader, path::PathBuf, thread};
 
-use egui::{Align2, Color32, Frame, InnerResponse, Label, Margin, RichText, Shadow, TextStyle, Ui};
+use egui::{Align2, Color32, Frame, Label, Margin, RichText, Shadow, TextStyle};
 use egui_overlay::EguiOverlay;
 #[cfg(feature = "wgpu")]
 use egui_render_wgpu::WgpuBackend as DefaultGfxBackend;
@@ -32,6 +32,7 @@ pub(crate) fn start(working_dir: PathBuf) {
         cell_height: (config.overlay_size[1] / 3) as f32,
         statistics_enabled: config.statistics_display.enabled,
         statistics_font_size: config.statistics_display.font_size,
+        statistics_text_color: get_color(&config.statistics_display.text_color),
         statistics_grid_position: config.statistics_display.grid_position,
         statistics_vertical_offset: config.statistics_display.vertical_offset,
         display_enabled: config.message_display.enabled,
@@ -49,6 +50,7 @@ pub struct Overlay {
     cell_height: f32,
     statistics_enabled: bool,
     statistics_font_size: u8,
+    statistics_text_color: Color32,
     statistics_grid_position: u8,
     statistics_vertical_offset: f32,
     display_enabled: bool,
@@ -131,7 +133,7 @@ fn generated_stats_widgets(config: &Overlay, stats: &SessionStats) -> Vec<Label>
             stats.dps_5.to_formatted_string(&Locale::en)
         ))
         .text_style(TextStyle::Monospace)
-        .color(Color32::WHITE)
+        .color(config.statistics_text_color)
         .size(config.statistics_font_size.into())
         .strong()
         .background_color(Color32::TRANSPARENT),
@@ -143,7 +145,7 @@ fn generated_stats_widgets(config: &Overlay, stats: &SessionStats) -> Vec<Label>
             stats.exp_5.to_formatted_string(&Locale::en)
         ))
         .text_style(TextStyle::Monospace)
-        .color(Color32::WHITE)
+        .color(config.statistics_text_color)
         .size(config.statistics_font_size.into())
         .background_color(Color32::TRANSPARENT),
     ));
@@ -154,7 +156,7 @@ fn generated_stats_widgets(config: &Overlay, stats: &SessionStats) -> Vec<Label>
             stats.inf_5.to_formatted_string(&Locale::en)
         ))
         .text_style(TextStyle::Monospace)
-        .color(Color32::WHITE)
+        .color(config.statistics_text_color)
         .size(config.statistics_font_size.into())
         .background_color(Color32::TRANSPARENT),
     ));
@@ -166,7 +168,7 @@ fn generate_message_widgets(messages: &Vec<MonitorMessage>) -> Vec<Label> {
     let mut message_widgets = Vec::<Label>::new();
 
     for m in messages {
-        let color = get_color(&m);
+        let color = get_color(&m.color);
         message_widgets.push(Label::new(
             RichText::new(m.output_text.clone())
                 .text_style(TextStyle::Monospace)
@@ -180,8 +182,8 @@ fn generate_message_widgets(messages: &Vec<MonitorMessage>) -> Vec<Label> {
     message_widgets
 }
 
-fn get_color(m: &MonitorMessage) -> Color32 {
-    match m.color.as_str() {
+fn get_color(color_str: &String) -> Color32 {
+    match color_str.as_str() {
         "green" => Color32::GREEN,
         "yellow" => Color32::YELLOW,
         "red" => Color32::RED,
@@ -214,6 +216,8 @@ pub struct StatisticsDisplay {
     pub vertical_offset: f32,
     #[serde(rename = "font_size")]
     pub font_size: u8,
+    #[serde(rename = "text_color")]
+    pub text_color: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
