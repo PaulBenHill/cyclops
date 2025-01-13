@@ -1,0 +1,170 @@
+{
+    "name": "Dominator",
+    "dir": "D:\\coh\\accounts\\AccountName\\Logs",
+    "display_colors": [
+        "violet",
+        "red",
+        "blue"
+    ],
+    "font_sizes": [
+        24,
+        28,
+        36
+    ],
+    "actions": [
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Domination",
+            "output_text": "Domination is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Domination",
+            "output_text": "Domination is ready!",
+            "delay_secs": 0,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Power Up",
+            "output_text": "Power Up is READY",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Power Up",
+            "output_text": "Power Up is READY",
+            "delay_secs": 0,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Hasten",
+            "output_text": "Hasten is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Hasten",
+            "output_text": "Hasten is ready!",
+            "delay_secs": 0,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Telekinesis",
+            "output_text": "Telekinesis is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Telekinesis",
+            "output_text": "Telekinesis is ready!",
+            "delay_secs": 0,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Terrify",
+            "output_text": "Terrify is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Terrify",
+            "output_text": "Terrify is ready!",
+            "delay_secs": 0,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Total Domination",
+            "output_text": "Total Domination is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Total Domination",
+            "output_text": "Total Domination is ready!",
+            "delay_secs": 0,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Mass Confusion",
+            "output_text": "Mass Confusion is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Mass Confusion",
+            "output_text": "Mass Confusion is ready!",
+            "delay_secs": 0,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Mass Hypnosis",
+            "output_text": "Mass Hypnosis is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Mass Hypnosis",
+            "output_text": "Mass Hypnosis is ready!",
+            "delay_secs": 0,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Ion Judgement",
+            "output_text": "Ion Judgement is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Ion Judgement",
+            "output_text": "Ion Judgement is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Assault Core Embodiment",
+            "output_text": "Assault is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Assault Core Embodiment",
+            "output_text": "Assault is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Ageless Core Epiphany",
+            "output_text": "Ageless is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Ageless Core Epiphany",
+            "output_text": "Ageless is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        }
+    ]
+}

@@ -57,8 +57,6 @@ pub struct MonitorMessage {
 pub struct MonitorConfig {
     pub name: String,
     pub dir: PathBuf,
-    #[serde(rename = "session_totals")]
-    pub session_totals: bool,
     #[serde(rename = "display_colors")]
     pub display_colors: Vec<String>,
     #[serde(rename = "font_sizes")]

@@ -187,10 +187,10 @@ fn initialize() -> (AppContext, Vec<PathBuf>, Option<MonitorJob>) {
     if let Some(path) = args.monitorconfig {
         if path.exists() {
             println!("Monitor configuration path: {:?}", path);
-            let f = File::open(path).expect("Unable to find monitor file");
+            let f = File::open(&path).expect("Unable to find monitor file");
             let reader = BufReader::new(f);
             let monitor_config: MonitorConfig =
-                serde_json::from_reader(reader).expect("Unable to read config file");
+                serde_json::from_reader(reader).expect(&format!("Unable to read monitor config file: {:?}", path));
             println!(
                 "Monitor config data: {}",
                 serde_json::to_string_pretty(&monitor_config).expect("Unable to serialize config")
