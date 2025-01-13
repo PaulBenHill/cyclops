@@ -16,7 +16,12 @@ use parser_model::FileDataPoint;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    db::{self, event_processing::{write_to_database, write_to_monitor}}, models::Summary, monitoring, AppContext
+    db::{
+        self,
+        event_processing::{write_to_database, write_to_monitor},
+    },
+    models::Summary,
+    monitoring, AppContext,
 };
 
 pub mod parser_model;
@@ -76,7 +81,7 @@ impl ParserJob {
                 }
             };
 
-            let reader = match open_log_file(file_path.to_path_buf()) {
+            let reader = match open_log_file(file_path.to_path_buf(), true) {
                 Ok(r) => r,
                 Err(e) => {
                     self.errors.push(e);
@@ -443,7 +448,8 @@ pub fn monitor_lines(
         "Line count: {}, Data point count: {}",
         line_count,
         data_points.len()
-    ).expect("Unable to write to debug log.");
+    )
+    .expect("Unable to write to debug log.");
 
     let mut has_data = false;
     for dp in &data_points {
@@ -465,7 +471,7 @@ pub fn monitor_lines(
             conn,
             file.into_os_string().into_string().unwrap(),
             &data_points,
-            line_count
+            line_count,
         );
     }
 
@@ -474,7 +480,7 @@ pub fn monitor_lines(
     (has_data, data_points)
 }
 
-pub fn open_log_file(path_buf: PathBuf) -> Result<BufReader<File>, ProcessingError> {
+pub fn open_log_file(path_buf: PathBuf, verbose: bool) -> Result<BufReader<File>, ProcessingError> {
     let file_name = path_buf
         .clone()
         .into_os_string()
@@ -485,7 +491,9 @@ pub fn open_log_file(path_buf: PathBuf) -> Result<BufReader<File>, ProcessingErr
 
         match result {
             Ok(file) => {
-                println!("File opened for processing: {}", file_name,);
+                if verbose {
+                    println!("File opened for processing: {}", file_name,);
+                }
                 Ok(BufReader::new(file))
             }
             Err(e) => Err(ProcessingError {

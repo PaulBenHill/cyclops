@@ -55,6 +55,7 @@ pub struct MonitorMessage {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MonitorConfig {
+    pub name: String,
     pub dir: PathBuf,
     #[serde(rename = "session_totals")]
     pub session_totals: bool,

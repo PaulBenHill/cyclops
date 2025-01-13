@@ -230,7 +230,7 @@ pub struct MessageDisplay {
     pub vertical_offset: f32,
 }
 
-fn get_alignment(align_str: &str) -> Align2 {
+fn _get_alignment(align_str: &str) -> Align2 {
     match align_str {
         "LEFT_BOTTOM" => Align2::LEFT_BOTTOM,
         "LEFT_CENTER" => Align2::LEFT_CENTER,
