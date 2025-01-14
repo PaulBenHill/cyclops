@@ -23,7 +23,7 @@ mod overlay;
 
 const OUTPUT_DIR: &str = "output";
 const TEMPLATES: &str = "templates";
-const VERSION: &str = "1.4";
+const VERSION: &str = "1.3";
 
 #[derive(Clone, Debug)]
 struct AppContext {
