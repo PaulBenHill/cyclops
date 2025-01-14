@@ -975,6 +975,7 @@ fn finalize_data(conn: &mut SqliteConnection, summaries: &[Summary]) {
         finalize_defeats(conn, s);
         finalize_rewards(conn, s);
     }
+    finalize_name_normalization(conn);
     finalize_pseudo_pets(conn);
     finalize_sim_hits(conn)
 }
@@ -1085,6 +1086,20 @@ fn finalize_rewards(conn: &mut SqliteConnection, s: &Summary) {
         .set(summary_key.eq(s.summary_key))
         .execute(conn)
         .expect("Unable to update rewards");
+}
+fn finalize_name_normalization(conn: &mut SqliteConnection) {
+    for power in game_data::NAME_NORMALIZATION_TABLE.iter() {
+        diesel::update(player_activation::table)
+            .filter(player_activation::power_name.like(&power.activation_name))
+            .set(player_activation::power_name.eq(&power.normalized_name))
+            .execute(conn)
+            .expect("Unable to update normalize activation name");
+        diesel::update(player_power_recharged::table)
+            .filter(player_power_recharged::power_name.like(&power.activation_name))
+            .set(player_power_recharged::power_name.eq(&power.normalized_name))
+            .execute(conn)
+            .expect("Unable to update normalize activation name");
+    }
 }
 
 fn finalize_pseudo_pets(conn: &mut SqliteConnection) {

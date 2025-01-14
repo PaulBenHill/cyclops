@@ -147,22 +147,22 @@
         },
         {
             "trigger_type": "RECHARGE",
-            "power_name": "Assault Core Embodiment",
-            "output_text": "Assault is ready!",
+            "power_name": "Assault Hybrid",
+            "output_text": "Assault Hybrid is ready!",
             "delay_secs": 0,
             "display_secs": 30
         },
         {
             "trigger_type": "ACTIVATION",
-            "power_name": "Ageless Core Epiphany",
-            "output_text": "Ageless is ready!",
+            "power_name": "Ageless Destiny",
+            "output_text": "Ageless Destiny is ready!",
             "delay_secs": 11221970,
             "display_secs": 30
         },
         {
             "trigger_type": "RECHARGE",
-            "power_name": "Ageless Core Epiphany",
-            "output_text": "Ageless is ready!",
+            "power_name": "Ageless Destiny",
+            "output_text": "Ageless Destiny is ready!",
             "delay_secs": 0,
             "display_secs": 30
         }

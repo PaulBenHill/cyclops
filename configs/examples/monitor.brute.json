@@ -1,78 +1,86 @@
 {
-        "name": "Brute",
-        "dir": "D:\\coh\\accounts\\AccountName\\Logs",
-        "display_colors": ["green","yellow","red"],
-        "font_sizes": [16,20,24],
-        "actions": [
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Hoarfrost",
-                        "output_text": "Hoarfrost is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 10
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Hoarfrost",
-                        "output_text": "Hoarfrost is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 10
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Energy Absorption",
-                        "output_text": "Energy Absorption is READY",
-                        "delay_secs": 0,
-                        "display_secs": 10
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Energy Absorption",
-                        "output_text": "Energy Absorption is READY",
-                        "delay_secs": 11221970,
-                        "display_secs": 10
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Ion Judgement",
-                        "output_text": "Ion Judgement is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Ion Judgement",
-                        "output_text": "Ion Judgement is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Assault Core Embodiment",
-                        "output_text": "Assault is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Assault Core Embodiment",
-                        "output_text": "Assault is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Invocation Core Epiphany",
-                        "output_text": "Barrier is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Barrier Patril Core Invocation",
-                        "output_text": "Barrier is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 30
-            }
-        ]
+    "name": "Brute",
+    "dir": "D:\\coh\\accounts\\AccountName\\Logs",
+    "display_colors": [
+        "green",
+        "yellow",
+        "red"
+    ],
+    "font_sizes": [
+        16,
+        20,
+        24
+    ],
+    "actions": [
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Hoarfrost",
+            "output_text": "Hoarfrost is ready!",
+            "delay_secs": 0,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Hoarfrost",
+            "output_text": "Hoarfrost is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Energy Absorption",
+            "output_text": "Energy Absorption is READY",
+            "delay_secs": 0,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Energy Absorption",
+            "output_text": "Energy Absorption is READY",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Ion Judgement",
+            "output_text": "Ion Judgement is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Ion Judgement",
+            "output_text": "Ion Judgement is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Assault Core Embodiment",
+            "output_text": "Assault is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Assault Hybrid",
+            "output_text": "Assault Hybrid is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Ageless Destiny",
+            "output_text": "Ageless Destiny is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Ageless Destiny",
+            "output_text": "Ageless Destiny is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        }
+    ]
 }

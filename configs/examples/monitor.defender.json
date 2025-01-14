@@ -1,134 +1,135 @@
 {
-        "name": "Defender",
-        "dir": "D:\\coh\\accounts\\AccountName\\Logs",
-        "display_colors": ["green","yellow","red"],
-        "font_sizes": [24,28,36],
-        "actions": [
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Storm Cell",
-                        "output_text": "Storm Cell has expired!",
-                        "delay_secs": 60,
-                        "display_secs": 20
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Disruption Arrow",
-                        "output_text": "Disruption Arrow has expired!",
-                        "delay_secs": 45,
-                        "display_secs": 20
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Category Five",
-                        "output_text": "Category Five is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Category Five",
-                        "output_text": "Category Five is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 20
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Oil Slick Arrow",
-                        "output_text": "Oil Slick Arrow is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Oil Slick Arrow",
-                        "output_text": "Oil Slick Arrow is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 20
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "EMP Arrow",
-                        "output_text": "EMP Arrow is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "EMP Arrow",
-                        "output_text": "EMP Arrow is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 10
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Poison Gas Arrow",
-                        "output_text": "Poison Gas Arrow is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Poison Gas Arrow",
-                        "output_text": "Poison Gas Arrow is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 10
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Intensify",
-                        "output_text": "Intensify is READY",
-                        "delay_secs": 11221970,
-                        "display_secs": 10
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Intensify",
-                        "output_text": "Intensify is READY",
-                        "delay_secs": 0,
-                        "display_secs": 10
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Ion Judgement",
-                        "output_text": "Ion Judgement is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Ion Judgement",
-                        "output_text": "Ion Judgement is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Assault Total Radial Graft",
-                        "output_text": "Assault is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Assault Total Radial Graft",
-                        "output_text": "Assault is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "ACTIVATION",
-                        "power_name": "Ageless Core Epiphany",
-                        "output_text": "Ageless is ready!",
-                        "delay_secs": 11221970,
-                        "display_secs": 30
-            },
-            {
-                        "trigger_type": "RECHARGE",
-                        "power_name": "Ageless Core Epiphany",
-                        "output_text": "Ageless is ready!",
-                        "delay_secs": 0,
-                        "display_secs": 30
-            }
-        ]
+    "name": "Defender",
+    "dir": "D:\\coh\\accounts\\AccountName\\Logs",
+    "display_colors": [
+        "green",
+        "yellow",
+        "red"
+    ],
+    "font_sizes": [
+        24,
+        28,
+        36
+    ],
+    "actions": [
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Storm Cell",
+            "output_text": "Storm Cell has expired!",
+            "delay_secs": 60,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Disruption Arrow",
+            "output_text": "Disruption Arrow has expired!",
+            "delay_secs": 45,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Category Five",
+            "output_text": "Category Five is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Category Five",
+            "output_text": "Category Five is ready!",
+            "delay_secs": 0,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Oil Slick Arrow",
+            "output_text": "Oil Slick Arrow is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Oil Slick Arrow",
+            "output_text": "Oil Slick Arrow is ready!",
+            "delay_secs": 0,
+            "display_secs": 20
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "EMP Arrow",
+            "output_text": "EMP Arrow is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "EMP Arrow",
+            "output_text": "EMP Arrow is ready!",
+            "delay_secs": 0,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Poison Gas Arrow",
+            "output_text": "Poison Gas Arrow is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Poison Gas Arrow",
+            "output_text": "Poison Gas Arrow is ready!",
+            "delay_secs": 0,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Intensify",
+            "output_text": "Intensify is READY",
+            "delay_secs": 11221970,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Intensify",
+            "output_text": "Intensify is READY",
+            "delay_secs": 0,
+            "display_secs": 10
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Ion Judgement",
+            "output_text": "Ion Judgement is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Assault Core Embodiment",
+            "output_text": "Assault is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Assault Hybrid",
+            "output_text": "Assault Hybrid is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "ACTIVATION",
+            "power_name": "Ageless Destiny",
+            "output_text": "Ageless Destiny is ready!",
+            "delay_secs": 11221970,
+            "display_secs": 30
+        },
+        {
+            "trigger_type": "RECHARGE",
+            "power_name": "Ageless Destiny",
+            "output_text": "Ageless Destiny is ready!",
+            "delay_secs": 0,
+            "display_secs": 30
+        }
+    ]
 }

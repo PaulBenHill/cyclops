@@ -2,12 +2,12 @@ use core::fmt;
 
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use strsim::jaro_winkler;
 
 use crate::log_processing::parser_model::DamageType;
 
 lazy_static! {
     pub static ref MINION_HP_TABLE: Vec<MobHP> = initialize_mob_hp_tables(MobClass::Minion);
+    pub static ref NAME_NORMALIZATION_TABLE: Vec<NameNormalization> = initialize_name_normalization_table();
     pub static ref PSEUDO_PETS_TABLE: Vec<PseudoPets> = initialize_pseudo_pet_table();
     pub static ref SIM_HIT_POWERS: Vec<SimHitPower> = initialize_sim_hit_powers();
 }
@@ -42,6 +42,12 @@ pub struct MobHP {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
+pub struct NameNormalization {
+    pub activation_name: String,
+    pub normalized_name: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 pub struct PseudoPets {
     pub activation_name: String,
     pub damage_name: String,
@@ -65,6 +71,14 @@ pub fn initialize_mob_hp_tables(mob_class: MobClass) -> Vec<MobHP> {
 pub fn get_mob_hp(level: &String) -> i32 {
     let l = i32::from_str_radix(level, 10).unwrap();
     MINION_HP_TABLE.iter().find(|d| l == d.level).unwrap().hp
+}
+
+pub fn initialize_name_normalization_table() -> Vec<NameNormalization> {
+    csv::Reader::from_path(".\\resources\\normalization.csv")
+        .unwrap()
+        .deserialize()
+        .map(|r| r.unwrap())
+        .collect()
 }
 
 pub fn initialize_pseudo_pet_table() -> Vec<PseudoPets> {
