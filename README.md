@@ -3,10 +3,10 @@
 
 
 ## Description
-Application for parsing game chat logs into analysis reports.
+Application for parsing game chat logs into analysis reports and in game overlay show statistics and power messages.
 
 ## Preparation
-Please, follow setup instructions otherwiase you will log no or incomplete data. You will have to this once for any character you want to parse.
+Please, follow setup instructions otherwise you will or there will be incomplete or no data. You will have to this once for any character you want to parse.
 
 Under Option->Windows->Chat, Set "Log Chat" to Enabled, hit, Apply Now.
 ![window chat log settings](chat_log_settings.png)
@@ -35,7 +35,7 @@ At this point, I strongly suggest you log back to the character selection screen
 
 Once, you log into a character, log files should start appearing in \<coh install dir\>/accounts/\<account name\>/Logs
 
-## Cyclops instructions
+## Cyclops parser instructions
 
 The default behavior is to start the web server at http://127.0.0.1:11227. Command line options are available. See below.
 ## Installation
@@ -99,7 +99,7 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - Damage by Power or Mob - Select either a power or mob and see what damage was done filtered for a specific power or mob.
   - Minion level - Helps determine how much over/under kill for each power. 
 
-## Report directory is where the data is stored to generate the summaries
+### Report directory is where the data is stored to generate the summaries
 - Copy of the source chat log. Example: chatlog_2024_02_08.txt.
 - Copy of each session broken out as a separate file.
   - \<0 indexed session id\>\_player\_\<starting line in the full chat log>.txt.
@@ -110,7 +110,41 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - parsed.txt - Log files parsed into internal format. Useful for finding missed log messages. Look for, Unparsed.
 - summary.db - An Sqlite version 3.2+ database of all the data currently collected. Everything is tied together by the summary_key field in the table, Summary.
 
-## Command line options if you want to change defaults to parse things outside the UI
+## Cyclops monitor/overlay instructions
+
+### Display configuration
+- All the configuration files use [JSON](https://en.wikipedia.org/wiki/JSON) format. 
+  - If you are having issues with invalid file formats. Use this JSON validator to help find the issue: (https://jsonlint.com/).
+  - Most issues are missing commas, doublequotes, or colons.
+  - I will have UIs to manage these files next release.
+  - Colors supported this release. Rainbow colors.
+    - red
+    - orange
+    - yellow
+    - green
+    - blue
+    - indigo
+    - violet
+- First time setup. 
+  - Open the file, ./configs/overlay.config.json.
+    - overlay_size
+      - Change the width and height to match the display size where you play COH.
+    - Text positioning is very limited this release.
+      - The window is divided into 9 cells indentified by a number.
+      -  1 2 3
+      -  4 5 6
+      -  7 8 9
+      - Default positioning puts the session statistics in the upper left aka position 1.
+      - Power messages goto into center top aka position 2.
+      - Text is centered into that cell/position.
+      - Then you use the, vertical_offset, property to adjust the text downwards. Only downwards this release.
+      - Depending on your screen size. I find position 2 with a vertical offset of 250 puts the messages just below the Navigation window.
+      - Position 5 tends to put the text right in the middle of the fight and blocks my view.
+      - Set font size and color to your preferences
+      - Save file
+
+
+## Command line options if you want to change defaults to parse things outside the UI or start the overlay
   Usage: cyclops.exe [OPTIONS]
   Options:  
   -l, --logdir \<Directories where your game chat files are stored. All files in the directory will be processed.\>  
@@ -119,10 +153,11 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
   -o, --outputdir \<Directory where you want the reports written. Defaults to "output"\>  
   -a, --address \<IP address the web server should use. Defaults to 127.0.0.1\>  
   -p, --port \<Port number the web server should use. Defaults to 11227\>  
+  -m, --monitorconfig \<Monitor configuration file path\> See .\config\examples
   -h, --help Print help  
   -V, --version   
 
-  Everything below is optional.
+  Everything below is optional, except for monitoring
     Examples:  
       cyclops --logdir d:\coh\accounts\fake\Logs  
       cyclops --logdir='d:\coh\accounts\fake\Logs','d:\coh\accounts\fake2\Logs'
@@ -131,6 +166,8 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
       cyclops --interval=42 --files d:\coh\accounts\fake\Logs\'chatlog 2024-02-10.txt'  
       cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere  
       cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere -a 192.111.222.1 -p 8080
+      cyclops --m .\configs\monitor.brute.json
+      cyclops --monitorconfig=.\configs\monitor.brute.json
 
 ### Data Notes
 - I round all numbers to the nearest whole number. Using rounding functions, not truncation. This does introduce small difference between the tool values and what you would get if you added the log values up manually. Around +/- 2%.
@@ -143,6 +180,7 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - [Tera for templating](https://keats.github.io/tera/)
 - [Actix for the web server](https://actix.rs/)
 - [Sqlite for the database](https://www.sqlite.org/)
+- [Equi_Overlay](https://github.com/coderedart/egui_overlay)
 
 
 
