@@ -111,13 +111,13 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - summary.db - An Sqlite version 3.2+ database of all the data currently collected. Everything is tied together by the summary_key field in the table, Summary.
 - rp.txt - Role Playing File - All chat message, emotes, system messages copied here. It will still contain a lot of unecessary logging to due the fact that emotes are no clearly marked in the log files. It should greatly reduce the amount of hand editing.
 
-## Cyclops monitor/overlay instructions
+## Monitor/overlay instructions
 
-Cyclops monitors a configured client log directory to create an invisible game overlay to display session statistics like DPS, experience, and influence/infamy. Power activations and recharges are monitor and rules can be configured to display messages in the overlay. This version is very heavy on manual configuration. Next version will have UIs to handled most of the details.
+Cyclops can monitors a configured client log directory to create an invisible game overlay to display session statistics like DPS, experience, and influence/infamy. Power activations and recharges are monitor and rules can be configured to display messages in the overlay. This version is very heavy on manual configuration. Next version will have UIs to handled most of the details.
 
 ### Display configuration
 - All the configuration files use [JSON](https://en.wikipedia.org/wiki/JSON) format. 
-  - If you are having issues with typos in the configuration files. Use this JSON validator to help find the issue: (https://jsonlint.com/).
+  - If you are having issues with typos in the configuration files. Use this JSON validator to help find the issue: [JSON Lint](https://jsonlint.com/).
     - Most issues are missing commas, doublequotes, or colons.
   - Colors supported this release. ALWAYS USE LOWERCASE. Rainbow colors.
     - red
@@ -128,10 +128,12 @@ Cyclops monitors a configured client log directory to create an invisible game o
     - indigo
     - violet
 - First time setup.
-  - You will probably end up tweaking these settings a lot, so read carefully.
-  - Open the file, ./configs/overlay.config.json.
+  - You will probably end up tweaking these settings a lot, so read carefully. Once, it's setup then you should haven't to touch it again.
+  - Open the file, ./configs/overlay.config.json
+  - DO NOT change the name of the file.
     - overlay_size
       - Change the width and height to match the display size where you play COH.
+      - Example: 1920 is the width, 1080 is the height
     - Text positioning is very limited this release.
       - The window is divided into 9 cells indentified by a number.
       -  1 2 3
@@ -239,8 +241,8 @@ Cyclops monitors a configured client log directory to create an invisible game o
       cyclops --interval=42 --files d:\coh\accounts\fake\Logs\'chatlog 2024-02-10.txt'  
       cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere  
       cyclops --logdir d:\coh\accounts\fake\Logs --outputdir e:\putfileshere -a 192.111.222.1 -p 8080
-      cyclops --m .\configs\monitor.brute.json
-      cyclops --monitorconfig=.\configs\monitor.brute.json
+      cyclops --m .\configs\monitor.big.bad.wolf.json
+      cyclops --monitorconfig=.\configs\monitor.big.bad.wolf.json
 
 ### Data Notes
 - I round all numbers to the nearest whole number. Using rounding functions, not truncation. This does introduce small difference between the tool values and what you would get if you added the log values up manually. Around +/- 2%.
