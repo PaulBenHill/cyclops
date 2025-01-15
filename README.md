@@ -3,7 +3,7 @@
 
 
 ## Description
-Application for parsing game chat logs into analysis reports and in game overlay show statistics and power messages.
+Application for parsing game chat logs into analysis reports and in game overlay showing session statistics and power messages.
 
 ## Preparation
 Please, follow setup instructions otherwise you will or there will be incomplete or no data. You will have to this once for any character you want to parse.
