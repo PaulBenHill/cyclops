@@ -144,6 +144,7 @@ Cyclops monitors a configured client log directory to create an invisible game o
       - Position 5 tends to put the text right in the middle of the fight and blocks my view.
       - Set font size and color to your preferences.
       - Save file.
+### Monitor/Overlay setup
   - Look at ./configs/examples and select a template for the character you want to monitor.
     - Copy that template to ./config and rename the file to reflect your character.
       - Example: 
