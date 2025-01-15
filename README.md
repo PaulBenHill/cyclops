@@ -109,6 +109,7 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - dps.csv - Raw dps data using for the dps report in CSV format.  
 - parsed.txt - Log files parsed into internal format. Useful for finding missed log messages. Look for, Unparsed.
 - summary.db - An Sqlite version 3.2+ database of all the data currently collected. Everything is tied together by the summary_key field in the table, Summary.
+- rp.txt - Role Playing File - All chat message, emotes, system message copied here. It will still contain a lot of unecessary logging to due the fact that emotes are no clearly marked in the log files. It should greatly reduce the amount of hand editing.
 
 ## Cyclops monitor/overlay instructions
 
