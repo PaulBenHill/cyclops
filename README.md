@@ -1,4 +1,4 @@
-# BETA RELEASE - Cyclops 1.1 - City of Heroes log parser
+# BETA RELEASE - Cyclops 1.3 - City of Heroes log parser
 ## I am open to suggestions for data you want to see. 
 
 
@@ -112,12 +112,13 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 
 ## Cyclops monitor/overlay instructions
 
+Cyclops monitors a configured client log directory to create an invisible game overlay to display session statistics like DPS, experience, and influence/infamy. Power activations and recharges are monitor and rules can be configured to display messages in the overlay. This version is very heavy on manual configuration. Next version will have UIs to handled most of the details.
+
 ### Display configuration
 - All the configuration files use [JSON](https://en.wikipedia.org/wiki/JSON) format. 
-  - If you are having issues with invalid file formats. Use this JSON validator to help find the issue: (https://jsonlint.com/).
-  - Most issues are missing commas, doublequotes, or colons.
-  - I will have UIs to manage these files next release.
-  - Colors supported this release. Rainbow colors.
+  - If you are having issues with typos in the configuration files. Use this JSON validator to help find the issue: (https://jsonlint.com/).
+    - Most issues are missing commas, doublequotes, or colons.
+  - Colors supported this release. ALWAYS USE LOWERCASE. Rainbow colors.
     - red
     - orange
     - yellow
@@ -125,7 +126,8 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
     - blue
     - indigo
     - violet
-- First time setup. 
+- First time setup.
+  - You will probably end up tweaking these settings a lot, so read carefully.
   - Open the file, ./configs/overlay.config.json.
     - overlay_size
       - Change the width and height to match the display size where you play COH.
@@ -140,8 +142,77 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
       - Then you use the, vertical_offset, property to adjust the text downwards. Only downwards this release.
       - Depending on your screen size. I find position 2 with a vertical offset of 250 puts the messages just below the Navigation window.
       - Position 5 tends to put the text right in the middle of the fight and blocks my view.
-      - Set font size and color to your preferences
-      - Save file
+      - Set font size and color to your preferences.
+      - Save file.
+  - Look at ./configs/examples and select a template for the character you want to monitor.
+    - Copy that template to ./config and rename the file to reflect your character.
+      - Example: 
+        - Copy ./configs/examples/monitor.brute.json to ./configs/monitor.big.bad.wolf.json
+      - Open your copied file.
+        - Configuration
+          - name
+            - Set to the name of your character
+          - dir
+            - Set to the directory where you account is under your COH installation.
+          - Color and font size properties
+            - Power messages change in three stages depending on the, display_secs, duration. See more below.
+            - display_colors
+              - Set to three of the valid colors. See above. You can use the same color three times if you want.
+            - font_size
+              - Set to your perferred font size. You can see the same font size three times if you want.
+          - Rules
+            - Activation
+              - Create a message when a power is activated with or without a delay.
+                - Useful for power that last long than their recharge or do not provide good indication when they are going to expiry.
+                  - Buffs like Force Field bubbles, Speed Boost.
+                  - Debuffs like Disruption Arrow
+                  - T9s, like Elude, create a activation rule to display message seconds before T9 expires.
+            - Recharge
+              - Create a message when a power is recharged with or without a delay.
+                - Useful for when there are a lot of long recharge powers.
+                  - Trick Arrow, Marine, and Nature for instance have lots of 20+ recharge powers.
+                  - Making sure you know when Judgements are recharged.
+            - Properties
+              - trigger_type
+                - Only two possiblities, ACTIVATION, RECHARGE. ALWAYS USE UPPER CASE.
+              - power_name
+                - Power name as in appears on the Summary page.
+                  - This particularly important for Incarnates as many of the names have been merged into a few simpler names.
+                    - The example files have the correct names
+              - output_text
+                - What you want to display in the client.
+              - delay_secs
+                - How long to delay in seconds before showing the message.
+              - display_secs
+                - How long to display the message in seconds
+                  - The display seconds are broken into three equal time segments. The font size and color selections be used for the matching segment.
+                    - Example:
+                      - Display time: 10 seconds.
+                      - Colors: green, yellow, red.
+                      - Font sizes: 16,20,24.
+                      - First 3.3 seconds of the message display will be green with font size 16.
+                      - Next 3.3 seconds, yellow, font size 20.
+                      - Last 3.3 seconds, red, font size 24.
+          - Special relationship between ACTIVATION and RECHARGE rules.
+            - ACTIVATION rules will cancel RECHARGE rules if they have the same power name.
+              - This is to cancel RECHARGE messages if the player fires the power after the recharge message appear. Otherwise, the recharge will stay until it's display time expires.
+              - This means you need to pair up each RECHARGE rule with an ACTIVATION rule, if you want the recharge message to disappear when you fire the power.
+              - Example configurations have examples of these pairings.
+          - Caveats
+            - Incarnate Hybrids logs their recharge and availablity different from most powers. You will see messages that they have recharge, but are actually still running. I will try and improve this next release.
+- Start up
+  - Edit overlay.bat
+    - Replace <monitor config file> with the name of your monitor configuration file.
+      - BEFORE start cmd /k .\cyclops.exe -m .\configs\<monitor config file>
+      - AFTER start cmd /k .\cyclops.exe -m .\configs\monitor.big.bag.wolf.json
+  - Save file
+  - Double click on overlay.bat to start
+- Troubleshooting
+  - If you are having issues with typos in the configuration files. Use this JSON validator to help find the issue: (https://jsonlint.com/).
+    - Most issues are missing commas, doublequotes, or colons.
+  - In the output directory there will be a file, monitor.<date>.log, which captures all the overlay/monitor logging.
+  Performance
+   - The monitor can only handle logs file up to about 100K lines before it cannot parse them in under a second. Most characters will not get close to this limit, except certain builds like farmers and storm blast. The monitor will still work, but messages will slowly beacuse more and more delayed. I plan to improve the parser speed next release.
 
 
 ## Command line options if you want to change defaults to parse things outside the UI or start the overlay
@@ -181,10 +252,3 @@ The default behavior is to start the web server at http://127.0.0.1:11227. Comma
 - [Actix for the web server](https://actix.rs/)
 - [Sqlite for the database](https://www.sqlite.org/)
 - [Equi_Overlay](https://github.com/coderedart/egui_overlay)
-
-
-
-
-
-
-

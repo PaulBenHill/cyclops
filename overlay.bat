@@ -1,0 +1,1 @@
+start cmd /k .\cyclops.exe -m .\configs\<monitor config file>
