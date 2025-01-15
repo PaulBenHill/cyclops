@@ -138,8 +138,8 @@ Cyclops monitors a configured client log directory to create an invisible game o
       -  4 5 6
       -  7 8 9
       - Default positioning puts the session statistics in the upper left aka position 1.
-      - Power messages goto into center top aka position 2.
-      - Text is centered into that cell/position.
+      - Power messages go into center top aka position 2.
+      - Text is centered in that cell/position.
       - Then you use the, vertical_offset, property to adjust the text downwards. Only downwards this release.
       - Depending on your screen size. I find position 2 with a vertical offset of 250 puts the messages just below the Navigation window.
       - Position 5 tends to put the text right in the middle of the fight and blocks my view.
